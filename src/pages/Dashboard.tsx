@@ -5,6 +5,7 @@ import { Compass, BarChart2, Briefcase } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { DashboardView } from "@/components/dashboard/DashboardView";
 
 // Sample data for charts
 const opportunityStatusData = [
@@ -43,6 +44,7 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <DashboardHeader />
+      <DashboardView />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Opportunity Status */}
@@ -283,7 +285,7 @@ export default function Dashboard() {
                     <div className="w-3 h-3 rounded-sm mr-2" style={{ backgroundColor: item.color }}></div>
                     <div className="flex flex-col">
                       <span>{item.name}</span>
-                      <span className="text-muted-foreground">$0 (0.00%) - {item.value}</span>
+                      <span className="text-muted-foreground">${0} (0.00%) - {item.value}</span>
                     </div>
                   </div>
                 ))}
