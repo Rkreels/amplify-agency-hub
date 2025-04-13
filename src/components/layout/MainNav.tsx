@@ -1,8 +1,7 @@
 
 import { cn } from "@/lib/utils";
-import { Bell, Search } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserAccountNav } from "./UserAccountNav";
 import { Input } from "@/components/ui/input";
@@ -11,12 +10,10 @@ export function MainNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const location = useLocation();
-
   return (
-    <div className="border-b">
+    <div className="border-b bg-white">
       <div className="flex h-16 items-center px-4 md:px-6">
-        <Link to="/" className="hidden md:flex items-center mr-8">
+        <Link to="/" className="hidden md:flex md:mr-8">
           <span className="font-bold text-xl text-primary">Amplify</span>
         </Link>
         <nav
@@ -33,10 +30,6 @@ export function MainNav({
           </div>
         </nav>
         <div className="ml-auto flex items-center space-x-2">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-          </Button>
           <ThemeToggle />
           <UserAccountNav />
         </div>
