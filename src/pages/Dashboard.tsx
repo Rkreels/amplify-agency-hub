@@ -83,7 +83,7 @@ export default function Dashboard() {
                     dominantBaseline="middle"
                     className="text-2xl font-bold"
                   >
-                    {opportunityStatusData.reduce((sum, item) => sum + item.value, 0)}
+                    {String(opportunityStatusData.reduce((sum, item) => sum + item.value, 0))}
                   </text>
                 </PieChart>
               </ChartContainer>

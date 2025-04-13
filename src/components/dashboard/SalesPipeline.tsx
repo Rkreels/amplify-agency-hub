@@ -18,6 +18,7 @@ export function SalesPipeline() {
       count: 12,
       value: 45000,
       progress: 80,
+      color: "#3498db"
     },
     {
       id: 2,
@@ -25,6 +26,7 @@ export function SalesPipeline() {
       count: 8,
       value: 32000,
       progress: 60,
+      color: "#2ecc71"
     },
     {
       id: 3,
@@ -32,6 +34,7 @@ export function SalesPipeline() {
       count: 5,
       value: 28000,
       progress: 40,
+      color: "#9b59b6"
     },
     {
       id: 4,
@@ -39,6 +42,7 @@ export function SalesPipeline() {
       count: 3,
       value: 18000,
       progress: 25,
+      color: "#e74c3c"
     },
     {
       id: 5,
@@ -46,6 +50,7 @@ export function SalesPipeline() {
       count: 2,
       value: 12000,
       progress: 15,
+      color: "#f1c40f"
     },
   ];
 
@@ -72,7 +77,9 @@ export function SalesPipeline() {
                 ${stage.value.toLocaleString()}
               </span>
             </div>
-            <Progress value={stage.progress} className="h-2" />
+            <Progress value={stage.progress} className="h-2" style={{ 
+              "--progress-background": stage.color
+            } as React.CSSProperties} />
           </div>
         ))}
       </CardContent>

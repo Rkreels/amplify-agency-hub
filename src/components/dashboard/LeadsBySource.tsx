@@ -14,8 +14,10 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  Cell
 } from "recharts";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 const data = [
   {
@@ -58,23 +60,31 @@ export function LeadsBySource() {
         <BarChart className="w-4 h-4 ml-auto text-muted-foreground" />
       </CardHeader>
       <CardContent className="pl-2">
-        <ResponsiveContainer width="100%" height={250}>
-          <RechartBarChart data={data} barSize={40}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip 
-              formatter={(value) => [`${value} leads`, 'Count']}
-              contentStyle={{ 
-                backgroundColor: 'var(--card)', 
-                borderColor: 'var(--border)',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-              }}
-            />
-            <Bar dataKey="value" fill="#4361ee" radius={[4, 4, 0, 0]} />
-          </RechartBarChart>
-        </ResponsiveContainer>
+        <ChartContainer
+          config={{
+            organic: { color: "#4361ee", label: "Organic" },
+            referral: { color: "#7209b7", label: "Referral" },
+            social: { color: "#f72585", label: "Social" },
+            email: { color: "#4cc9f0", label: "Email" },
+            ppc: { color: "#560bad", label: "PPC" },
+          }}
+        >
+          <ResponsiveContainer width="100%" height={250}>
+            <RechartBarChart data={data} barSize={40}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip 
+                content={<ChartTooltipContent />}
+              />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
+            </RechartBarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
