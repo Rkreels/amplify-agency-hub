@@ -2,20 +2,19 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { 
   Smartphone, 
   Laptop, 
   Tablet, 
-  Trash2, 
-  RefreshCw, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle,
-  LogOut,
-  ShieldAlert
+  Desktop, 
+  ShieldCheck, 
+  AlertTriangle,
+  MapPin,
+  Clock,
+  XCircle,
+  SearchCode
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { 
   Table, 
   TableBody, 
@@ -24,445 +23,356 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 interface DeviceSettingsProps {
-  onChange: () => void;
+  onChange: (changes: any) => void;
+  lastSaved?: number;
 }
 
-export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
+export default function DeviceSettings({ onChange, lastSaved }: DeviceSettingsProps) {
   const [devices, setDevices] = useState([
     {
       id: 1,
-      name: "iPhone 13 Pro",
-      type: "mobile",
-      lastActive: "Just now",
-      status: "current",
+      name: "MacBook Pro",
+      type: "desktop",
+      browser: "Chrome",
+      os: "macOS Monterey",
+      lastActive: new Date(2025, 3, 13, 15, 30),
       location: "Eugene, OR",
-      ipAddress: "192.168.1.1",
-      loginDate: "Apr 13, 2025, 10:30 AM",
+      ip: "192.168.1.1",
       trusted: true
     },
     {
       id: 2,
-      name: "MacBook Pro",
-      type: "desktop",
-      lastActive: "10 minutes ago",
-      status: "active",
+      name: "iPhone 14 Pro",
+      type: "mobile",
+      browser: "Safari",
+      os: "iOS 16.5",
+      lastActive: new Date(2025, 3, 14, 8, 15),
       location: "Eugene, OR",
-      ipAddress: "192.168.1.45",
-      loginDate: "Apr 13, 2025, 9:15 AM",
+      ip: "192.168.1.2",
       trusted: true
     },
     {
       id: 3,
-      name: "iPad Air",
-      type: "tablet",
-      lastActive: "3 days ago",
-      status: "inactive",
+      name: "Dell XPS 15",
+      type: "desktop",
+      browser: "Firefox",
+      os: "Windows 11",
+      lastActive: new Date(2025, 3, 7, 10, 45),
       location: "Portland, OR",
-      ipAddress: "192.168.2.12",
-      loginDate: "Apr 10, 2025, 3:45 PM",
+      ip: "203.0.113.45",
       trusted: false
     },
     {
       id: 4,
-      name: "Dell XPS 15",
-      type: "desktop",
-      lastActive: "2 weeks ago",
-      status: "expired",
+      name: "iPad Pro",
+      type: "tablet",
+      browser: "Safari",
+      os: "iPadOS 16.3",
+      lastActive: new Date(2025, 3, 1, 14, 20),
       location: "Seattle, WA",
-      ipAddress: "192.168.3.78",
-      loginDate: "Mar 30, 2025, 11:20 AM",
-      trusted: false
+      ip: "198.51.100.87",
+      trusted: true
     }
   ]);
   
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [sessionDuration, setSessionDuration] = useState("168");
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [deviceVerification, setDeviceVerification] = useState(true);
-  
+  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+
   const getDeviceIcon = (type: string) => {
     switch (type) {
-      case 'mobile':
+      case "mobile":
         return <Smartphone className="h-5 w-5" />;
-      case 'tablet':
+      case "tablet":
         return <Tablet className="h-5 w-5" />;
-      case 'desktop':
+      case "desktop":
+        return type === "desktop" ? <Desktop className="h-5 w-5" /> : <Laptop className="h-5 w-5" />;
       default:
         return <Laptop className="h-5 w-5" />;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'current':
-        return <Badge variant="default">Current Device</Badge>;
-      case 'active':
-        return <Badge variant="outline" className="text-green-500 border-green-500">Active</Badge>;
-      case 'inactive':
-        return <Badge variant="outline" className="text-amber-500 border-amber-500">Inactive</Badge>;
-      case 'expired':
-        return <Badge variant="outline" className="text-muted-foreground">Expired</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+  const formatLastActive = (date: Date) => {
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return "Today at " + format(date, "h:mm a");
+    } else if (diffDays === 1) {
+      return "Yesterday at " + format(date, "h:mm a");
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return format(date, "MMM d, yyyy");
     }
   };
-  
-  const refreshDevices = () => {
-    setIsRefreshing(true);
-    // Simulating a refresh
-    setTimeout(() => {
-      // Update the "last active" times
-      setDevices(devices.map(device => {
-        if (device.status === "current") {
-          return { ...device, lastActive: "Just now" };
-        }
-        return device;
-      }));
-      
-      setIsRefreshing(false);
-      toast.success("Device list refreshed");
-      onChange();
-    }, 1500);
+
+  const handleTrustDevice = (id: number) => {
+    const updatedDevices = devices.map(device => 
+      device.id === id ? { ...device, trusted: true } : device
+    );
+    setDevices(updatedDevices);
+    onChange({ devices: updatedDevices });
+    toast.success("Device marked as trusted");
   };
-  
-  const revokeDevice = (id: number) => {
-    setDevices(devices.map(device => 
-      device.id === id 
-        ? { ...device, status: "expired", lastActive: "Session ended" } 
-        : device
-    ));
-    toast.success("Device access revoked");
-    onChange();
-  };
-  
-  const revokeAllOtherDevices = () => {
-    setDevices(devices.map(device => 
-      device.status === "current" 
-        ? device 
-        : { ...device, status: "expired", lastActive: "Session ended" }
-    ));
-    toast.success("All other devices revoked");
-    onChange();
-  };
-  
-  const toggleTrustedDevice = (id: number) => {
-    setDevices(devices.map(device => 
-      device.id === id 
-        ? { ...device, trusted: !device.trusted } 
-        : device
-    ));
+
+  const handleRevokeAccess = () => {
+    if (!selectedDevice) return;
     
-    const device = devices.find(d => d.id === id);
-    if (device) {
-      toast.success(`${device.name} ${device.trusted ? 'removed from' : 'added to'} trusted devices`);
-    }
-    onChange();
+    const updatedDevices = devices.filter(device => device.id !== selectedDevice.id);
+    setDevices(updatedDevices);
+    onChange({ devices: updatedDevices });
+    setShowRevokeDialog(false);
+    toast.success("Device access revoked successfully");
   };
-  
-  const handleSessionDurationChange = (value: string) => {
-    setSessionDuration(value);
-    onChange();
-    
-    const durationMap: {[key: string]: string} = {
-      "1": "1 hour",
-      "8": "8 hours",
-      "24": "1 day",
-      "168": "7 days",
-      "720": "30 days"
-    };
-    
-    toast.success(`Session duration set to ${durationMap[value]}`);
-  };
-  
-  const toggleBiometricAuth = () => {
-    setBiometricEnabled(!biometricEnabled);
-    toast.success(`Biometric authentication ${biometricEnabled ? 'disabled' : 'enabled'}`);
-    onChange();
-  };
-  
-  const toggleDeviceVerification = () => {
-    setDeviceVerification(!deviceVerification);
-    toast.success(`Device verification ${deviceVerification ? 'disabled' : 'enabled'}`);
-    onChange();
+
+  const handleRevokeAllOtherDevices = () => {
+    const currentDevice = devices[0]; // Assume first device is current
+    const updatedDevices = [currentDevice];
+    setDevices(updatedDevices);
+    onChange({ devices: updatedDevices });
+    toast.success("Revoked access from all other devices");
   };
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Connected Devices</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refreshDevices} 
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </CardTitle>
-          <CardDescription>Manage devices connected to your account</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle>Active Devices</CardTitle>
+            <CardDescription>
+              Manage devices that have access to your account
+            </CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleRevokeAllOtherDevices}
+          >
+            <XCircle className="h-4 w-4 mr-2" />
+            Revoke All Other Devices
+          </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Device</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Last Active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {devices.map((device) => (
-                <TableRow key={device.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${device.status === 'current' || device.status === 'active' ? 'bg-primary/10' : 'bg-muted'}`}>
-                        {getDeviceIcon(device.type)}
-                      </div>
-                      <div>
-                        <div className="font-medium flex items-center gap-2">
-                          {device.name}
-                          {device.trusted && (
-                            <Badge variant="outline" className="text-blue-500 border-blue-500">Trusted</Badge>
-                          )}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Device</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {devices.map((device) => (
+                  <TableRow key={device.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-muted/50 p-2 rounded-full">
+                          {getDeviceIcon(device.type)}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Login: {device.loginDate}
+                        <div>
+                          <div className="font-medium">{device.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {device.browser} on {device.os}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(device.status)}</TableCell>
-                  <TableCell>
-                    <div>{device.location}</div>
-                    <div className="text-xs text-muted-foreground">{device.ipAddress}</div>
-                  </TableCell>
-                  <TableCell>{device.lastActive}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {device.status === 'current' ? (
-                        <Button variant="outline" size="sm" disabled>
-                          Current
-                        </Button>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{device.location}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        IP: {device.ip}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{formatLastActive(device.lastActive)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {device.trusted ? (
+                        <Badge className="flex items-center gap-1 bg-green-500 hover:bg-green-600">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Trusted
+                        </Badge>
                       ) : (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="text-destructive"
-                              disabled={device.status === 'expired'}
+                        <Badge variant="outline" className="flex items-center gap-1 text-amber-500 border-amber-500">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Unverified
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {!device.trusted && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleTrustDevice(device.id)}
+                          >
+                            Trust
+                          </Button>
+                        )}
+                        <Dialog open={showRevokeDialog && selectedDevice?.id === device.id} onOpenChange={(open) => {
+                          setShowRevokeDialog(open);
+                          if (!open) setSelectedDevice(null);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                setSelectedDevice(device);
+                                setShowRevokeDialog(true);
+                              }}
                             >
-                              <LogOut className="h-4 w-4 mr-2" />
                               Revoke
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Revoke Device Access</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will end the current session on {device.name}. The user will need to log in again to access the account.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => revokeDevice(device.id)}
-                                className="bg-destructive text-destructive-foreground"
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Revoke Device Access</DialogTitle>
+                              <DialogDescription>
+                                Are you sure you want to revoke access for this device?
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedDevice && (
+                              <div className="py-4">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="bg-muted/50 p-2 rounded-full">
+                                    {selectedDevice && getDeviceIcon(selectedDevice.type)}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">{selectedDevice?.name}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {selectedDevice?.browser} on {selectedDevice?.os}
+                                    </div>
+                                  </div>
+                                </div>
+                                <Alert variant="destructive">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>Warning</AlertTitle>
+                                  <AlertDescription>
+                                    Revoking access will sign this device out immediately. You'll need to log in again to use this device.
+                                  </AlertDescription>
+                                </Alert>
+                              </div>
+                            )}
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                              </DialogClose>
+                              <Button 
+                                variant="destructive" 
+                                onClick={handleRevokeAccess}
                               >
                                 Revoke Access
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleTrustedDevice(device.id)}
-                        disabled={device.status === 'expired'}
-                      >
-                        {device.trusted ? "Untrust" : "Trust"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           
-          <div className="mt-4 flex justify-end">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="text-destructive">
-                  Revoke All Other Devices
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Revoke All Other Devices</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will sign out all devices except your current one. Everyone will need to log in again.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={revokeAllOtherDevices}
-                    className="bg-destructive text-destructive-foreground"
-                  >
-                    <ShieldAlert className="h-4 w-4 mr-2" />
-                    Revoke All
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          <div className="mt-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <SearchCode className="h-4 w-4" />
+              <span>
+                Suspicious activity? <Button variant="link" className="h-auto p-0">Review recent logins</Button>
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
-          <CardTitle>Device Security</CardTitle>
-          <CardDescription>Manage security settings for your devices</CardDescription>
+          <CardTitle>Device Settings</CardTitle>
+          <CardDescription>Configure device-specific preferences</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Trusted Devices</h3>
+                <h3 className="font-medium">Remember Login Sessions</h3>
                 <p className="text-sm text-muted-foreground">
-                  Skip two-factor authentication on devices you trust
+                  Stay logged in on trusted devices
                 </p>
               </div>
               <Button 
                 variant="outline"
                 onClick={() => {
-                  toast.success("Managed trusted devices");
-                  onChange();
+                  toast.success("Session preference updated");
+                  onChange({ rememberSessions: true });
                 }}
               >
-                Manage
+                Enabled
               </Button>
             </div>
-            
-            <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Device Verification</h3>
+                <h3 className="font-medium">Login Verification</h3>
                 <p className="text-sm text-muted-foreground">
-                  Require verification for new devices logging into your account
+                  Verify new device logins with a security code
                 </p>
               </div>
-              <Switch 
-                checked={deviceVerification}
-                onCheckedChange={toggleDeviceVerification}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between p-4 border rounded-md">
-              <div>
-                <h3 className="font-medium">Session Duration</h3>
-                <p className="text-sm text-muted-foreground">
-                  Set how long devices stay logged in before requiring re-authentication
-                </p>
-              </div>
-              <select 
-                className="h-9 rounded-md border border-input px-3 py-1"
-                value={sessionDuration}
-                onChange={(e) => handleSessionDurationChange(e.target.value)}
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  toast.success("Login verification preference updated");
+                  onChange({ loginVerification: true });
+                }}
               >
-                <option value="1">1 hour</option>
-                <option value="8">8 hours</option>
-                <option value="24">1 day</option>
-                <option value="168">7 days</option>
-                <option value="720">30 days</option>
-              </select>
+                Enabled
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Mobile App Settings</CardTitle>
-          <CardDescription>Configure settings for the mobile application</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-md">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Mobile App Status</h3>
+                <h3 className="font-medium">Inactive Session Timeout</h3>
                 <p className="text-sm text-muted-foreground">
-                  GoHighLevel mobile app is installed and authenticated
+                  Automatically log out after period of inactivity
                 </p>
               </div>
-              <Badge variant="outline" className="text-green-500 border-green-500">
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Connected
-              </Badge>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 border rounded-md">
-              <div>
-                <h3 className="font-medium">Biometric Authentication</h3>
-                <p className="text-sm text-muted-foreground">
-                  Use Face ID, Touch ID or fingerprint to unlock the mobile app
-                </p>
-              </div>
-              <Switch 
-                checked={biometricEnabled}
-                onCheckedChange={toggleBiometricAuth}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between p-4 border rounded-md">
-              <div>
-                <h3 className="font-medium">Download Mobile App</h3>
-                <p className="text-sm text-muted-foreground">
-                  Get the GoHighLevel mobile app for iOS and Android
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    window.open('https://apps.apple.com', '_blank');
-                    onChange();
-                  }}
-                >
-                  iOS
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    window.open('https://play.google.com', '_blank');
-                    onChange();
-                  }}
-                >
-                  Android
-                </Button>
-              </div>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  toast.success("Session timeout updated");
+                  onChange({ sessionTimeout: 30 });
+                }}
+              >
+                30 minutes
+              </Button>
             </div>
           </div>
         </CardContent>

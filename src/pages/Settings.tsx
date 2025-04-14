@@ -39,6 +39,7 @@ export default function Settings() {
   const [formChanged, setFormChanged] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [savedSettings, setSavedSettings] = useState<Record<string, any>>({});
 
   // Handle URL params to select tab
   useEffect(() => {
@@ -77,6 +78,13 @@ export default function Settings() {
         if (prev >= 100) {
           clearInterval(interval);
           setSaving(false);
+          
+          // Save the current settings state
+          setSavedSettings(prev => ({
+            ...prev,
+            [activeTab]: Date.now() // Store timestamp of when settings were saved
+          }));
+          
           toast.success("Settings saved successfully");
           setFormChanged(false);
           return 0;
@@ -84,6 +92,11 @@ export default function Settings() {
         return prev + 10;
       });
     }, 100);
+  };
+
+  const handleSettingChange = (changes: any) => {
+    console.log("Settings changed:", changes);
+    setFormChanged(true);
   };
 
   const settingsTabs = [
@@ -100,29 +113,65 @@ export default function Settings() {
   ];
 
   const renderTabContent = () => {
+    // Pass the savedSettings and onChange handler to each component
+    const lastSaved = savedSettings[activeTab];
+    
     switch (activeTab) {
       case "profile":
-        return <ProfileSettings onChange={() => setFormChanged(true)} />;
+        return <ProfileSettings 
+          onChange={handleSettingChange} 
+          lastSaved={lastSaved} 
+        />;
       case "team":
-        return <TeamSettings onChange={() => setFormChanged(true)} />;
+        return <TeamSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "billing":
-        return <BillingSettings onChange={() => setFormChanged(true)} />;
+        return <BillingSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "domains":
-        return <DomainSettings onChange={() => setFormChanged(true)} />;
+        return <DomainSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "notifications":
-        return <NotificationSettings onChange={() => setFormChanged(true)} />;
+        return <NotificationSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "security":
-        return <SecuritySettings onChange={() => setFormChanged(true)} />;
+        return <SecuritySettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "devices":
-        return <DeviceSettings onChange={() => setFormChanged(true)} />;
+        return <DeviceSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "appearance":
-        return <AppearanceSettings onChange={() => setFormChanged(true)} />;
+        return <AppearanceSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "email":
-        return <EmailTemplateSettings onChange={() => setFormChanged(true)} />;
+        return <EmailTemplateSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       case "sms":
-        return <SmsTemplateSettings onChange={() => setFormChanged(true)} />;
+        return <SmsTemplateSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
       default:
-        return <ProfileSettings onChange={() => setFormChanged(true)} />;
+        return <ProfileSettings 
+          onChange={handleSettingChange}
+          lastSaved={lastSaved}
+        />;
     }
   };
 

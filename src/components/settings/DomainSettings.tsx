@@ -2,131 +2,125 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, Plus, CheckCircle2, XCircle, ArrowRight, AlertCircle, ExternalLink, Trash } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { 
+  Globe, 
+  PlusCircle, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  ExternalLink, 
+  Trash2,
+  Copy
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 interface DomainSettingsProps {
-  onChange: () => void;
+  onChange: (changes: any) => void;
+  lastSaved?: number;
 }
 
-export default function DomainSettings({ onChange }: DomainSettingsProps) {
+export default function DomainSettings({ onChange, lastSaved }: DomainSettingsProps) {
+  const [newDomain, setNewDomain] = useState("");
+  const [verifying, setVerifying] = useState<number | null>(null);
   const [domains, setDomains] = useState([
-    {
-      id: 1,
-      domain: "app.youragency.com",
-      type: "Primary",
-      status: "verified",
-      addedOn: "Jan 15, 2025"
+    { 
+      id: 1, 
+      domain: "youragency.com", 
+      status: "verified", 
+      type: "primary",
+      addedAt: "2025-03-10" 
     },
-    {
-      id: 2,
-      domain: "booking.youragency.com",
-      type: "Subdomain",
-      status: "verified",
-      addedOn: "Feb 3, 2025"
-    },
-    {
-      id: 3,
-      domain: "clients.youragency.com",
-      type: "Subdomain",
-      status: "unverified",
-      addedOn: "Apr 10, 2025"
+    { 
+      id: 2, 
+      domain: "client.youragency.com", 
+      status: "pending", 
+      type: "booking",
+      addedAt: "2025-04-01" 
     }
   ]);
-  
-  const [newDomain, setNewDomain] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [domainToRemove, setDomainToRemove] = useState<number | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
-  const addDomain = () => {
-    if (!newDomain) {
-      toast.error("Please enter a domain name");
+  const handleAddDomain = () => {
+    // Basic domain validation
+    if (!newDomain || !/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(newDomain)) {
+      toast.error("Please enter a valid domain name");
       return;
     }
-    
+
+    // Check for duplicate
     if (domains.some(d => d.domain === newDomain)) {
       toast.error("This domain is already added");
       return;
     }
-    
-    const date = new Date();
-    const formattedDate = date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-    
+
     const newDomainObj = {
-      id: Date.now(),
+      id: domains.length + 1,
       domain: newDomain,
-      type: "Subdomain",
-      status: "unverified",
-      addedOn: formattedDate
+      status: "pending",
+      type: "custom",
+      addedAt: new Date().toISOString().split('T')[0]
     };
-    
+
     setDomains([...domains, newDomainObj]);
     setNewDomain("");
-    setOpenDialog(false);
-    toast.success("Domain added. Please verify it.");
-    onChange();
+    setShowAddDialog(false);
+    onChange({ domains: [...domains, newDomainObj] });
+    toast.success("Domain added successfully. Verification needed.");
   };
-  
-  const verifyDomain = (id: number) => {
-    setIsVerifying(true);
+
+  const handleVerifyDomain = (id: number) => {
+    setVerifying(id);
     
     // Simulate verification process
     setTimeout(() => {
-      setDomains(domains.map(d => 
-        d.id === id ? { ...d, status: "verified" } : d
+      setDomains(domains.map(domain => 
+        domain.id === id ? { ...domain, status: "verified" } : domain
       ));
-      setIsVerifying(false);
-      toast.success("Domain verified successfully!");
-      onChange();
+      setVerifying(null);
+      onChange({ domains: domains.map(domain => 
+        domain.id === id ? { ...domain, status: "verified" } : domain
+      )});
+      toast.success("Domain verified successfully");
     }, 2000);
   };
-  
-  const removeDomain = (id: number) => {
-    setDomains(domains.filter(d => d.id !== id));
-    setDomainToRemove(null);
-    toast.success("Domain removed successfully!");
-    onChange();
+
+  const handleDeleteDomain = (id: number) => {
+    if (window.confirm("Are you sure you want to remove this domain?")) {
+      const filteredDomains = domains.filter(domain => domain.id !== id);
+      setDomains(filteredDomains);
+      onChange({ domains: filteredDomains });
+      toast.success("Domain removed successfully");
+    }
   };
-  
-  const visitDomain = (domain: string) => {
-    window.open(`https://${domain}`, '_blank');
+
+  const handleCopyDnsRecord = () => {
+    navigator.clipboard.writeText("TXT agency-verify=123456789");
+    toast.success("DNS record copied to clipboard");
   };
 
   return (
@@ -134,13 +128,15 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
-            <CardTitle>Custom Domains</CardTitle>
-            <CardDescription>Manage your custom domains and SSL certificates</CardDescription>
+            <CardTitle>Domain Management</CardTitle>
+            <CardDescription>
+              Configure and manage custom domains for your agency
+            </CardDescription>
           </div>
-          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button onClick={() => {}}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button>
+                <Globe className="h-4 w-4 mr-2" />
                 Add Domain
               </Button>
             </DialogTrigger>
@@ -148,23 +144,32 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
               <DialogHeader>
                 <DialogTitle>Add New Domain</DialogTitle>
                 <DialogDescription>
-                  Enter a domain you own. You'll need to verify ownership.
+                  Enter the domain you'd like to connect to your account
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="domain-input">Domain Name</Label>
-                  <Input 
-                    id="domain-input" 
-                    placeholder="example.com" 
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="domain">Domain Name</Label>
+                  <Input
+                    id="domain"
+                    placeholder="example.com"
                     value={newDomain}
                     onChange={(e) => setNewDomain(e.target.value)}
                   />
                 </div>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Important</AlertTitle>
+                  <AlertDescription>
+                    Make sure you own this domain before adding it. You'll need to verify ownership.
+                  </AlertDescription>
+                </Alert>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
-                <Button onClick={addDomain}>Add Domain</Button>
+                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddDomain}>Add Domain</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -174,162 +179,147 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Domain</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Added On</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Added</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {domains.map((domain) => (
                 <TableRow key={domain.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{domain.domain}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={domain.type === "Primary" ? "default" : "outline"}>
-                      {domain.type}
-                    </Badge>
-                  </TableCell>
+                  <TableCell className="font-medium">{domain.domain}</TableCell>
                   <TableCell>
                     {domain.status === "verified" ? (
-                      <div className="flex items-center gap-1 text-green-500">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Verified</span>
-                      </div>
+                      <Badge className="bg-green-500 hover:bg-green-600">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
                     ) : (
-                      <div className="flex items-center gap-1 text-amber-500">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>Unverified</span>
-                      </div>
+                      <Badge variant="outline" className="text-amber-500 border-amber-500">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Pending Verification
+                      </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{domain.addedOn}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {domain.type.charAt(0).toUpperCase() + domain.type.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{domain.addedAt}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => visitDomain(domain.domain)}>
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Visit
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`https://${domain.domain}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
                       </Button>
-                      {domain.status === "unverified" ? (
+                      
+                      {domain.status !== "verified" && (
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => verifyDomain(domain.id)}
-                          disabled={isVerifying}
+                          onClick={() => handleVerifyDomain(domain.id)}
+                          disabled={verifying === domain.id}
                         >
-                          {isVerifying ? "Verifying..." : "Verify"}
+                          {verifying === domain.id ? "Verifying..." : "Verify"}
                         </Button>
-                      ) : (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="text-destructive"
-                              onClick={() => setDomainToRemove(domain.id)}
-                              disabled={domain.type === "Primary"}
-                            >
-                              Remove
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently remove the domain
-                                "{domain.domain}" from your account.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => removeDomain(domain.id)}
-                                className="bg-destructive text-destructive-foreground"
-                              >
-                                <Trash className="h-4 w-4 mr-2" />
-                                Remove Domain
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
                       )}
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteDomain(domain.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          
+          {domains.some(d => d.status === "pending") && (
+            <div className="mt-6 border rounded-md p-4">
+              <h3 className="text-sm font-medium mb-2">Verify Domain Ownership</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                To verify domain ownership, add the following TXT record to your domain's DNS settings:
+              </p>
+              <div className="flex items-center justify-between bg-muted p-3 rounded-md mb-3">
+                <code className="text-xs">TXT agency-verify=123456789</code>
+                <Button variant="ghost" size="sm" onClick={handleCopyDnsRecord}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                DNS changes may take up to 48 hours to propagate.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Domain</CardTitle>
-          <CardDescription>Connect a custom domain to your account</CardDescription>
+          <CardTitle>Domain Configuration</CardTitle>
+          <CardDescription>Configure DNS settings for your domains</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="domain">Domain Name</Label>
-              <div className="flex gap-2">
-                <Input 
-                  id="domain" 
-                  placeholder="example.com" 
-                  className="flex-1" 
-                  value={newDomain}
-                  onChange={(e) => {
-                    setNewDomain(e.target.value);
-                    onChange();
-                  }}
-                />
-                <Button onClick={addDomain}>Verify Domain</Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Enter a domain you own. You'll need to verify ownership by updating DNS settings.
+            <div>
+              <h3 className="text-sm font-medium mb-2">DNS Records</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Add these records to your domain's DNS settings to ensure proper functionality:
               </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>TTL</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>A</TableCell>
+                    <TableCell>@</TableCell>
+                    <TableCell>192.0.2.1</TableCell>
+                    <TableCell>3600</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>CNAME</TableCell>
+                    <TableCell>www</TableCell>
+                    <TableCell>youragency.pages.dev</TableCell>
+                    <TableCell>3600</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>CNAME</TableCell>
+                    <TableCell>booking</TableCell>
+                    <TableCell>youragency-booking.pages.dev</TableCell>
+                    <TableCell>3600</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>MX</TableCell>
+                    <TableCell>@</TableCell>
+                    <TableCell>mail.youragency.com</TableCell>
+                    <TableCell>3600</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="font-medium">Verification Instructions</h3>
-              <div className="bg-muted/50 rounded-md p-4 space-y-3">
-                <div>
-                  <p className="font-medium">1. Add a CNAME record to your DNS settings</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-background p-2 rounded border">
-                      <p className="text-muted-foreground">Host / Name</p>
-                      <p className="font-mono">@</p>
-                    </div>
-                    <div className="bg-background p-2 rounded border">
-                      <p className="text-muted-foreground">Value / Target</p>
-                      <p className="font-mono">verify.youragency.highapp.com</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="font-medium">2. Add a TXT record to verify domain ownership</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-background p-2 rounded border">
-                      <p className="text-muted-foreground">Host / Name</p>
-                      <p className="font-mono">_verification</p>
-                    </div>
-                    <div className="bg-background p-2 rounded border">
-                      <p className="text-muted-foreground">Value / Content</p>
-                      <p className="font-mono">ghl-verification=xxxxxxxxxx</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <AlertCircle className="h-4 w-4" />
-                <p>DNS changes may take up to 48 hours to propagate fully.</p>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">SSL Certificates</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                All domains automatically receive SSL certificates for secure HTTPS connections.
+              </p>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-sm">Automated SSL provisioning enabled</span>
               </div>
             </div>
           </div>
