@@ -94,8 +94,8 @@ export default function Settings() {
     }, 100);
   };
 
-  const handleSettingChange = (changes: any) => {
-    console.log("Settings changed:", changes);
+  const handleSettingChange = () => {
+    console.log("Settings changed");
     setFormChanged(true);
   };
 
