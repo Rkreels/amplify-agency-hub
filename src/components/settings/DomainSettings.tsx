@@ -1,7 +1,8 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, Plus, CheckCircle2, XCircle, ArrowRight, AlertCircle, ExternalLink } from "lucide-react";
+import { Globe, Plus, CheckCircle2, XCircle, ArrowRight, AlertCircle, ExternalLink, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -14,13 +15,34 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface DomainSettingsProps {
   onChange: () => void;
 }
 
 export default function DomainSettings({ onChange }: DomainSettingsProps) {
-  const domains = [
+  const [domains, setDomains] = useState([
     {
       id: 1,
       domain: "app.youragency.com",
@@ -42,7 +64,70 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
       status: "unverified",
       addedOn: "Apr 10, 2025"
     }
-  ];
+  ]);
+  
+  const [newDomain, setNewDomain] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [domainToRemove, setDomainToRemove] = useState<number | null>(null);
+
+  const addDomain = () => {
+    if (!newDomain) {
+      toast.error("Please enter a domain name");
+      return;
+    }
+    
+    if (domains.some(d => d.domain === newDomain)) {
+      toast.error("This domain is already added");
+      return;
+    }
+    
+    const date = new Date();
+    const formattedDate = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    const newDomainObj = {
+      id: Date.now(),
+      domain: newDomain,
+      type: "Subdomain",
+      status: "unverified",
+      addedOn: formattedDate
+    };
+    
+    setDomains([...domains, newDomainObj]);
+    setNewDomain("");
+    setOpenDialog(false);
+    toast.success("Domain added. Please verify it.");
+    onChange();
+  };
+  
+  const verifyDomain = (id: number) => {
+    setIsVerifying(true);
+    
+    // Simulate verification process
+    setTimeout(() => {
+      setDomains(domains.map(d => 
+        d.id === id ? { ...d, status: "verified" } : d
+      ));
+      setIsVerifying(false);
+      toast.success("Domain verified successfully!");
+      onChange();
+    }, 2000);
+  };
+  
+  const removeDomain = (id: number) => {
+    setDomains(domains.filter(d => d.id !== id));
+    setDomainToRemove(null);
+    toast.success("Domain removed successfully!");
+    onChange();
+  };
+  
+  const visitDomain = (domain: string) => {
+    window.open(`https://${domain}`, '_blank');
+  };
 
   return (
     <div className="space-y-6">
@@ -52,10 +137,37 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
             <CardTitle>Custom Domains</CardTitle>
             <CardDescription>Manage your custom domains and SSL certificates</CardDescription>
           </div>
-          <Button onClick={onChange}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Domain
-          </Button>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={() => {}}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Domain
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Domain</DialogTitle>
+                <DialogDescription>
+                  Enter a domain you own. You'll need to verify ownership.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="domain-input">Domain Name</Label>
+                  <Input 
+                    id="domain-input" 
+                    placeholder="example.com" 
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
+                <Button onClick={addDomain}>Add Domain</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           <Table>
@@ -98,18 +210,52 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
                   <TableCell>{domain.addedOn}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={onChange}>
+                      <Button variant="ghost" size="sm" onClick={() => visitDomain(domain.domain)}>
                         <ExternalLink className="h-4 w-4 mr-1" />
                         Visit
                       </Button>
                       {domain.status === "unverified" ? (
-                        <Button variant="outline" size="sm" onClick={onChange}>
-                          Verify
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => verifyDomain(domain.id)}
+                          disabled={isVerifying}
+                        >
+                          {isVerifying ? "Verifying..." : "Verify"}
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" className="text-destructive" onClick={onChange}>
-                          Remove
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-destructive"
+                              onClick={() => setDomainToRemove(domain.id)}
+                              disabled={domain.type === "Primary"}
+                            >
+                              Remove
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently remove the domain
+                                "{domain.domain}" from your account.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => removeDomain(domain.id)}
+                                className="bg-destructive text-destructive-foreground"
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Remove Domain
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </TableCell>
@@ -130,8 +276,17 @@ export default function DomainSettings({ onChange }: DomainSettingsProps) {
             <div className="space-y-2">
               <Label htmlFor="domain">Domain Name</Label>
               <div className="flex gap-2">
-                <Input id="domain" placeholder="example.com" className="flex-1" onChange={onChange} />
-                <Button onClick={onChange}>Verify Domain</Button>
+                <Input 
+                  id="domain" 
+                  placeholder="example.com" 
+                  className="flex-1" 
+                  value={newDomain}
+                  onChange={(e) => {
+                    setNewDomain(e.target.value);
+                    onChange();
+                  }}
+                />
+                <Button onClick={addDomain}>Verify Domain</Button>
               </div>
               <p className="text-sm text-muted-foreground">
                 Enter a domain you own. You'll need to verify ownership by updating DNS settings.

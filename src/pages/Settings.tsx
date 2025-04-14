@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,14 +29,61 @@ import DeviceSettings from "@/components/settings/DeviceSettings";
 import AppearanceSettings from "@/components/settings/AppearanceSettings";
 import EmailTemplateSettings from "@/components/settings/EmailTemplateSettings";
 import SmsTemplateSettings from "@/components/settings/SmsTemplateSettings";
+import { Progress } from "@/components/ui/progress";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Settings() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
   const [formChanged, setFormChanged] = useState(false);
+  const [isSaving, setSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // Handle URL params to select tab
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab && settingsTabs.some(item => item.value === tab)) {
+      setActiveTab(tab);
+    }
+  }, [location]);
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    params.set("tab", activeTab);
+    navigate({ search: params.toString() }, { replace: true });
+  }, [activeTab, navigate, location.search]);
+
+  const handleTabChange = (tab: string) => {
+    if (formChanged) {
+      if (window.confirm("You have unsaved changes. Are you sure you want to leave this tab?")) {
+        setFormChanged(false);
+        setActiveTab(tab);
+      }
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   const handleSaveChanges = () => {
-    toast.success("Settings saved successfully");
-    setFormChanged(false);
+    setSaving(true);
+    setProgress(0);
+    
+    // Simulate progress
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setSaving(false);
+          toast.success("Settings saved successfully");
+          setFormChanged(false);
+          return 0;
+        }
+        return prev + 10;
+      });
+    }, 100);
   };
 
   const settingsTabs = [
@@ -88,11 +135,30 @@ export default function Settings() {
             Manage your account and application preferences
           </p>
         </div>
-        <Button onClick={handleSaveChanges} disabled={!formChanged}>
-          <Save className="h-4 w-4 mr-2" />
-          Save Changes
+        <Button 
+          onClick={handleSaveChanges} 
+          disabled={!formChanged || isSaving}
+          className={isSaving ? "opacity-70" : ""}
+        >
+          {isSaving ? (
+            <>
+              <Save className="h-4 w-4 mr-2 animate-pulse" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </>
+          )}
         </Button>
       </div>
+      
+      {isSaving && (
+        <div className="mb-6">
+          <Progress value={progress} className="h-2" />
+        </div>
+      )}
       
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-3">
@@ -104,10 +170,14 @@ export default function Settings() {
                   className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted transition-colors ${
                     activeTab === item.value ? 'bg-muted' : ''
                   }`}
-                  onClick={() => setActiveTab(item.value)}
+                  onClick={() => handleTabChange(item.value)}
                 >
-                  <item.icon className="h-5 w-5 text-muted-foreground" />
-                  <span>{item.label}</span>
+                  <item.icon className={`h-5 w-5 ${
+                    activeTab === item.value ? 'text-primary' : 'text-muted-foreground'
+                  }`} />
+                  <span className={activeTab === item.value ? 'font-medium' : ''}>
+                    {item.label}
+                  </span>
                 </div>
               ))}
             </div>

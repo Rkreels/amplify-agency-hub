@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,7 +13,8 @@ import {
   CheckCircle2, 
   Clock, 
   AlertCircle,
-  LogOut
+  LogOut,
+  ShieldAlert
 } from "lucide-react";
 import { 
   Table, 
@@ -22,13 +24,27 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface DeviceSettingsProps {
   onChange: () => void;
 }
 
 export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
-  const devices = [
+  const [devices, setDevices] = useState([
     {
       id: 1,
       name: "iPhone 13 Pro",
@@ -37,7 +53,8 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
       status: "current",
       location: "Eugene, OR",
       ipAddress: "192.168.1.1",
-      loginDate: "Apr 13, 2025, 10:30 AM"
+      loginDate: "Apr 13, 2025, 10:30 AM",
+      trusted: true
     },
     {
       id: 2,
@@ -47,7 +64,8 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
       status: "active",
       location: "Eugene, OR",
       ipAddress: "192.168.1.45",
-      loginDate: "Apr 13, 2025, 9:15 AM"
+      loginDate: "Apr 13, 2025, 9:15 AM",
+      trusted: true
     },
     {
       id: 3,
@@ -57,7 +75,8 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
       status: "inactive",
       location: "Portland, OR",
       ipAddress: "192.168.2.12",
-      loginDate: "Apr 10, 2025, 3:45 PM"
+      loginDate: "Apr 10, 2025, 3:45 PM",
+      trusted: false
     },
     {
       id: 4,
@@ -67,10 +86,16 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
       status: "expired",
       location: "Seattle, WA",
       ipAddress: "192.168.3.78",
-      loginDate: "Mar 30, 2025, 11:20 AM"
+      loginDate: "Mar 30, 2025, 11:20 AM",
+      trusted: false
     }
-  ];
-
+  ]);
+  
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sessionDuration, setSessionDuration] = useState("168");
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [deviceVerification, setDeviceVerification] = useState(true);
+  
   const getDeviceIcon = (type: string) => {
     switch (type) {
       case 'mobile':
@@ -97,6 +122,85 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
+  
+  const refreshDevices = () => {
+    setIsRefreshing(true);
+    // Simulating a refresh
+    setTimeout(() => {
+      // Update the "last active" times
+      setDevices(devices.map(device => {
+        if (device.status === "current") {
+          return { ...device, lastActive: "Just now" };
+        }
+        return device;
+      }));
+      
+      setIsRefreshing(false);
+      toast.success("Device list refreshed");
+      onChange();
+    }, 1500);
+  };
+  
+  const revokeDevice = (id: number) => {
+    setDevices(devices.map(device => 
+      device.id === id 
+        ? { ...device, status: "expired", lastActive: "Session ended" } 
+        : device
+    ));
+    toast.success("Device access revoked");
+    onChange();
+  };
+  
+  const revokeAllOtherDevices = () => {
+    setDevices(devices.map(device => 
+      device.status === "current" 
+        ? device 
+        : { ...device, status: "expired", lastActive: "Session ended" }
+    ));
+    toast.success("All other devices revoked");
+    onChange();
+  };
+  
+  const toggleTrustedDevice = (id: number) => {
+    setDevices(devices.map(device => 
+      device.id === id 
+        ? { ...device, trusted: !device.trusted } 
+        : device
+    ));
+    
+    const device = devices.find(d => d.id === id);
+    if (device) {
+      toast.success(`${device.name} ${device.trusted ? 'removed from' : 'added to'} trusted devices`);
+    }
+    onChange();
+  };
+  
+  const handleSessionDurationChange = (value: string) => {
+    setSessionDuration(value);
+    onChange();
+    
+    const durationMap: {[key: string]: string} = {
+      "1": "1 hour",
+      "8": "8 hours",
+      "24": "1 day",
+      "168": "7 days",
+      "720": "30 days"
+    };
+    
+    toast.success(`Session duration set to ${durationMap[value]}`);
+  };
+  
+  const toggleBiometricAuth = () => {
+    setBiometricEnabled(!biometricEnabled);
+    toast.success(`Biometric authentication ${biometricEnabled ? 'disabled' : 'enabled'}`);
+    onChange();
+  };
+  
+  const toggleDeviceVerification = () => {
+    setDeviceVerification(!deviceVerification);
+    toast.success(`Device verification ${deviceVerification ? 'disabled' : 'enabled'}`);
+    onChange();
+  };
 
   return (
     <div className="space-y-6">
@@ -104,9 +208,14 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Connected Devices</span>
-            <Button variant="outline" size="sm" onClick={onChange}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshDevices} 
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
           </CardTitle>
           <CardDescription>Manage devices connected to your account</CardDescription>
@@ -127,11 +236,16 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
                 <TableRow key={device.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-full">
+                      <div className={`p-2 rounded-full ${device.status === 'current' || device.status === 'active' ? 'bg-primary/10' : 'bg-muted'}`}>
                         {getDeviceIcon(device.type)}
                       </div>
                       <div>
-                        <div className="font-medium">{device.name}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          {device.name}
+                          {device.trusted && (
+                            <Badge variant="outline" className="text-blue-500 border-blue-500">Trusted</Badge>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           Login: {device.loginDate}
                         </div>
@@ -145,16 +259,53 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
                   </TableCell>
                   <TableCell>{device.lastActive}</TableCell>
                   <TableCell className="text-right">
-                    {device.status === 'current' ? (
-                      <Button variant="outline" size="sm" disabled>
-                        Current
+                    <div className="flex justify-end gap-2">
+                      {device.status === 'current' ? (
+                        <Button variant="outline" size="sm" disabled>
+                          Current
+                        </Button>
+                      ) : (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-destructive"
+                              disabled={device.status === 'expired'}
+                            >
+                              <LogOut className="h-4 w-4 mr-2" />
+                              Revoke
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Revoke Device Access</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will end the current session on {device.name}. The user will need to log in again to access the account.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => revokeDevice(device.id)}
+                                className="bg-destructive text-destructive-foreground"
+                              >
+                                Revoke Access
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleTrustedDevice(device.id)}
+                        disabled={device.status === 'expired'}
+                      >
+                        {device.trusted ? "Untrust" : "Trust"}
                       </Button>
-                    ) : (
-                      <Button variant="outline" size="sm" className="text-destructive" onClick={onChange}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Revoke
-                      </Button>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -162,9 +313,31 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
           </Table>
           
           <div className="mt-4 flex justify-end">
-            <Button variant="outline" className="text-destructive" onClick={onChange}>
-              Revoke All Other Devices
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="text-destructive">
+                  Revoke All Other Devices
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Revoke All Other Devices</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will sign out all devices except your current one. Everyone will need to log in again.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={revokeAllOtherDevices}
+                    className="bg-destructive text-destructive-foreground"
+                  >
+                    <ShieldAlert className="h-4 w-4 mr-2" />
+                    Revoke All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>
@@ -183,7 +356,13 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
                   Skip two-factor authentication on devices you trust
                 </p>
               </div>
-              <Button variant="outline" onClick={onChange}>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  toast.success("Managed trusted devices");
+                  onChange();
+                }}
+              >
                 Manage
               </Button>
             </div>
@@ -195,9 +374,10 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
                   Require verification for new devices logging into your account
                 </p>
               </div>
-              <Button variant="outline" onClick={onChange}>
-                Configure
-              </Button>
+              <Switch 
+                checked={deviceVerification}
+                onCheckedChange={toggleDeviceVerification}
+              />
             </div>
             
             <div className="flex items-center justify-between p-4 border rounded-md">
@@ -209,12 +389,13 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
               </div>
               <select 
                 className="h-9 rounded-md border border-input px-3 py-1"
-                onChange={onChange}
+                value={sessionDuration}
+                onChange={(e) => handleSessionDurationChange(e.target.value)}
               >
                 <option value="1">1 hour</option>
                 <option value="8">8 hours</option>
                 <option value="24">1 day</option>
-                <option value="168" selected>7 days</option>
+                <option value="168">7 days</option>
                 <option value="720">30 days</option>
               </select>
             </div>
@@ -249,9 +430,10 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
                   Use Face ID, Touch ID or fingerprint to unlock the mobile app
                 </p>
               </div>
-              <Button variant="outline" onClick={onChange}>
-                Enable
-              </Button>
+              <Switch 
+                checked={biometricEnabled}
+                onCheckedChange={toggleBiometricAuth}
+              />
             </div>
             
             <div className="flex items-center justify-between p-4 border rounded-md">
@@ -262,10 +444,22 @@ export default function DeviceSettings({ onChange }: DeviceSettingsProps) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={onChange}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    window.open('https://apps.apple.com', '_blank');
+                    onChange();
+                  }}
+                >
                   iOS
                 </Button>
-                <Button variant="outline" onClick={onChange}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    window.open('https://play.google.com', '_blank');
+                    onChange();
+                  }}
+                >
                   Android
                 </Button>
               </div>
