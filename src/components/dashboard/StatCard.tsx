@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import React from "react";
 
 interface StatCardProps {
   title: string;
@@ -13,6 +14,7 @@ interface StatCardProps {
   className?: string;
   color?: string;
   variant?: "default" | "simple";
+  children?: React.ReactNode;
 }
 
 export function StatCard({
@@ -24,7 +26,8 @@ export function StatCard({
   negative,
   className,
   color,
-  variant = "default"
+  variant = "default",
+  children
 }: StatCardProps) {
   if (variant === "simple") {
     return (
@@ -33,10 +36,11 @@ export function StatCard({
           <CardTitle className="text-base font-medium">{title}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="text-3xl font-bold text-center py-10">{value}</div>
+          <div className="text-3xl font-bold text-center py-4">{value}</div>
           {description && (
             <p className="text-xs text-muted-foreground text-center">{description}</p>
           )}
+          {children}
         </CardContent>
       </Card>
     );
@@ -72,6 +76,7 @@ export function StatCard({
             {description}
           </p>
         )}
+        {children}
       </CardContent>
     </Card>
   );

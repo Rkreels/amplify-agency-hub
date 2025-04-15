@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ export default function Conversations() {
   const [selectedConversation, setSelectedConversation] = useState<number>(3);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -73,6 +74,8 @@ export default function Conversations() {
     {
       id: 2,
       sender: "You",
+      avatar: "",
+      initials: "YO",
       content: "Hello Emma! Yes, we specialize in website design for small businesses. We offer various packages depending on your needs. Would you like me to send you our service brochure?",
       time: "Yesterday, 3:45 PM",
       isCustomer: false,
@@ -89,6 +92,8 @@ export default function Conversations() {
     {
       id: 4,
       sender: "You",
+      avatar: "",
+      initials: "YO",
       content: "Perfect! We have excellent e-commerce solutions that would work well for a boutique clothing store. I've attached our e-commerce brochure with pricing and features. Would you be available for a quick call this week to discuss your specific requirements?",
       time: "Yesterday, 4:15 PM",
       isCustomer: false,
@@ -193,6 +198,15 @@ export default function Conversations() {
       ]
     },
   ]);
+
+  // Scroll to bottom of messages when a new message is added
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const filteredConversations = conversations.filter(conversation => {
     if (activeTab === "unread" && conversation.unread === 0) {
@@ -569,6 +583,7 @@ export default function Conversations() {
                           </div>
                         </div>
                       ))}
+                      <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
 
