@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +24,27 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from "@/components/ui/popover";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Conversation {
   id: number;
@@ -61,6 +81,29 @@ export default function Conversations() {
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [showFilterPopover, setShowFilterPopover] = useState(false);
+  const [showNewContactDialog, setShowNewContactDialog] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachmentOptions, setShowAttachmentOptions] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  
+  const [filterOptions, setFilterOptions] = useState({
+    unread: false,
+    email: false,
+    sms: false,
+    facebook: false,
+    phone: false,
+  });
+  
+  const [newContactForm, setNewContactForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  
+  const [attachments, setAttachments] = useState<string[]>([]);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -199,7 +242,6 @@ export default function Conversations() {
     },
   ]);
 
-  // Scroll to bottom of messages when a new message is added
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -218,13 +260,21 @@ export default function Conversations() {
              conversation.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
     }
     
+    if (filterOptions.email || filterOptions.sms || filterOptions.facebook || filterOptions.phone) {
+      if (filterOptions.email && conversation.channel === "email") return true;
+      if (filterOptions.sms && conversation.channel === "sms") return true;
+      if (filterOptions.facebook && conversation.channel === "facebook") return true;
+      if (filterOptions.phone && conversation.channel === "phone") return true;
+      return false;
+    }
+    
     return true;
   });
 
   const selectedContact = conversations.find(c => c.id === selectedConversation);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && attachments.length === 0) return;
     
     const now = new Date();
     const hours = now.getHours() % 12 || 12;
@@ -232,19 +282,22 @@ export default function Conversations() {
     const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
     const timeString = `Today, ${hours}:${minutes} ${ampm}`;
     
+    const content = attachments.length > 0 
+      ? `${newMessage} ${attachments.map(a => `[Attachment: ${a}]`).join(" ")}`
+      : newMessage;
+    
     const newMessageObj: Message = {
       id: messages.length + 1,
       sender: "You",
       avatar: "",
       initials: "YO",
-      content: newMessage,
+      content: content,
       time: timeString,
       isCustomer: false,
     };
     
     setMessages([...messages, newMessageObj]);
     
-    // Update the conversation last message
     setConversations(
       conversations.map(conv => 
         conv.id === selectedConversation
@@ -254,6 +307,9 @@ export default function Conversations() {
     );
     
     setNewMessage("");
+    setAttachments([]);
+    setShowEmojiPicker(false);
+    setShowAttachmentOptions(false);
     
     toast({
       title: "Message sent",
@@ -266,15 +322,50 @@ export default function Conversations() {
   };
 
   const handleNewContact = () => {
+    setShowNewContactDialog(true);
+  };
+
+  const handleCreateNewContact = () => {
+    if (!newContactForm.name || !newContactForm.email) {
+      toast({
+        title: "Missing information",
+        description: "Please provide at least a name and email for the new contact.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const newContact: Conversation = {
+      id: conversations.length + 1,
+      contact: newContactForm.name,
+      avatar: "",
+      initials: newContactForm.name.split(' ').map(n => n[0]).join(''),
+      lastMessage: "New contact created",
+      time: "Just now",
+      unread: 0,
+      channel: "email",
+      email: newContactForm.email,
+      phone: newContactForm.phone,
+      tags: ["New Contact"],
+      activities: [
+        { time: "Just now", description: "Contact created" }
+      ]
+    };
+    
+    setConversations([newContact, ...conversations]);
+    setSelectedConversation(newContact.id);
+    
+    setNewContactForm({ name: "", email: "", phone: "" });
+    setShowNewContactDialog(false);
+    
     toast({
-      title: "Create New Contact",
-      description: "The new contact form would open here.",
+      title: "Contact created",
+      description: `New contact ${newContactForm.name} has been created`,
     });
   };
 
   const handleConversationClick = (id: number) => {
     setSelectedConversation(id);
-    // Mark as read when selecting
     setConversations(
       conversations.map(conv => 
         conv.id === id
@@ -285,14 +376,91 @@ export default function Conversations() {
   };
 
   const handleFilterClick = () => {
+    setShowFilterPopover(!showFilterPopover);
+  };
+
+  const applyFilters = () => {
+    setShowFilterPopover(false);
     toast({
-      description: "Filter options would appear here",
+      description: "Filters applied",
+    });
+  };
+
+  const resetFilters = () => {
+    setFilterOptions({
+      unread: false,
+      email: false,
+      sms: false,
+      facebook: false,
+      phone: false,
+    });
+    setShowFilterPopover(false);
+    toast({
+      description: "Filters reset",
     });
   };
 
   const handleChannelClick = (type: string) => {
+    let title = "";
+    let description = "";
+    
+    switch (type) {
+      case "text":
+        title = "New SMS Conversation";
+        description = "Starting a new SMS conversation";
+        break;
+      case "email":
+        title = "New Email";
+        description = "Starting a new email conversation";
+        break;
+      case "facebook":
+        title = "New Facebook Message";
+        description = "Starting a new Facebook message";
+        break;
+      case "other":
+        title = "New Conversation";
+        description = "Select a channel to start a new conversation";
+        break;
+    }
+    
     toast({
-      description: `New ${type} conversation would start here`,
+      title,
+      description,
+    });
+  };
+
+  const handleAddEmoji = (emoji: string) => {
+    setNewMessage(prevMessage => prevMessage + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleAddAttachment = (type: string) => {
+    const attachmentTypes = {
+      image: "image.jpg",
+      document: "document.pdf",
+      contact: "contact.vcf",
+      location: "location.pin"
+    };
+    
+    const attachmentName = attachmentTypes[type as keyof typeof attachmentTypes] || "file.txt";
+    setAttachments([...attachments, attachmentName]);
+    setShowAttachmentOptions(false);
+    
+    toast({
+      description: `${attachmentName} attached to message`,
+    });
+  };
+
+  const handleScheduleCall = () => {
+    setShowScheduleDialog(true);
+  };
+  
+  const confirmScheduleCall = () => {
+    setShowScheduleDialog(false);
+    
+    toast({
+      title: "Call scheduled",
+      description: `Call with ${selectedContact?.contact} has been scheduled`,
     });
   };
 
@@ -308,6 +476,8 @@ export default function Conversations() {
     facebook: <Facebook className="h-4 w-4" />,
     phone: <Phone className="h-4 w-4" />,
   };
+
+  const emojis = ["😊", "👍", "🙏", "❤️", "😂", "🎉", "👋", "🔥", "✅", "⭐"];
 
   return (
     <AppLayout>
@@ -325,7 +495,6 @@ export default function Conversations() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-12rem)]">
-        {/* Conversation List */}
         <Card className="lg:col-span-4 flex flex-col">
           <div className="p-4 border-b">
             <div className="relative">
@@ -348,10 +517,75 @@ export default function Conversations() {
               </TabsList>
             </div>
             <div className="px-3 pt-3 flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-8" onClick={handleFilterClick}>
-                <Filter className="h-3.5 w-3.5 mr-1" />
-                Filter
-              </Button>
+              <Popover open={showFilterPopover} onOpenChange={setShowFilterPopover}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8" onClick={handleFilterClick}>
+                    <Filter className="h-3.5 w-3.5 mr-1" />
+                    Filter
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3" align="start">
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-sm">Filter Conversations</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="filter-unread" 
+                          checked={filterOptions.unread}
+                          onCheckedChange={(checked) => 
+                            setFilterOptions({...filterOptions, unread: checked as boolean})
+                          }
+                        />
+                        <label htmlFor="filter-unread" className="text-sm">Unread only</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="filter-email" 
+                          checked={filterOptions.email}
+                          onCheckedChange={(checked) => 
+                            setFilterOptions({...filterOptions, email: checked as boolean})
+                          }
+                        />
+                        <label htmlFor="filter-email" className="text-sm">Email</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="filter-sms" 
+                          checked={filterOptions.sms}
+                          onCheckedChange={(checked) => 
+                            setFilterOptions({...filterOptions, sms: checked as boolean})
+                          }
+                        />
+                        <label htmlFor="filter-sms" className="text-sm">SMS</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="filter-facebook" 
+                          checked={filterOptions.facebook}
+                          onCheckedChange={(checked) => 
+                            setFilterOptions({...filterOptions, facebook: checked as boolean})
+                          }
+                        />
+                        <label htmlFor="filter-facebook" className="text-sm">Facebook</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="filter-phone" 
+                          checked={filterOptions.phone}
+                          onCheckedChange={(checked) => 
+                            setFilterOptions({...filterOptions, phone: checked as boolean})
+                          }
+                        />
+                        <label htmlFor="filter-phone" className="text-sm">Phone</label>
+                      </div>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <Button size="sm" variant="outline" onClick={resetFilters}>Reset</Button>
+                      <Button size="sm" onClick={applyFilters}>Apply</Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <div className="flex ml-auto">
                 <Button 
                   variant="ghost" 
@@ -504,7 +738,6 @@ export default function Conversations() {
           </Tabs>
         </Card>
 
-        {/* Conversation View */}
         <Card className="lg:col-span-8 flex flex-col">
           {selectedContact ? (
             <>
@@ -532,18 +765,36 @@ export default function Conversations() {
                     variant="ghost" 
                     size="sm" 
                     className="h-8 w-8 p-0"
-                    onClick={() => toast({ description: "Schedule a meeting with " + selectedContact.contact })}
+                    onClick={handleScheduleCall}
                   >
                     <Calendar className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                    onClick={() => toast({ description: "More options" })}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => toast({ description: "View profile" })}>
+                        View profile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ description: "Add tags" })}>
+                        Add tags
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ description: "Add to campaign" })}>
+                        Add to campaign
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => toast({ description: "Block contact" })}>
+                        Block contact
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
@@ -588,15 +839,71 @@ export default function Conversations() {
                   </ScrollArea>
 
                   <div className="p-4 border-t">
+                    {attachments.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {attachments.map((attachment, index) => (
+                          <div key={index} className="bg-muted rounded px-2 py-1 text-xs flex items-center">
+                            <span>{attachment}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-4 w-4 p-0 ml-1"
+                              onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                            >
+                              <span>×</span>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-9 w-9"
-                        onClick={() => toast({ description: "Attachment options" })}
-                      >
-                        <PaperclipIcon className="h-4 w-4" />
-                      </Button>
+                      <Popover open={showAttachmentOptions} onOpenChange={setShowAttachmentOptions}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-9 w-9"
+                          >
+                            <PaperclipIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48" align="start" alignOffset={20}>
+                          <div className="space-y-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleAddAttachment('image')}
+                            >
+                              Image
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleAddAttachment('document')}
+                            >
+                              Document
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleAddAttachment('contact')}
+                            >
+                              Contact
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleAddAttachment('location')}
+                            >
+                              Location
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <Input
                         placeholder="Type your message..."
                         className="flex-1"
@@ -604,19 +911,36 @@ export default function Conversations() {
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
                       />
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-9 w-9"
-                        onClick={() => toast({ description: "Emoji picker" })}
-                      >
-                        <SmileIcon className="h-4 w-4" />
-                      </Button>
+                      <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-9 w-9"
+                          >
+                            <SmileIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48" align="end" alignOffset={20}>
+                          <div className="grid grid-cols-5 gap-2">
+                            {emojis.map((emoji, index) => (
+                              <Button 
+                                key={index} 
+                                variant="ghost" 
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleAddEmoji(emoji)}
+                              >
+                                {emoji}
+                              </Button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <Button 
                         size="icon" 
                         className="h-9 w-9"
                         onClick={handleSendMessage}
-                        disabled={!newMessage.trim()}
+                        disabled={!newMessage.trim() && attachments.length === 0}
                       >
                         <Send className="h-4 w-4" />
                       </Button>
@@ -675,6 +999,125 @@ export default function Conversations() {
           )}
         </Card>
       </div>
+
+      <Dialog open={showNewContactDialog} onOpenChange={setShowNewContactDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Contact</DialogTitle>
+            <DialogDescription>
+              Add a new contact to your conversations
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="name" className="text-sm font-medium">
+                Name
+              </label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                value={newContactForm.name}
+                onChange={(e) => setNewContactForm({...newContactForm, name: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="john@example.com"
+                value={newContactForm.email}
+                onChange={(e) => setNewContactForm({...newContactForm, email: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium">
+                Phone
+              </label>
+              <Input
+                id="phone"
+                placeholder="+1 (555) 123-4567"
+                value={newContactForm.phone}
+                onChange={(e) => setNewContactForm({...newContactForm, phone: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewContactDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateNewContact}>
+              Create Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule a Call</DialogTitle>
+            <DialogDescription>
+              Set up a call with {selectedContact?.contact}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="date" className="text-sm font-medium">
+                Date
+              </label>
+              <Input
+                id="date"
+                type="date"
+                defaultValue={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="time" className="text-sm font-medium">
+                Time
+              </label>
+              <Input
+                id="time"
+                type="time"
+                defaultValue="09:00"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="duration" className="text-sm font-medium">
+                Duration
+              </label>
+              <select 
+                id="duration" 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              >
+                <option value="15">15 minutes</option>
+                <option value="30" selected>30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="notes" className="text-sm font-medium">
+                Notes
+              </label>
+              <Input
+                id="notes"
+                placeholder="Call agenda..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmScheduleCall}>
+              Schedule Call
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
