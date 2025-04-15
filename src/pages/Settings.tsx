@@ -113,65 +113,29 @@ export default function Settings() {
   ];
 
   const renderTabContent = () => {
-    // Pass the savedSettings and onChange handler to each component
-    const lastSaved = savedSettings[activeTab];
-    
     switch (activeTab) {
       case "profile":
-        return <ProfileSettings 
-          onChange={handleSettingChange} 
-          lastSaved={lastSaved} 
-        />;
+        return <ProfileSettings onChange={handleSettingChange} />;
       case "team":
-        return <TeamSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <TeamSettings onChange={handleSettingChange} />;
       case "billing":
-        return <BillingSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <BillingSettings onChange={handleSettingChange} />;
       case "domains":
-        return <DomainSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <DomainSettings onChange={handleSettingChange} />;
       case "notifications":
-        return <NotificationSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <NotificationSettings onChange={handleSettingChange} />;
       case "security":
-        return <SecuritySettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <SecuritySettings onChange={handleSettingChange} />;
       case "devices":
-        return <DeviceSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <DeviceSettings onChange={handleSettingChange} />;
       case "appearance":
-        return <AppearanceSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <AppearanceSettings onChange={handleSettingChange} />;
       case "email":
-        return <EmailTemplateSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <EmailTemplateSettings onChange={handleSettingChange} />;
       case "sms":
-        return <SmsTemplateSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <SmsTemplateSettings onChange={handleSettingChange} />;
       default:
-        return <ProfileSettings 
-          onChange={handleSettingChange}
-          lastSaved={lastSaved}
-        />;
+        return <ProfileSettings onChange={handleSettingChange} />;
     }
   };
 

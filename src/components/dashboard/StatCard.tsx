@@ -23,19 +23,27 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("card-hover", className)}>
+    <Card className={cn("transition-all shadow-sm hover:shadow-md border-l-4", 
+      positive && "border-l-green-500",
+      negative && "border-l-red-500",
+      !positive && !negative && "border-l-primary",
+      className)}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <div className="bg-primary/10 p-1.5 rounded-full">
+          <Icon className="h-4 w-4 text-primary" />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         {description && (
           <p
             className={cn(
-              "text-xs text-muted-foreground",
+              "text-xs",
               positive && "text-green-600 dark:text-green-400",
-              negative && "text-red-600 dark:text-red-400"
+              negative && "text-red-600 dark:text-red-400",
+              !positive && !negative && "text-muted-foreground"
             )}
           >
             {description}

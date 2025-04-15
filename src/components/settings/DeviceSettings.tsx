@@ -8,10 +8,13 @@ import {
   Laptop, 
   Monitor, 
   Tablet,
-  X
+  X,
+  ShieldAlert
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Device {
   id: string;
@@ -57,6 +60,10 @@ export default function DeviceSettings({ onChange }: { onChange?: () => void }) 
       isCurrentDevice: false,
     }
   ]);
+  
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+  const [showLogoutAllDialog, setShowLogoutAllDialog] = useState(false);
 
   const getDeviceIcon = (type: string) => {
     switch (type) {
@@ -79,72 +86,143 @@ export default function DeviceSettings({ onChange }: { onChange?: () => void }) 
       return;
     }
     
-    setDevices(devices.filter(device => device.id !== deviceId));
-    toast.success("Device access revoked successfully");
+    setSelectedDevice(deviceId);
+    setShowRevokeDialog(true);
+  };
+  
+  const confirmRevoke = () => {
+    if (!selectedDevice) return;
     
+    setDevices(devices.filter(device => device.id !== selectedDevice));
+    toast.success("Device access revoked successfully");
+    setShowRevokeDialog(false);
+    
+    if (onChange) onChange();
+  };
+  
+  const handleLogoutAllDevices = () => {
+    setShowLogoutAllDialog(true);
+  };
+  
+  const confirmLogoutAll = () => {
+    const currentDevice = devices.find(device => device.isCurrentDevice);
+    
+    if (currentDevice) {
+      setDevices([currentDevice]);
+      toast.success("All other devices have been logged out");
+    }
+    
+    setShowLogoutAllDialog(false);
     if (onChange) onChange();
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Device Management</CardTitle>
-        <CardDescription>
-          Manage devices that are currently logged in to your account. You can revoke access to any device except your current one.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Device</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Last Active</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {devices.map((device) => (
-              <TableRow key={device.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getDeviceIcon(device.type)}
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {device.os}
-                        {device.isCurrentDevice && (
-                          <Badge variant="outline" className="ml-1">Current</Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {device.browser}
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Device Management</CardTitle>
+            <CardDescription>
+              Manage devices that are currently logged in to your account
+            </CardDescription>
+          </div>
+          <Button 
+            variant="destructive" 
+            onClick={handleLogoutAllDevices}
+            disabled={devices.length <= 1}
+          >
+            <ShieldAlert className="h-4 w-4 mr-2" />
+            Logout All Other Devices
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Device</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Last Active</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {devices.map((device) => (
+                <TableRow key={device.id} className="hover:bg-muted/30">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getDeviceIcon(device.type)}
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          {device.os}
+                          {device.isCurrentDevice && (
+                            <Badge variant="outline" className="bg-primary/10 text-primary ml-1">Current</Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {device.browser}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div>{device.location}</div>
-                    <div className="text-sm text-muted-foreground">{device.ipAddress}</div>
-                  </div>
-                </TableCell>
-                <TableCell>{device.lastActive}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRevokeAccess(device.id)}
-                    disabled={device.isCurrentDevice}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Revoke
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div>{device.location}</div>
+                      <div className="text-sm text-muted-foreground">{device.ipAddress}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{device.lastActive}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeAccess(device.id)}
+                      disabled={device.isCurrentDevice}
+                      className={device.isCurrentDevice ? "opacity-50" : "text-destructive hover:text-destructive/90 hover:bg-destructive/10"}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Revoke
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      
+      <AlertDialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Device Access</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately log out this device. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRevoke} className="bg-destructive text-destructive-foreground">
+              Revoke Access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={showLogoutAllDialog} onOpenChange={setShowLogoutAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout All Other Devices</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately log out all devices except your current one. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogoutAll} className="bg-destructive text-destructive-foreground">
+              Logout All Devices
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
