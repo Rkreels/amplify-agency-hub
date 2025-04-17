@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -103,6 +104,28 @@ export default function Conversations() {
   });
   
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showTagsDialog, setShowTagsDialog] = useState(false);
+  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+  const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
+  
+  const [availableTags, setAvailableTags] = useState([
+    "Client", "Lead", "Marketing", "Support", "Consulting", 
+    "E-commerce", "Design", "Development", "Paid", "Free Trial"
+  ]);
+  
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  
+  const [campaigns, setCampaigns] = useState([
+    "Summer Sale 2025", "Product Launch", "Customer Feedback", 
+    "Monthly Newsletter", "Webinar Invitation"
+  ]);
+  const [selectedCampaign, setSelectedCampaign] = useState("");
+  
+  // New conversation dialog state
+  const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
+  const [conversationType, setConversationType] = useState<"email" | "sms" | "facebook" | "other">("email");
   
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -249,6 +272,16 @@ export default function Conversations() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Init selected tags when a conversation is selected
+  useEffect(() => {
+    const contact = conversations.find(c => c.id === selectedConversation);
+    if (contact && contact.tags) {
+      setSelectedTags(contact.tags);
+    } else {
+      setSelectedTags([]);
+    }
+  }, [selectedConversation, conversations]);
 
   const filteredConversations = conversations.filter(conversation => {
     if (activeTab === "unread" && conversation.unread === 0) {
@@ -400,33 +433,9 @@ export default function Conversations() {
     });
   };
 
-  const handleChannelClick = (type: string) => {
-    let title = "";
-    let description = "";
-    
-    switch (type) {
-      case "text":
-        title = "New SMS Conversation";
-        description = "Starting a new SMS conversation";
-        break;
-      case "email":
-        title = "New Email";
-        description = "Starting a new email conversation";
-        break;
-      case "facebook":
-        title = "New Facebook Message";
-        description = "Starting a new Facebook message";
-        break;
-      case "other":
-        title = "New Conversation";
-        description = "Select a channel to start a new conversation";
-        break;
-    }
-    
-    toast({
-      title,
-      description,
-    });
+  const handleChannelClick = (type: "text" | "email" | "facebook" | "other") => {
+    setConversationType(type);
+    setShowNewConversationDialog(true);
   };
 
   const handleAddEmoji = (emoji: string) => {
@@ -456,6 +465,33 @@ export default function Conversations() {
   };
   
   const confirmScheduleCall = () => {
+    // Add a new activity to the contact
+    if (selectedContact) {
+      const now = new Date();
+      const dateString = now.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      
+      setConversations(
+        conversations.map(conv => 
+          conv.id === selectedConversation
+            ? { 
+                ...conv, 
+                activities: [
+                  { 
+                    time: `${dateString}`, 
+                    description: "Call scheduled" 
+                  },
+                  ...(conv.activities || [])
+                ]
+              }
+            : conv
+        )
+      );
+    }
+    
     setShowScheduleDialog(false);
     
     toast({
@@ -468,6 +504,208 @@ export default function Conversations() {
     if (e.key === 'Enter') {
       handleSendMessage();
     }
+  };
+
+  // View profile handler
+  const handleViewProfile = () => {
+    setShowProfileDialog(true);
+  };
+
+  // Add tags handler
+  const handleAddTags = () => {
+    if (selectedContact && selectedContact.tags) {
+      setSelectedTags([...selectedContact.tags]);
+    } else {
+      setSelectedTags([]);
+    }
+    setShowTagsDialog(true);
+  };
+
+  // Save tags
+  const saveTags = () => {
+    setConversations(
+      conversations.map(conv => 
+        conv.id === selectedConversation
+          ? { ...conv, tags: selectedTags }
+          : conv
+      )
+    );
+    
+    // Add activity for tag changes
+    const now = new Date();
+    const dateString = now.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    setConversations(
+      conversations.map(conv => 
+        conv.id === selectedConversation
+          ? { 
+              ...conv, 
+              tags: selectedTags,
+              activities: [
+                { 
+                  time: `${dateString}`, 
+                  description: "Tags updated" 
+                },
+                ...(conv.activities || [])
+              ]
+            }
+          : conv
+      )
+    );
+    
+    setShowTagsDialog(false);
+    toast({
+      description: "Tags updated successfully",
+    });
+  };
+
+  // Add new tag
+  const addNewTag = () => {
+    if (!newTag.trim()) return;
+    
+    setAvailableTags([...availableTags, newTag]);
+    setSelectedTags([...selectedTags, newTag]);
+    setNewTag("");
+    
+    toast({
+      description: `New tag "${newTag}" created`,
+    });
+  };
+
+  // Toggle a tag selection
+  const toggleTag = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter(t => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  // Add to campaign handler
+  const handleAddToCampaign = () => {
+    setSelectedCampaign("");
+    setShowCampaignDialog(true);
+  };
+
+  // Save campaign association
+  const saveCampaign = () => {
+    if (!selectedCampaign) {
+      toast({
+        title: "No campaign selected",
+        description: "Please select a campaign to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add activity for campaign addition
+    const now = new Date();
+    const dateString = now.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    setConversations(
+      conversations.map(conv => 
+        conv.id === selectedConversation
+          ? { 
+              ...conv, 
+              activities: [
+                { 
+                  time: `${dateString}`, 
+                  description: `Added to campaign: ${selectedCampaign}` 
+                },
+                ...(conv.activities || [])
+              ]
+            }
+          : conv
+      )
+    );
+    
+    setShowCampaignDialog(false);
+    toast({
+      title: "Added to campaign",
+      description: `Contact added to ${selectedCampaign} campaign`,
+    });
+  };
+
+  // Block contact handler
+  const handleBlockContact = () => {
+    setShowBlockConfirmation(true);
+  };
+
+  // Confirm block contact
+  const confirmBlockContact = () => {
+    // Add activity for blocking
+    const now = new Date();
+    const dateString = now.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    setConversations(
+      conversations.map(conv => 
+        conv.id === selectedConversation
+          ? { 
+              ...conv, 
+              activities: [
+                { 
+                  time: `${dateString}`, 
+                  description: "Contact blocked" 
+                },
+                ...(conv.activities || [])
+              ]
+            }
+          : conv
+      )
+    );
+    
+    setShowBlockConfirmation(false);
+    toast({
+      title: "Contact blocked",
+      description: `${selectedContact?.contact} has been blocked`,
+    });
+  };
+
+  // Start new conversation handler
+  const startNewConversation = () => {
+    if (!selectedContact) return;
+    
+    const now = new Date();
+    const dateString = now.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    setConversations(
+      conversations.map(conv => 
+        conv.id === selectedConversation
+          ? { 
+              ...conv, 
+              activities: [
+                { 
+                  time: `${dateString}`, 
+                  description: `New ${conversationType} conversation started` 
+                },
+                ...(conv.activities || [])
+              ]
+            }
+          : conv
+      )
+    );
+    
+    setShowNewConversationDialog(false);
+    toast({
+      title: `New ${conversationType} conversation`,
+      description: `Started a new ${conversationType} conversation with ${selectedContact?.contact}`,
+    });
   };
 
   const channelIcons = {
@@ -780,17 +1018,17 @@ export default function Conversations() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast({ description: "View profile" })}>
+                      <DropdownMenuItem onClick={handleViewProfile}>
                         View profile
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ description: "Add tags" })}>
+                      <DropdownMenuItem onClick={handleAddTags}>
                         Add tags
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ description: "Add to campaign" })}>
+                      <DropdownMenuItem onClick={handleAddToCampaign}>
                         Add to campaign
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => toast({ description: "Block contact" })}>
+                      <DropdownMenuItem onClick={handleBlockContact}>
                         Block contact
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -1000,6 +1238,7 @@ export default function Conversations() {
         </Card>
       </div>
 
+      {/* New Contact Dialog */}
       <Dialog open={showNewContactDialog} onOpenChange={setShowNewContactDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1055,6 +1294,7 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
+      {/* Schedule Call Dialog */}
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1114,6 +1354,261 @@ export default function Conversations() {
             </Button>
             <Button onClick={confirmScheduleCall}>
               Schedule Call
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Profile Dialog */}
+      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Profile</DialogTitle>
+            <DialogDescription>
+              View details for {selectedContact?.contact}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedContact && (
+              <div className="space-y-4">
+                <div className="flex justify-center mb-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={selectedContact.avatar} alt={selectedContact.contact} />
+                    <AvatarFallback className="text-xl">{selectedContact.initials}</AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">Name</div>
+                    <div className="text-lg">{selectedContact.contact}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">Email</div>
+                    <div>{selectedContact.email}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">Phone</div>
+                    <div>{selectedContact.phone}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">Tags</div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedContact.tags?.map(tag => (
+                        <Badge key={tag} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">Preferred Channel</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {channelIcons[selectedContact.channel]}
+                      <span className="capitalize">{selectedContact.channel}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowProfileDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Tags Dialog */}
+      <Dialog open={showTagsDialog} onOpenChange={setShowTagsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Tags</DialogTitle>
+            <DialogDescription>
+              Add or remove tags for {selectedContact?.contact}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Selected Tags
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                      {tag}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-4 w-4 p-0"
+                        onClick={() => toggleTag(tag)}
+                      >
+                        <span>×</span>
+                      </Button>
+                    </Badge>
+                  ))}
+                  {selectedTags.length === 0 && (
+                    <div className="text-muted-foreground text-sm">No tags selected</div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Available Tags
+                </label>
+                <div className="flex flex-wrap gap-2 border rounded-md p-2 max-h-40 overflow-y-auto">
+                  {availableTags
+                    .filter(tag => !selectedTags.includes(tag))
+                    .map(tag => (
+                      <Badge 
+                        key={tag} 
+                        variant="outline" 
+                        className="cursor-pointer hover:bg-muted"
+                        onClick={() => toggleTag(tag)}
+                      >
+                        {tag}
+                      </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Create new tag..."
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addNewTag()}
+                />
+                <Button onClick={addNewTag} disabled={!newTag.trim()}>
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTagsDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveTags}>
+              Save Tags
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add to Campaign Dialog */}
+      <Dialog open={showCampaignDialog} onOpenChange={setShowCampaignDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add to Campaign</DialogTitle>
+            <DialogDescription>
+              Add {selectedContact?.contact} to a marketing campaign
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Select Campaign
+                </label>
+                <select 
+                  value={selectedCampaign}
+                  onChange={(e) => setSelectedCampaign(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                >
+                  <option value="">Select a campaign</option>
+                  {campaigns.map(campaign => (
+                    <option key={campaign} value={campaign}>{campaign}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCampaignDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveCampaign} disabled={!selectedCampaign}>
+              Add to Campaign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Contact Confirmation */}
+      <Dialog open={showBlockConfirmation} onOpenChange={setShowBlockConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Block Contact</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to block {selectedContact?.contact}?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Blocking this contact will prevent them from sending you messages. They will not be notified that they have been blocked.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBlockConfirmation(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmBlockContact}>
+              Block Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Conversation Dialog */}
+      <Dialog open={showNewConversationDialog} onOpenChange={setShowNewConversationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New {conversationType.charAt(0).toUpperCase() + conversationType.slice(1)} Conversation</DialogTitle>
+            <DialogDescription>
+              Start a new conversation with {selectedContact?.contact}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Message
+                </label>
+                <Input
+                  placeholder="Type your message..."
+                  autoFocus
+                />
+              </div>
+              {conversationType === 'email' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Subject
+                    </label>
+                    <Input
+                      placeholder="Email subject..."
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="cc" />
+                    <label
+                      htmlFor="cc"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Send a copy to myself
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewConversationDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={startNewConversation}>
+              Send
             </Button>
           </DialogFooter>
         </DialogContent>
