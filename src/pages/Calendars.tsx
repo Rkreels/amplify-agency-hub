@@ -36,7 +36,7 @@ interface UICalendarType {
   id: number;
   name: string;
   description: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<any>;
 }
 
 export default function Calendars() {
@@ -174,7 +174,7 @@ export default function Calendars() {
     });
   };
 
-  const handleManageCalendar = (calendarId: string) => {
+  const handleManageCalendar = (calendarId: number) => {
     toast.success("Managing Calendar", {
       description: `Opening calendar settings for ID: ${calendarId}`,
     });
@@ -209,7 +209,7 @@ export default function Calendars() {
             <Settings className="h-4 w-4 mr-2" />
             Calendar Settings
           </Button>
-          <Button>
+          <Button onClick={handleCreateCalendar}>
             <Plus className="h-4 w-4 mr-2" />
             Create Calendar
           </Button>
@@ -337,7 +337,11 @@ export default function Calendars() {
                     ))}
                     
                     <div className="mt-4">
-                      <Button variant="outline" className="w-full" onClick={handleViewAllAppointments}>
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={handleViewAllAppointments}
+                      >
                         View All Appointments
                       </Button>
                     </div>
@@ -370,18 +374,18 @@ export default function Calendars() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-sm">
                       <span>Active Bookings</span>
-                      <span className="font-medium">{String(type.id * 3)}</span>
+                      <span className="font-medium">{type.id * 3}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span>Conversion Rate</span>
-                      <span className="font-medium">{(20 + type.id * 5)}%</span>
+                      <span className="font-medium">{20 + type.id * 5}%</span>
                     </div>
                     <Separator />
                     <div className="pt-2">
                       <Button 
                         variant="outline" 
                         className="w-full"
-                        onClick={() => handleManageCalendar(String(type.id))}
+                        onClick={() => handleManageCalendar(type.id)}
                       >
                         <CalendarIcon className="h-4 w-4 mr-2" />
                         Manage Calendar

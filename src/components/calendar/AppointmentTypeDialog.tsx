@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { Plus } from "lucide-react";
-import { toast } from "sonner"; // Changed from @/hooks/use-toast
+import { toast } from "sonner";
 
 export function AppointmentTypeDialog() {
   const [open, setOpen] = useState(false);
@@ -18,9 +18,7 @@ export function AppointmentTypeDialog() {
     e.preventDefault();
     
     if (!name || !duration) {
-      toast.error("Error", {
-        description: "Please fill in all fields",
-      });
+      toast.error("Please fill in all fields");
       return;
     }
 
@@ -31,9 +29,7 @@ export function AppointmentTypeDialog() {
       color: `bg-${['blue', 'green', 'purple', 'pink', 'yellow'][Math.floor(Math.random() * 5)]}-500`,
     });
 
-    toast.success("Success", {
-      description: "Appointment type created successfully",
-    });
+    toast.success("Appointment type created successfully");
 
     setOpen(false);
     setName("");

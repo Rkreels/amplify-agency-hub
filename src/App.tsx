@@ -28,7 +28,6 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* Removed the shadcn/ui Toaster component that was causing the error */}
       <Sonner />
       <BrowserRouter>
         <Routes>
