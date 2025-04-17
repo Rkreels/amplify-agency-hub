@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -123,7 +122,6 @@ export default function Conversations() {
   ]);
   const [selectedCampaign, setSelectedCampaign] = useState("");
   
-  // New conversation dialog state
   const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
   const [conversationType, setConversationType] = useState<"email" | "sms" | "facebook" | "other">("email");
   
@@ -273,7 +271,6 @@ export default function Conversations() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Init selected tags when a conversation is selected
   useEffect(() => {
     const contact = conversations.find(c => c.id === selectedConversation);
     if (contact && contact.tags) {
@@ -433,7 +430,7 @@ export default function Conversations() {
     });
   };
 
-  const handleChannelClick = (type: "text" | "email" | "facebook" | "other") => {
+  const handleChannelClick = (type: "sms" | "email" | "facebook" | "other") => {
     setConversationType(type);
     setShowNewConversationDialog(true);
   };
@@ -465,7 +462,6 @@ export default function Conversations() {
   };
   
   const confirmScheduleCall = () => {
-    // Add a new activity to the contact
     if (selectedContact) {
       const now = new Date();
       const dateString = now.toLocaleDateString('en-US', { 
@@ -506,12 +502,10 @@ export default function Conversations() {
     }
   };
 
-  // View profile handler
   const handleViewProfile = () => {
     setShowProfileDialog(true);
   };
 
-  // Add tags handler
   const handleAddTags = () => {
     if (selectedContact && selectedContact.tags) {
       setSelectedTags([...selectedContact.tags]);
@@ -521,7 +515,6 @@ export default function Conversations() {
     setShowTagsDialog(true);
   };
 
-  // Save tags
   const saveTags = () => {
     setConversations(
       conversations.map(conv => 
@@ -531,7 +524,6 @@ export default function Conversations() {
       )
     );
     
-    // Add activity for tag changes
     const now = new Date();
     const dateString = now.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -563,7 +555,6 @@ export default function Conversations() {
     });
   };
 
-  // Add new tag
   const addNewTag = () => {
     if (!newTag.trim()) return;
     
@@ -576,7 +567,6 @@ export default function Conversations() {
     });
   };
 
-  // Toggle a tag selection
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
       setSelectedTags(selectedTags.filter(t => t !== tag));
@@ -585,13 +575,11 @@ export default function Conversations() {
     }
   };
 
-  // Add to campaign handler
   const handleAddToCampaign = () => {
     setSelectedCampaign("");
     setShowCampaignDialog(true);
   };
 
-  // Save campaign association
   const saveCampaign = () => {
     if (!selectedCampaign) {
       toast({
@@ -602,7 +590,6 @@ export default function Conversations() {
       return;
     }
     
-    // Add activity for campaign addition
     const now = new Date();
     const dateString = now.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -634,14 +621,11 @@ export default function Conversations() {
     });
   };
 
-  // Block contact handler
   const handleBlockContact = () => {
     setShowBlockConfirmation(true);
   };
 
-  // Confirm block contact
   const confirmBlockContact = () => {
-    // Add activity for blocking
     const now = new Date();
     const dateString = now.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -673,7 +657,6 @@ export default function Conversations() {
     });
   };
 
-  // Start new conversation handler
   const startNewConversation = () => {
     if (!selectedContact) return;
     
@@ -829,7 +812,7 @@ export default function Conversations() {
                   variant="ghost" 
                   size="sm" 
                   className="h-8 w-8 p-0 rounded-full"
-                  onClick={() => handleChannelClick('text')}
+                  onClick={() => handleChannelClick('sms')}
                 >
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -995,7 +978,33 @@ export default function Conversations() {
                     variant="ghost" 
                     size="sm" 
                     className="h-8 w-8 p-0"
-                    onClick={() => toast({ description: "Calling " + selectedContact.contact })}
+                    onClick={() => {
+                      toast({ description: "Calling " + selectedContact.contact });
+                      
+                      const now = new Date();
+                      const dateString = now.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      });
+                      
+                      setConversations(
+                        conversations.map(conv => 
+                          conv.id === selectedConversation
+                            ? { 
+                                ...conv, 
+                                activities: [
+                                  { 
+                                    time: `${dateString}`, 
+                                    description: "Call initiated" 
+                                  },
+                                  ...(conv.activities || [])
+                                ]
+                              }
+                            : conv
+                        )
+                      );
+                    }}
                   >
                     <Phone className="h-4 w-4" />
                   </Button>
@@ -1238,7 +1247,6 @@ export default function Conversations() {
         </Card>
       </div>
 
-      {/* New Contact Dialog */}
       <Dialog open={showNewContactDialog} onOpenChange={setShowNewContactDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1294,7 +1302,6 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
-      {/* Schedule Call Dialog */}
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1359,7 +1366,6 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
-      {/* View Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1394,10 +1400,21 @@ export default function Conversations() {
                     <div className="text-sm font-medium text-muted-foreground">Tags</div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {selectedContact.tags?.map(tag => (
-                        <Badge key={tag} variant="secondary">
+                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
                           {tag}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-4 w-4 p-0"
+                            onClick={() => toggleTag(tag)}
+                          >
+                            <span>×</span>
+                          </Button>
                         </Badge>
                       ))}
+                      {selectedTags.length === 0 && (
+                        <div className="text-muted-foreground text-sm">No tags selected</div>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -1419,7 +1436,6 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Tags Dialog */}
       <Dialog open={showTagsDialog} onOpenChange={setShowTagsDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1496,7 +1512,6 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
-      {/* Add to Campaign Dialog */}
       <Dialog open={showCampaignDialog} onOpenChange={setShowCampaignDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1535,7 +1550,6 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
-      {/* Block Contact Confirmation */}
       <Dialog open={showBlockConfirmation} onOpenChange={setShowBlockConfirmation}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1560,7 +1574,6 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
-      {/* New Conversation Dialog */}
       <Dialog open={showNewConversationDialog} onOpenChange={setShowNewConversationDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
