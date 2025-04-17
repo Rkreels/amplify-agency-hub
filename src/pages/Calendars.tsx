@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { AppointmentTypeDialog } from "@/components/calendar/AppointmentTypeDialog";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { format } from "date-fns";
 
 interface UICalendarType {
@@ -40,7 +40,6 @@ interface UICalendarType {
 }
 
 export default function Calendars() {
-  const { toast } = useToast();
   const {
     appointmentTypes,
     calendarTypes: storeCalendarTypes,
@@ -164,29 +163,25 @@ export default function Calendars() {
   const year = today.getFullYear();
 
   const handleCreateCalendar = () => {
-    toast({
-      title: "Coming Soon",
+    toast.success("Coming Soon", {
       description: "Calendar creation will be available soon.",
     });
   };
 
   const handleConnectCalendar = () => {
-    toast({
-      title: "Connect Calendar",
+    toast.success("Connect Calendar", {
       description: "Redirecting to calendar integration...",
     });
   };
 
   const handleManageCalendar = (calendarId: string) => {
-    toast({
-      title: "Managing Calendar",
+    toast.success("Managing Calendar", {
       description: `Opening calendar settings for ID: ${calendarId}`,
     });
   };
 
   const handleViewAllAppointments = () => {
-    toast({
-      title: "View All Appointments",
+    toast.success("View All Appointments", {
       description: "Loading all appointments...",
     });
   };
@@ -194,8 +189,7 @@ export default function Calendars() {
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
-      toast({
-        title: "Date Selected",
+      toast.success("Date Selected", {
         description: `Selected date: ${format(date, 'PP')}`,
       });
     }

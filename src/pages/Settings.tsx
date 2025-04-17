@@ -18,7 +18,7 @@ import {
   Save
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import { toast } from "sonner"; // Changed from direct import
 import ProfileSettings from "@/components/settings/ProfileSettings";
 import TeamSettings from "@/components/settings/TeamSettings";
 import BillingSettings from "@/components/settings/BillingSettings";

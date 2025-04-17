@@ -6,23 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Changed from @/hooks/use-toast
 
 export function AppointmentTypeDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("30");
-  const { toast } = useToast();
   const addAppointmentType = useCalendarStore((state) => state.addAppointmentType);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !duration) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Please fill in all fields",
-        variant: "destructive",
       });
       return;
     }
@@ -34,8 +31,7 @@ export function AppointmentTypeDialog() {
       color: `bg-${['blue', 'green', 'purple', 'pink', 'yellow'][Math.floor(Math.random() * 5)]}-500`,
     });
 
-    toast({
-      title: "Success",
+    toast.success("Success", {
       description: "Appointment type created successfully",
     });
 
