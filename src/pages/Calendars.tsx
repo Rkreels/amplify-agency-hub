@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,6 @@ interface UICalendarType {
 export default function Calendars() {
   const {
     appointmentTypes,
-    calendarTypes: storeCalendarTypes,
     events,
     selectedDate,
     setSelectedDate,
@@ -423,7 +423,11 @@ export default function Calendars() {
                         <div className="flex-1 bg-muted px-3 py-2 rounded-l-md border border-r-0 text-sm text-muted-foreground overflow-hidden whitespace-nowrap text-ellipsis">
                           https://youragency.ghl.com/book
                         </div>
-                        <Button variant="outline" className="rounded-l-none">
+                        <Button 
+                          variant="outline" 
+                          className="rounded-l-none"
+                          onClick={() => toast.success("Link copied to clipboard")}
+                        >
                           Copy
                         </Button>
                       </div>
@@ -438,7 +442,11 @@ export default function Calendars() {
                         <div className="flex-1 bg-muted px-3 py-2 rounded-l-md border border-r-0 text-sm text-muted-foreground overflow-hidden whitespace-nowrap text-ellipsis">
                           &lt;iframe src="https://youragency.ghl.com/embed"&gt;&lt;/iframe&gt;
                         </div>
-                        <Button variant="outline" className="rounded-l-none">
+                        <Button 
+                          variant="outline" 
+                          className="rounded-l-none"
+                          onClick={() => toast.success("Code copied to clipboard")}
+                        >
                           Copy
                         </Button>
                       </div>
@@ -479,7 +487,12 @@ export default function Calendars() {
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">9:00 AM - 5:00 PM</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => toast.success(`Edit ${day} hours`)}
+                          >
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </div>
@@ -490,7 +503,12 @@ export default function Calendars() {
                         <span>{day}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">Unavailable</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => toast.success(`Edit ${day} hours`)}
+                          >
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </div>
@@ -516,7 +534,12 @@ export default function Calendars() {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-muted-foreground">{type.duration} min</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => toast.success(`Edit ${type.name} appointment type`)}
+                          >
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </div>
@@ -536,7 +559,10 @@ export default function Calendars() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="border rounded-md p-3 space-y-2">
                       <div className="text-sm font-medium">Before appointments</div>
-                      <Select defaultValue="15">
+                      <Select 
+                        defaultValue="15"
+                        onValueChange={(value) => toast.success(`Buffer time before appointments set to ${value} minutes`)}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select time" />
                         </SelectTrigger>
@@ -552,7 +578,10 @@ export default function Calendars() {
                     
                     <div className="border rounded-md p-3 space-y-2">
                       <div className="text-sm font-medium">After appointments</div>
-                      <Select defaultValue="10">
+                      <Select 
+                        defaultValue="10"
+                        onValueChange={(value) => toast.success(`Buffer time after appointments set to ${value} minutes`)}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select time" />
                         </SelectTrigger>
