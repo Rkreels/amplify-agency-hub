@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,8 +27,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCalendarStore } from "@/store/useCalendarStore";
+import { AppointmentTypeDialog } from "@/components/calendar/AppointmentTypeDialog";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 export default function Calendars() {
+  const { toast } = useToast();
+  const {
+    appointmentTypes,
+    calendarTypes,
+    events,
+    selectedDate,
+    setSelectedDate,
+    addCalendarType,
+    deleteCalendarType,
+  } = useCalendarStore();
+
   const calendarTypes = [
     {
       id: 1,
@@ -90,7 +104,6 @@ export default function Calendars() {
     },
   ];
 
-  // Generate calendar dates
   const getDaysInMonth = () => {
     const days = [];
     const date = new Date();
@@ -99,10 +112,8 @@ export default function Calendars() {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     
-    // Get the day of week for first day (0-6, where 0 is Sunday)
     const firstDayOfWeek = firstDay.getDay();
     
-    // Add previous month's dates
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
       const day = new Date(year, month, -i);
       days.push({
@@ -113,7 +124,6 @@ export default function Calendars() {
       });
     }
     
-    // Add current month's dates
     const today = new Date();
     const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
     const todayDate = today.getDate();
@@ -127,7 +137,6 @@ export default function Calendars() {
       });
     }
     
-    // Add next month's dates to complete the grid (6 rows of 7 days)
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({
@@ -146,6 +155,44 @@ export default function Calendars() {
   const today = new Date();
   const monthName = today.toLocaleString('default', { month: 'long' });
   const year = today.getFullYear();
+
+  const handleCreateCalendar = () => {
+    toast({
+      title: "Coming Soon",
+      description: "Calendar creation will be available soon.",
+    });
+  };
+
+  const handleConnectCalendar = () => {
+    toast({
+      title: "Connect Calendar",
+      description: "Redirecting to calendar integration...",
+    });
+  };
+
+  const handleManageCalendar = (calendarId: string) => {
+    toast({
+      title: "Managing Calendar",
+      description: `Opening calendar settings for ID: ${calendarId}`,
+    });
+  };
+
+  const handleViewAllAppointments = () => {
+    toast({
+      title: "View All Appointments",
+      description: "Loading all appointments...",
+    });
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      toast({
+        title: "Date Selected",
+        description: `Selected date: ${format(date, 'PP')}`,
+      });
+    }
+  };
 
   return (
     <AppLayout>
@@ -330,7 +377,11 @@ export default function Calendars() {
                     </div>
                     <Separator />
                     <div className="pt-2">
-                      <Button variant="outline" className="w-full">
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => handleManageCalendar(type.id)}
+                      >
                         <CalendarIcon className="h-4 w-4 mr-2" />
                         Manage Calendar
                       </Button>
@@ -348,7 +399,7 @@ export default function Calendars() {
               <p className="text-sm text-muted-foreground text-center mb-6">
                 Set up a new booking calendar for your services
               </p>
-              <Button>Get Started</Button>
+              <Button onClick={handleCreateCalendar}>Get Started</Button>
             </Card>
           </div>
           
@@ -448,19 +499,12 @@ export default function Calendars() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">Appointment Types</h3>
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Type
-                    </Button>
+                    <AppointmentTypeDialog />
                   </div>
                   
                   <div className="space-y-3">
-                    {[
-                      { name: 'Discovery Call', duration: 30, color: 'bg-blue-500' },
-                      { name: 'Strategy Session', duration: 60, color: 'bg-green-500' },
-                      { name: 'Website Review', duration: 45, color: 'bg-purple-500' }
-                    ].map((type, index) => (
-                      <div key={index} className="border rounded-md p-3 flex items-center justify-between">
+                    {appointmentTypes.map((type) => (
+                      <div key={type.id} className="border rounded-md p-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className={`w-3 h-3 rounded-full ${type.color}`}></div>
                           <span className="font-medium">{type.name}</span>
