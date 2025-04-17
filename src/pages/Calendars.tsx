@@ -32,11 +32,18 @@ import { AppointmentTypeDialog } from "@/components/calendar/AppointmentTypeDial
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+interface UICalendarType {
+  id: number;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+}
+
 export default function Calendars() {
   const { toast } = useToast();
   const {
     appointmentTypes,
-    calendarTypes,
+    calendarTypes: storeCalendarTypes,
     events,
     selectedDate,
     setSelectedDate,
@@ -44,7 +51,7 @@ export default function Calendars() {
     deleteCalendarType,
   } = useCalendarStore();
 
-  const calendarTypes = [
+  const uiCalendarTypes: UICalendarType[] = [
     {
       id: 1,
       name: "One-on-One",
@@ -336,7 +343,7 @@ export default function Calendars() {
                     ))}
                     
                     <div className="mt-4">
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full" onClick={handleViewAllAppointments}>
                         View All Appointments
                       </Button>
                     </div>
@@ -349,7 +356,7 @@ export default function Calendars() {
         
         <TabsContent value="calendars" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {calendarTypes.map((type) => (
+            {uiCalendarTypes.map((type) => (
               <Card key={type.id} className="relative group">
                 <CardHeader>
                   <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -369,18 +376,18 @@ export default function Calendars() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-sm">
                       <span>Active Bookings</span>
-                      <span className="font-medium">{type.id * 3}</span>
+                      <span className="font-medium">{String(type.id * 3)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span>Conversion Rate</span>
-                      <span className="font-medium">{20 + type.id * 5}%</span>
+                      <span className="font-medium">{(20 + type.id * 5)}%</span>
                     </div>
                     <Separator />
                     <div className="pt-2">
                       <Button 
                         variant="outline" 
                         className="w-full"
-                        onClick={() => handleManageCalendar(type.id)}
+                        onClick={() => handleManageCalendar(String(type.id))}
                       >
                         <CalendarIcon className="h-4 w-4 mr-2" />
                         Manage Calendar
@@ -447,7 +454,7 @@ export default function Calendars() {
                         Connect with Google Calendar, Outlook, or iCal
                       </p>
                     </div>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleConnectCalendar}>
                       <Globe className="h-4 w-4 mr-2" />
                       Connect Calendar
                     </Button>
