@@ -26,7 +26,7 @@ export interface CalendarType {
   description: string;
   activeBookings: number;
   conversionRate: number;
-  icon: 'user' | 'users';
+  icon: string;
 }
 
 export const defaultAppointmentTypes: AppointmentType[] = [
@@ -42,7 +42,7 @@ export const defaultCalendarTypes: CalendarType[] = [
     description: 'Individual meetings with clients or prospects',
     activeBookings: 3,
     conversionRate: 25,
-    icon: 'user',
+    icon: 'User',
   },
   {
     id: '2',
@@ -50,7 +50,7 @@ export const defaultCalendarTypes: CalendarType[] = [
     description: 'Distribute meetings among team members',
     activeBookings: 6,
     conversionRate: 30,
-    icon: 'users',
+    icon: 'Users',
   },
   {
     id: '3',
@@ -58,6 +58,48 @@ export const defaultCalendarTypes: CalendarType[] = [
     description: 'Schedule group sessions or webinars',
     activeBookings: 9,
     conversionRate: 35,
-    icon: 'users',
+    icon: 'Users',
   },
+];
+
+export const defaultEvents: CalendarEvent[] = [
+  {
+    id: '1',
+    title: 'Discovery Call with Michael Brown',
+    date: new Date(),
+    time: '9:00 AM - 9:30 AM',
+    contact: {
+      name: 'Michael Brown',
+      avatar: '',
+      initials: 'MB',
+    },
+    type: 'Video Call',
+    status: 'confirmed',
+  },
+  {
+    id: '2',
+    title: 'Strategy Session with Emma Davis',
+    date: new Date(),
+    time: '11:00 AM - 12:00 PM',
+    contact: {
+      name: 'Emma Davis',
+      avatar: '',
+      initials: 'ED',
+    },
+    type: 'In Person',
+    status: 'confirmed',
+  },
+  {
+    id: '3',
+    title: 'Website Review with James Wilson',
+    date: new Date(),
+    time: '2:30 PM - 3:30 PM',
+    contact: {
+      name: 'James Wilson',
+      avatar: '',
+      initials: 'JW',
+    },
+    type: 'Video Call',
+    status: 'pending',
+  }
 ];

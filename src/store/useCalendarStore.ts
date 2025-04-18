@@ -15,6 +15,16 @@ interface CalendarStore {
   updateEvent: (id: string, event: Partial<CalendarEvent>) => void;
   deleteEvent: (id: string) => void;
   setSelectedDate: (date: Date) => void;
+  updateAppointmentType: (id: string, updates: Partial<AppointmentType>) => void;
+  updateCalendarType: (id: string, updates: Partial<CalendarType>) => void;
+  selectedTab: string;
+  setSelectedTab: (tab: string) => void;
+  selectedCalendarView: string; 
+  setSelectedCalendarView: (view: string) => void;
+  bufferBefore: string;
+  bufferAfter: string;
+  setBufferBefore: (time: string) => void;
+  setBufferAfter: (time: string) => void;
 }
 
 export const useCalendarStore = create<CalendarStore>((set) => ({
@@ -22,6 +32,10 @@ export const useCalendarStore = create<CalendarStore>((set) => ({
   calendarTypes: defaultCalendarTypes,
   events: [],
   selectedDate: new Date(),
+  selectedTab: "appointments",
+  selectedCalendarView: "month",
+  bufferBefore: "15",
+  bufferAfter: "10",
   addAppointmentType: (type) =>
     set((state) => ({
       appointmentTypes: [...state.appointmentTypes, type],
@@ -30,6 +44,12 @@ export const useCalendarStore = create<CalendarStore>((set) => ({
     set((state) => ({
       appointmentTypes: state.appointmentTypes.filter((type) => type.id !== id),
     })),
+  updateAppointmentType: (id, updates) =>
+    set((state) => ({
+      appointmentTypes: state.appointmentTypes.map((type) => 
+        type.id === id ? { ...type, ...updates } : type
+      ),
+    })),
   addCalendarType: (type) =>
     set((state) => ({
       calendarTypes: [...state.calendarTypes, type],
@@ -37,6 +57,12 @@ export const useCalendarStore = create<CalendarStore>((set) => ({
   deleteCalendarType: (id) =>
     set((state) => ({
       calendarTypes: state.calendarTypes.filter((type) => type.id !== id),
+    })),
+  updateCalendarType: (id, updates) =>
+    set((state) => ({
+      calendarTypes: state.calendarTypes.map((type) => 
+        type.id === id ? { ...type, ...updates } : type
+      ),
     })),
   addEvent: (event) =>
     set((state) => ({
@@ -55,5 +81,21 @@ export const useCalendarStore = create<CalendarStore>((set) => ({
   setSelectedDate: (date) =>
     set(() => ({
       selectedDate: date,
+    })),
+  setSelectedTab: (tab) =>
+    set(() => ({
+      selectedTab: tab,
+    })),
+  setSelectedCalendarView: (view) =>
+    set(() => ({
+      selectedCalendarView: view,
+    })),
+  setBufferBefore: (time) =>
+    set(() => ({
+      bufferBefore: time,
+    })),
+  setBufferAfter: (time) =>
+    set(() => ({
+      bufferAfter: time,
     })),
 }));

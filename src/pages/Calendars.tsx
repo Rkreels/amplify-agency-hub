@@ -6,20 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Calendar as CalendarIcon,
   Plus,
-  Users,
-  User,
-  ArrowRight,
-  Globe,
   Settings,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
+  Globe,
   Clock,
-  Video,
-  MapPin
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
   Select,
@@ -31,168 +23,118 @@ import {
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { AppointmentTypeDialog } from "@/components/calendar/AppointmentTypeDialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
-
-interface UICalendarType {
-  id: number;
-  name: string;
-  description: string;
-  icon: React.ComponentType<any>;
-}
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from "date-fns";
+import { useState, useEffect } from "react";
+import { CreateCalendarCard } from "@/components/calendar/CreateCalendarCard";
+import { CalendarTypeCard } from "@/components/calendar/CalendarTypeCard";
+import { AppointmentTypeItem } from "@/components/calendar/AppointmentTypeItem";
+import { AppointmentItem } from "@/components/calendar/AppointmentItem";
+import { defaultEvents } from "@/lib/calendar-data";
 
 export default function Calendars() {
   const {
     appointmentTypes,
+    calendarTypes,
     events,
     selectedDate,
     setSelectedDate,
-    addCalendarType,
-    deleteCalendarType,
+    selectedTab,
+    setSelectedTab,
+    selectedCalendarView,
+    setSelectedCalendarView,
+    bufferBefore,
+    bufferAfter,
+    setBufferBefore,
+    setBufferAfter,
+    addEvent
   } = useCalendarStore();
 
-  const uiCalendarTypes: UICalendarType[] = [
-    {
-      id: 1,
-      name: "One-on-One",
-      description: "Individual meetings with clients or prospects",
-      icon: User,
-    },
-    {
-      id: 2,
-      name: "Round Robin",
-      description: "Distribute meetings among team members",
-      icon: Users,
-    },
-    {
-      id: 3,
-      name: "Group",
-      description: "Schedule group sessions or webinars",
-      icon: Users,
-    },
-  ];
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [calendarDays, setCalendarDays] = useState<any[]>([]);
+  
+  // Load default events if none exist
+  useEffect(() => {
+    if (events.length === 0) {
+      defaultEvents.forEach(event => addEvent(event));
+    }
+  }, [events.length, addEvent]);
 
-  const appointments = [
-    {
-      id: 1,
-      title: "Discovery Call with Michael Brown",
-      time: "9:00 AM - 9:30 AM",
-      contact: {
-        name: "Michael Brown",
-        avatar: "",
-        initials: "MB",
-      },
-      type: "Video Call",
-      status: "confirmed",
-    },
-    {
-      id: 2,
-      title: "Strategy Session with Emma Davis",
-      time: "11:00 AM - 12:00 PM",
-      contact: {
-        name: "Emma Davis",
-        avatar: "",
-        initials: "ED",
-      },
-      type: "In Person",
-      status: "confirmed",
-    },
-    {
-      id: 3,
-      title: "Website Review with James Wilson",
-      time: "2:30 PM - 3:30 PM",
-      contact: {
-        name: "James Wilson",
-        avatar: "",
-        initials: "JW",
-      },
-      type: "Video Call",
-      status: "pending",
-    },
-  ];
-
-  const getDaysInMonth = () => {
-    const days = [];
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+  useEffect(() => {
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start, end });
     
-    const firstDayOfWeek = firstDay.getDay();
+    // Getting the days in the month
+    const dayObjects = days.map(day => {
+      const dayEvents = events.filter(event => isSameDay(new Date(event.date), day));
+      return {
+        date: day,
+        events: dayEvents,
+        isToday: isSameDay(day, new Date()),
+      };
+    });
     
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-      const day = new Date(year, month, -i);
-      days.push({
-        date: day.getDate(),
-        month: 'prev',
-        isToday: false,
-        hasEvents: false,
+    // Calculate first day offset
+    const firstDayOfMonth = getDay(start);
+    const prevMonthDays = [];
+    
+    for (let i = firstDayOfMonth; i > 0; i--) {
+      const prevDay = new Date(start);
+      prevDay.setDate(prevDay.getDate() - i);
+      prevMonthDays.push({
+        date: prevDay,
+        events: [],
+        isPreviousMonth: true,
       });
     }
     
-    const today = new Date();
-    const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
-    const todayDate = today.getDate();
+    // Calculate next month days to fill the grid
+    const lastDayOfMonth = getDay(end);
+    const nextMonthDays = [];
     
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      days.push({
-        date: i,
-        month: 'current',
-        isToday: isCurrentMonth && i === todayDate,
-        hasEvents: [3, 8, 12, 15, 22, 26].includes(i),
+    for (let i = 1; i < 7 - lastDayOfMonth; i++) {
+      const nextDay = new Date(end);
+      nextDay.setDate(nextDay.getDate() + i);
+      nextMonthDays.push({
+        date: nextDay,
+        events: [],
+        isNextMonth: true,
       });
     }
     
-    const remainingDays = 42 - days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      days.push({
-        date: i,
-        month: 'next',
-        isToday: false,
-        hasEvents: false,
-      });
-    }
-    
-    return days;
-  };
+    setCalendarDays([...prevMonthDays, ...dayObjects, ...nextMonthDays]);
+  }, [currentMonth, events]);
 
-  const calendarDays = getDaysInMonth();
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const today = new Date();
-  const monthName = today.toLocaleString('default', { month: 'long' });
-  const year = today.getFullYear();
-
-  const handleCreateCalendar = () => {
-    toast.success("Coming Soon", {
-      description: "Calendar creation will be available soon.",
-    });
+  
+  const goToPreviousMonth = () => {
+    setCurrentMonth(prevMonth => subMonths(prevMonth, 1));
   };
-
-  const handleConnectCalendar = () => {
-    toast.success("Connect Calendar", {
-      description: "Redirecting to calendar integration...",
-    });
+  
+  const goToNextMonth = () => {
+    setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
   };
-
-  const handleManageCalendar = (calendarId: number) => {
-    toast.success("Managing Calendar", {
-      description: `Opening calendar settings for ID: ${calendarId}`,
-    });
+  
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonth(today);
+    setSelectedDate(today);
   };
 
   const handleViewAllAppointments = () => {
-    toast.success("View All Appointments", {
-      description: "Loading all appointments...",
-    });
+    toast.success("Loading all appointments");
   };
 
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      toast.success("Date Selected", {
-        description: `Selected date: ${format(date, 'PP')}`,
-      });
-    }
+  const handleCreateCalendar = () => {
+    toast.success("Opening calendar creation form");
+  };
+
+  const handleConnectCalendar = () => {
+    toast.success("Redirecting to calendar integration");
+  };
+
+  const handleCalendarSettings = () => {
+    toast.success("Opening calendar settings");
   };
 
   return (
@@ -205,7 +147,7 @@ export default function Calendars() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleCalendarSettings}>
             <Settings className="h-4 w-4 mr-2" />
             Calendar Settings
           </Button>
@@ -216,7 +158,7 @@ export default function Calendars() {
         </div>
       </div>
 
-      <Tabs defaultValue="appointments" className="mb-6">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mb-6">
         <TabsList>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
           <TabsTrigger value="calendars">My Calendars</TabsTrigger>
@@ -230,20 +172,23 @@ export default function Calendars() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div className="flex items-center gap-4">
                     <div>
-                      <CardTitle className="text-xl">{monthName} {year}</CardTitle>
+                      <CardTitle className="text-xl">{format(currentMonth, 'MMMM yyyy')}</CardTitle>
                     </div>
                     <div className="flex items-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPreviousMonth}>
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">Today</Button>
-                    <Select defaultValue="month">
+                    <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
+                    <Select 
+                      defaultValue={selectedCalendarView}
+                      onValueChange={setSelectedCalendarView}
+                    >
                       <SelectTrigger className="w-[120px] h-8">
                         <SelectValue placeholder="View" />
                       </SelectTrigger>
@@ -268,23 +213,35 @@ export default function Calendars() {
                     {calendarDays.map((day, index) => (
                       <div
                         key={index}
-                        className={`min-h-[80px] p-1 border rounded-md ${
-                          day.month === 'current'
-                            ? day.isToday
+                        className={`min-h-[80px] p-1 border rounded-md cursor-pointer ${
+                          day.isPreviousMonth || day.isNextMonth
+                            ? 'bg-muted/30 text-muted-foreground'
+                            : day.isToday
                               ? 'bg-primary/10 border-primary'
                               : 'bg-card hover:bg-muted/50'
-                            : 'bg-muted/30 text-muted-foreground'
                         }`}
+                        onClick={() => setSelectedDate(day.date)}
                       >
-                        <div className="text-xs p-1">{day.date}</div>
-                        {day.hasEvents && day.month === 'current' && (
+                        <div className="text-xs p-1">{format(day.date, 'd')}</div>
+                        {day.events.length > 0 && !day.isPreviousMonth && !day.isNextMonth && (
                           <div className="mt-1">
-                            <div className="bg-primary/20 text-primary rounded-sm p-1 text-xs mb-1 truncate">
-                              9:00 Meeting
-                            </div>
-                            {day.date === 15 && (
-                              <div className="bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded-sm p-1 text-xs truncate">
-                                2:30 Call
+                            {day.events.slice(0, 2).map((event: any, i: number) => (
+                              <div 
+                                key={i}
+                                className={`${
+                                  event.status === 'confirmed' 
+                                    ? 'bg-primary/20 text-primary' 
+                                    : event.status === 'cancelled'
+                                      ? 'bg-destructive/20 text-destructive' 
+                                      : 'bg-orange-500/20 text-orange-700 dark:text-orange-300'
+                                } rounded-sm p-1 text-xs mb-1 truncate`}
+                              >
+                                {event.time.split(' - ')[0]} {event.title.split(' with')[0]}
+                              </div>
+                            ))}
+                            {day.events.length > 2 && (
+                              <div className="text-xs text-muted-foreground text-center">
+                                +{day.events.length - 2} more
                               </div>
                             )}
                           </div>
@@ -304,37 +261,19 @@ export default function Calendars() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium">Today, {today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</h3>
-                      <Badge variant="outline">{appointments.length}</Badge>
+                      <h3 className="text-sm font-medium">Today, {format(new Date(), 'MMM d')}</h3>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedDate(new Date())}>
+                        View Day
+                      </Button>
                     </div>
                     
-                    {appointments.map((appointment) => (
-                      <div key={appointment.id} className="border rounded-md p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{appointment.time}</span>
-                          <Badge variant={appointment.status === 'confirmed' ? 'default' : 'outline'}>
-                            {appointment.status === 'confirmed' ? 'Confirmed' : 'Pending'}
-                          </Badge>
-                        </div>
-                        <div className="text-sm font-medium">{appointment.title}</div>
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                          {appointment.type === 'Video Call' ? (
-                            <Video className="h-3 w-3" />
-                          ) : (
-                            <MapPin className="h-3 w-3" />
-                          )}
-                          <span>{appointment.type}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={appointment.contact.avatar} alt={appointment.contact.name} />
-                            <AvatarFallback>{appointment.contact.initials}</AvatarFallback>
-                          </Avatar>
-                          <div className="text-sm">{appointment.contact.name}</div>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="space-y-3">
+                      {events
+                        .slice(0, 3)
+                        .map((appointment) => (
+                          <AppointmentItem key={appointment.id} appointment={appointment} />
+                        ))}
+                    </div>
                     
                     <div className="mt-4">
                       <Button 
@@ -354,58 +293,11 @@ export default function Calendars() {
         
         <TabsContent value="calendars" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {uiCalendarTypes.map((type) => (
-              <Card key={type.id} className="relative group">
-                <CardHeader>
-                  <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="bg-primary/10 w-10 h-10 flex items-center justify-center rounded-full mb-2">
-                    <type.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <CardTitle>{type.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    {type.description}
-                  </p>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center text-sm">
-                      <span>Active Bookings</span>
-                      <span className="font-medium">{type.id * 3}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span>Conversion Rate</span>
-                      <span className="font-medium">{20 + type.id * 5}%</span>
-                    </div>
-                    <Separator />
-                    <div className="pt-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => handleManageCalendar(type.id)}
-                      >
-                        <CalendarIcon className="h-4 w-4 mr-2" />
-                        Manage Calendar
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {calendarTypes.map((type) => (
+              <CalendarTypeCard key={type.id} type={type} />
             ))}
             
-            <Card className="border-dashed flex flex-col items-center justify-center p-6">
-              <div className="rounded-full bg-primary/10 p-3 mb-4">
-                <Plus className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium text-lg mb-2">Create New Calendar</h3>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                Set up a new booking calendar for your services
-              </p>
-              <Button onClick={handleCreateCalendar}>Get Started</Button>
-            </Card>
+            <CreateCalendarCard />
           </div>
           
           <div className="mt-8">
@@ -426,7 +318,10 @@ export default function Calendars() {
                         <Button 
                           variant="outline" 
                           className="rounded-l-none"
-                          onClick={() => toast.success("Link copied to clipboard")}
+                          onClick={() => {
+                            navigator.clipboard.writeText("https://youragency.ghl.com/book");
+                            toast.success("Link copied to clipboard");
+                          }}
                         >
                           Copy
                         </Button>
@@ -445,7 +340,10 @@ export default function Calendars() {
                         <Button 
                           variant="outline" 
                           className="rounded-l-none"
-                          onClick={() => toast.success("Code copied to clipboard")}
+                          onClick={() => {
+                            navigator.clipboard.writeText('<iframe src="https://youragency.ghl.com/embed"></iframe>');
+                            toast.success("Code copied to clipboard");
+                          }}
                         >
                           Copy
                         </Button>
@@ -493,7 +391,7 @@ export default function Calendars() {
                             className="h-7 w-7"
                             onClick={() => toast.success(`Edit ${day} hours`)}
                           >
-                            <ArrowRight className="h-4 w-4" />
+                            <Settings className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -509,7 +407,7 @@ export default function Calendars() {
                             className="h-7 w-7"
                             onClick={() => toast.success(`Edit ${day} hours`)}
                           >
-                            <ArrowRight className="h-4 w-4" />
+                            <Settings className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -527,23 +425,7 @@ export default function Calendars() {
                   
                   <div className="space-y-3">
                     {appointmentTypes.map((type) => (
-                      <div key={type.id} className="border rounded-md p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${type.color}`}></div>
-                          <span className="font-medium">{type.name}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-muted-foreground">{type.duration} min</span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7"
-                            onClick={() => toast.success(`Edit ${type.name} appointment type`)}
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                      <AppointmentTypeItem key={type.id} type={type} />
                     ))}
                   </div>
                 </div>
@@ -560,8 +442,11 @@ export default function Calendars() {
                     <div className="border rounded-md p-3 space-y-2">
                       <div className="text-sm font-medium">Before appointments</div>
                       <Select 
-                        defaultValue="15"
-                        onValueChange={(value) => toast.success(`Buffer time before appointments set to ${value} minutes`)}
+                        value={bufferBefore}
+                        onValueChange={(value) => {
+                          setBufferBefore(value);
+                          toast.success(`Buffer time before appointments set to ${value} minutes`);
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select time" />
@@ -579,8 +464,11 @@ export default function Calendars() {
                     <div className="border rounded-md p-3 space-y-2">
                       <div className="text-sm font-medium">After appointments</div>
                       <Select 
-                        defaultValue="10"
-                        onValueChange={(value) => toast.success(`Buffer time after appointments set to ${value} minutes`)}
+                        value={bufferAfter}
+                        onValueChange={(value) => {
+                          setBufferAfter(value);
+                          toast.success(`Buffer time after appointments set to ${value} minutes`);
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select time" />

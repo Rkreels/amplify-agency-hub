@@ -7,11 +7,19 @@ import { Label } from "@/components/ui/label";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function AppointmentTypeDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("30");
+  const [color, setColor] = useState("blue");
   const addAppointmentType = useCalendarStore((state) => state.addAppointmentType);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,7 +34,7 @@ export function AppointmentTypeDialog() {
       id: Math.random().toString(36).substr(2, 9),
       name,
       duration: parseInt(duration),
-      color: `bg-${['blue', 'green', 'purple', 'pink', 'yellow'][Math.floor(Math.random() * 5)]}-500`,
+      color: `bg-${color}-500`,
     });
 
     toast.success("Appointment type created successfully");
@@ -34,6 +42,7 @@ export function AppointmentTypeDialog() {
     setOpen(false);
     setName("");
     setDuration("30");
+    setColor("blue");
   };
 
   return (
@@ -68,6 +77,23 @@ export function AppointmentTypeDialog() {
               min="15"
               step="15"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="color">Color</Label>
+            <Select value={color} onValueChange={setColor}>
+              <SelectTrigger id="color">
+                <SelectValue placeholder="Select a color" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="blue">Blue</SelectItem>
+                <SelectItem value="green">Green</SelectItem>
+                <SelectItem value="purple">Purple</SelectItem>
+                <SelectItem value="pink">Pink</SelectItem>
+                <SelectItem value="yellow">Yellow</SelectItem>
+                <SelectItem value="red">Red</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className={`mt-2 h-4 w-full rounded bg-${color}-500`} />
           </div>
           <Button type="submit" className="w-full">Create Appointment Type</Button>
         </form>
