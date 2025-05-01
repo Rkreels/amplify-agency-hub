@@ -4,7 +4,7 @@ import { CalendarEvent } from "@/lib/calendar-data";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CalendarIcon, Clock, MapPin, Video } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { DatePicker } from "@/components/calendar/DatePicker";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { format } from "date-fns";
 
 interface AppointmentItemProps {
   appointment: CalendarEvent;
@@ -31,7 +33,9 @@ interface AppointmentItemProps {
 export function AppointmentItem({ appointment }: AppointmentItemProps) {
   const { deleteEvent, updateEvent } = useCalendarStore();
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date(appointment.date));
+  const [rescheduleDate, setRescheduleDate] = useState<Date>(
+    appointment.date instanceof Date ? appointment.date : new Date(appointment.date)
+  );
   const [rescheduleTime, setRescheduleTime] = useState(appointment.time.split(' - ')[0]);
 
   const handleCancel = () => {
@@ -47,11 +51,17 @@ export function AppointmentItem({ appointment }: AppointmentItemProps) {
     
     if (startTime !== rescheduleTime) {
       const endTimeStr = appointment.time.split(' - ')[1];
-      // Simple time slot calculation - in a real app you'd use proper time math
-      const endTimeHour = parseInt(endTimeStr.split(':')[0]) + 
-                          (parseInt(rescheduleTime.split(':')[0]) - parseInt(startTime.split(':')[0]));
-      const endTimeMinPeriod = endTimeStr.split(':')[1];
-      const newEndTime = `${endTimeHour}:${endTimeMinPeriod}`;
+      // Calculate the end time based on duration from startTime
+      const startHour = parseInt(startTime.split(':')[0]);
+      const endHour = parseInt(endTimeStr.split(':')[0]);
+      const duration = endHour - startHour;
+      
+      const newStartHour = parseInt(rescheduleTime.split(':')[0]);
+      const newEndHour = newStartHour + duration;
+      
+      const endTimePeriod = endTimeStr.split(' ')[1]; // AM/PM
+      const newEndTime = `${newEndHour}:${endTimeStr.split(':')[1]}`;
+      
       newTime = `${rescheduleTime} - ${newEndTime}`;
     }
     
@@ -70,6 +80,10 @@ export function AppointmentItem({ appointment }: AppointmentItemProps) {
     "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", 
     "4:00 PM", "5:00 PM", "6:00 PM"
   ];
+  
+  const formattedDate = appointment.date instanceof Date 
+    ? format(appointment.date, 'MMM d, yyyy')
+    : format(new Date(appointment.date), 'MMM d, yyyy');
 
   return (
     <>
@@ -83,6 +97,10 @@ export function AppointmentItem({ appointment }: AppointmentItemProps) {
           </Badge>
         </div>
         <div className="text-sm font-medium">{appointment.title}</div>
+        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+          <CalendarIcon className="h-3 w-3" />
+          <span>{formattedDate}</span>
+        </div>
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           {appointment.type === 'Video Call' ? (
             <Video className="h-3 w-3" />
@@ -117,6 +135,9 @@ export function AppointmentItem({ appointment }: AppointmentItemProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>
+              Reschedule your appointment with {appointment.contact.name}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleReschedule} className="space-y-4">
             <div className="space-y-2">

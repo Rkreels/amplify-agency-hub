@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ export function CreateCalendarCard() {
     }
 
     addCalendarType({
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       name,
       description,
       activeBookings: 0,
@@ -71,6 +72,9 @@ export function CreateCalendarCard() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Calendar</DialogTitle>
+          <DialogDescription>
+            Set up a new calendar for scheduling specific types of meetings.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleCreateCalendar} className="space-y-4">
           <div className="space-y-2">

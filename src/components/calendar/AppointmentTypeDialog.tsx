@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,13 +30,20 @@ export function AppointmentTypeDialog() {
       return;
     }
 
-    addAppointmentType({
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      duration: parseInt(duration),
-      color: `bg-${color}-500`,
-    });
+    const durationNum = parseInt(duration);
+    if (isNaN(durationNum) || durationNum < 15) {
+      toast.error("Duration must be at least 15 minutes");
+      return;
+    }
 
+    const newType = {
+      id: crypto.randomUUID(),
+      name,
+      duration: durationNum,
+      color: `bg-${color}-500`,
+    };
+
+    addAppointmentType(newType);
     toast.success("Appointment type created successfully");
 
     setOpen(false);
@@ -44,6 +51,15 @@ export function AppointmentTypeDialog() {
     setDuration("30");
     setColor("blue");
   };
+
+  const colorOptions = [
+    { value: "blue", label: "Blue" },
+    { value: "green", label: "Green" },
+    { value: "purple", label: "Purple" },
+    { value: "pink", label: "Pink" },
+    { value: "yellow", label: "Yellow" },
+    { value: "red", label: "Red" }
+  ];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -56,6 +72,9 @@ export function AppointmentTypeDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Appointment Type</DialogTitle>
+          <DialogDescription>
+            Define a new type of appointment with specific duration and color coding.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -85,12 +104,11 @@ export function AppointmentTypeDialog() {
                 <SelectValue placeholder="Select a color" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="blue">Blue</SelectItem>
-                <SelectItem value="green">Green</SelectItem>
-                <SelectItem value="purple">Purple</SelectItem>
-                <SelectItem value="pink">Pink</SelectItem>
-                <SelectItem value="yellow">Yellow</SelectItem>
-                <SelectItem value="red">Red</SelectItem>
+                {colorOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <div className={`mt-2 h-4 w-full rounded bg-${color}-500`} />

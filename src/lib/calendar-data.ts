@@ -29,6 +29,12 @@ export interface CalendarType {
   icon: string;
 }
 
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+const dayAfter = new Date(today);
+dayAfter.setDate(dayAfter.getDate() + 2);
+
 export const defaultAppointmentTypes: AppointmentType[] = [
   { id: '1', name: 'Discovery Call', duration: 30, color: 'bg-blue-500' },
   { id: '2', name: 'Strategy Session', duration: 60, color: 'bg-green-500' },
@@ -66,7 +72,7 @@ export const defaultEvents: CalendarEvent[] = [
   {
     id: '1',
     title: 'Discovery Call with Michael Brown',
-    date: new Date(),
+    date: today,
     time: '9:00 AM - 9:30 AM',
     contact: {
       name: 'Michael Brown',
@@ -79,7 +85,7 @@ export const defaultEvents: CalendarEvent[] = [
   {
     id: '2',
     title: 'Strategy Session with Emma Davis',
-    date: new Date(),
+    date: today,
     time: '11:00 AM - 12:00 PM',
     contact: {
       name: 'Emma Davis',
@@ -92,7 +98,7 @@ export const defaultEvents: CalendarEvent[] = [
   {
     id: '3',
     title: 'Website Review with James Wilson',
-    date: new Date(),
+    date: tomorrow,
     time: '2:30 PM - 3:30 PM',
     contact: {
       name: 'James Wilson',
@@ -101,5 +107,18 @@ export const defaultEvents: CalendarEvent[] = [
     },
     type: 'Video Call',
     status: 'pending',
+  },
+  {
+    id: '4',
+    title: 'Follow-up Call with Sarah Parker',
+    date: dayAfter,
+    time: '10:00 AM - 10:30 AM',
+    contact: {
+      name: 'Sarah Parker',
+      avatar: '',
+      initials: 'SP',
+    },
+    type: 'Video Call',
+    status: 'confirmed',
   }
 ];
