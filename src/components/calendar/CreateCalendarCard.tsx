@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, User, Users, Calendar } from "lucide-react";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function CreateCalendarCard() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState("User");
+  const [loading, setLoading] = useState(false);
   const { addCalendarType } = useCalendarStore();
 
   const handleCreateCalendar = (e: React.FormEvent) => {
@@ -39,20 +41,26 @@ export function CreateCalendarCard() {
       return;
     }
 
-    addCalendarType({
-      id: crypto.randomUUID(),
-      name,
-      description,
-      activeBookings: 0,
-      conversionRate: 0,
-      icon,
-    });
-
-    toast.success("Calendar created successfully");
-    setOpen(false);
-    setName("");
-    setDescription("");
-    setIcon("User");
+    setLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      addCalendarType({
+        id: crypto.randomUUID(),
+        name,
+        description,
+        activeBookings: 0,
+        conversionRate: 0,
+        icon,
+      });
+      
+      toast.success("Calendar created successfully");
+      setLoading(false);
+      setOpen(false);
+      setName("");
+      setDescription("");
+      setIcon("User");
+    }, 800);
   };
 
   return (
@@ -106,10 +114,23 @@ export function CreateCalendarCard() {
               <SelectContent>
                 <SelectItem value="User">One-on-One</SelectItem>
                 <SelectItem value="Users">Group</SelectItem>
+                <SelectItem value="Calendar">Shared Calendar</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full">Create Calendar</Button>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Calendar"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
