@@ -1,212 +1,137 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { CalendarType } from "@/lib/calendar-data";
-import { useCalendarStore } from "@/store/useCalendarStore";
-import { CalendarIcon, MoreHorizontal, Pencil, Trash2, User, Users } from "lucide-react";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useCalendarStore } from "@/store/useCalendarStore";
+import { CalendarClock, Copy, Edit, Share2, Trash } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { CalendarType } from "@/lib/calendar-data";
 
 interface CalendarTypeCardProps {
   type: CalendarType;
+  viewMode?: "grid" | "list";
 }
 
-export function CalendarTypeCard({ type }: CalendarTypeCardProps) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [name, setName] = useState(type.name);
-  const [description, setDescription] = useState(type.description);
-  const [icon, setIcon] = useState(type.icon);
-  
+export function CalendarTypeCard({ type, viewMode = "grid" }: CalendarTypeCardProps) {
   const { deleteCalendarType, updateCalendarType } = useCalendarStore();
-
-  const IconComponent = type.icon === "User" ? User : Users;
-
+  const [isActive, setIsActive] = useState(type.isActive);
+  
+  const handleToggleActive = () => {
+    const newState = !isActive;
+    setIsActive(newState);
+    updateCalendarType(type.id, { isActive: newState });
+    toast.success(`Calendar ${newState ? 'activated' : 'deactivated'}`);
+  };
+  
   const handleDelete = () => {
-    deleteCalendarType(type.id);
-    toast.success(`${type.name} calendar deleted`);
-    setShowDeleteDialog(false);
-  };
-
-  const handleManageCalendar = () => {
-    toast.success(`Managing ${type.name} calendar`);
-  };
-
-  const handleEdit = () => {
-    setName(type.name);
-    setDescription(type.description);
-    setIcon(type.icon);
-    setShowEditDialog(true);
-  };
-
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name || !description) {
-      toast.error("Please fill in all required fields");
-      return;
+    if (confirm("Are you sure you want to delete this calendar?")) {
+      deleteCalendarType(type.id);
+      toast.success("Calendar deleted");
     }
-    
-    updateCalendarType(type.id, {
-      name,
-      description,
-      icon
-    });
-    
-    toast.success(`${name} calendar updated`);
-    setShowEditDialog(false);
   };
+  
+  const handleEdit = () => {
+    toast.success("Edit calendar dialog would open here");
+    // In a real app, this would open an edit modal
+  };
+  
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`https://example.com/calendar/${type.id}`);
+    toast.success("Calendar link copied to clipboard");
+  };
+  
+  const handleShare = () => {
+    toast.success("Share calendar dialog would open here");
+    // In a real app, this would open a share modal
+  };
+
+  if (viewMode === "list") {
+    return (
+      <div className="flex items-center justify-between border rounded-md p-4 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center gap-4">
+          <div className={`p-2 rounded-full ${isActive ? 'bg-primary/10' : 'bg-muted'}`}>
+            <CalendarClock className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium">{type.name}</h3>
+              <Badge variant={isActive ? "default" : "outline"}>
+                {isActive ? "Active" : "Inactive"}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{type.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleToggleActive}>
+            {isActive ? "Deactivate" : "Activate"}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleCopyLink}>
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleShare}>
+            <Share2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-destructive" onClick={handleDelete}>
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Card className="relative group">
-        <CardHeader>
-          <div className="absolute right-4 top-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEdit}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit Calendar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Calendar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div className={`p-2 rounded-full ${isActive ? 'bg-primary/10' : 'bg-muted'}`}>
+            <CalendarClock className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
           </div>
-          <div className="bg-primary/10 w-10 h-10 flex items-center justify-center rounded-full mb-2">
-            <IconComponent className="h-5 w-5 text-primary" />
-          </div>
-          <CardTitle>{type.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-6">
-            {type.description}
-          </p>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center text-sm">
-              <span>Active Bookings</span>
-              <span className="font-medium">{type.activeBookings}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span>Conversion Rate</span>
-              <span className="font-medium">{type.conversionRate}%</span>
-            </div>
-            <Separator />
-            <div className="pt-2">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={handleManageCalendar}
-              >
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                Manage Calendar
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Calendar</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Calendar Name*</Label>
-              <Input
-                id="edit-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Client Consultations"
-                required
+          <Badge variant={isActive ? "default" : "outline"}>
+            {isActive ? "Active" : "Inactive"}
+          </Badge>
+        </div>
+        <CardTitle className="mt-2">{type.name}</CardTitle>
+        <CardDescription>{type.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-sm">
+          <p><strong>Type:</strong> {type.type}</p>
+          <p><strong>Appointments:</strong> {type.appointmentCount || 0}</p>
+          {type.color && (
+            <div className="flex items-center gap-2 mt-1">
+              <strong>Color:</strong>
+              <div 
+                className="h-4 w-4 rounded-full" 
+                style={{ backgroundColor: type.color }}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description*</Label>
-              <Textarea
-                id="edit-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the purpose of this calendar"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-type">Calendar Type</Label>
-              <Select value={icon} onValueChange={setIcon}>
-                <SelectTrigger id="edit-type">
-                  <SelectValue placeholder="Select calendar type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="User">One-on-One</SelectItem>
-                  <SelectItem value="Users">Group</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" className="w-full">Update Calendar</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Calendar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the "{type.name}" calendar? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between pt-2">
+        <Button variant="outline" size="sm" onClick={handleToggleActive}>
+          {isActive ? "Deactivate" : "Activate"}
+        </Button>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={handleCopyLink}>
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleShare}>
+            <Share2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-destructive" onClick={handleDelete}>
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

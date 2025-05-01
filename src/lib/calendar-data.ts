@@ -1,208 +1,246 @@
 
-export interface AppointmentType {
-  id: string;
-  name: string;
-  duration: number;
-  color: string;
-  description?: string;
-  isDefault?: boolean;
-}
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  date: Date;
-  time: string;
-  endTime?: string;
-  contact: {
-    name: string;
-    email?: string;
-    avatar: string;
-    initials: string;
-  };
-  type: string;
-  appointmentTypeId?: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'rescheduled';
-  notes?: string;
-  location?: string;
-}
+import { v4 as uuidv4 } from 'uuid';
 
 export interface CalendarType {
   id: string;
   name: string;
   description: string;
-  activeBookings: number;
-  conversionRate: number;
-  icon: string;
-  isConnected?: boolean;
-  source?: 'google' | 'outlook' | 'apple' | 'custom';
+  type: string;
+  isActive: boolean;
+  color?: string;
+  appointmentCount?: number;
 }
 
-export interface AvailabilitySlot {
-  day: string;
+export interface AppointmentType {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  price?: number;
+  color?: string;
+  isActive: boolean;
+  calendarId?: string;
+  locations?: string[];
+  bufferTimeBefore?: number;
+  bufferTimeAfter?: number;
+  availableDays?: string[];
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string | Date;
   startTime: string;
   endTime: string;
-  isAvailable: boolean;
+  appointmentTypeId?: string;
+  calendarId?: string;
+  contactId?: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone?: string;
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  notes?: string;
+  location?: string;
+  color?: string;
 }
-
-const today = new Date();
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
-const dayAfter = new Date(today);
-dayAfter.setDate(dayAfter.getDate() + 2);
-const nextWeek = new Date(today);
-nextWeek.setDate(nextWeek.getDate() + 7);
-
-export const defaultAppointmentTypes: AppointmentType[] = [
-  { id: '1', name: 'Discovery Call', duration: 30, color: 'bg-blue-500', description: 'Initial consultation to understand client needs', isDefault: true },
-  { id: '2', name: 'Strategy Session', duration: 60, color: 'bg-green-500', description: 'Detailed planning session for new projects' },
-  { id: '3', name: 'Website Review', duration: 45, color: 'bg-purple-500', description: 'Technical and design review of existing website' },
-  { id: '4', name: 'Quick Check-in', duration: 15, color: 'bg-amber-500', description: 'Brief follow-up on project status' },
-];
 
 export const defaultCalendarTypes: CalendarType[] = [
   {
-    id: '1',
-    name: 'One-on-One',
-    description: 'Individual meetings with clients or prospects',
-    activeBookings: 3,
-    conversionRate: 25,
-    icon: 'User',
-    isConnected: true,
+    id: 'cal-1',
+    name: 'Personal Calendar',
+    description: 'My personal appointment calendar',
+    type: 'personal',
+    isActive: true,
+    color: '#6E59A5',
+    appointmentCount: 8,
   },
   {
-    id: '2',
-    name: 'Round Robin',
-    description: 'Distribute meetings among team members',
-    activeBookings: 6,
-    conversionRate: 30,
-    icon: 'Users',
+    id: 'cal-2',
+    name: 'Team Calendar',
+    description: 'Calendar for team availability and scheduling',
+    type: 'team',
+    isActive: true,
+    color: '#0EA5E9',
+    appointmentCount: 15,
   },
   {
-    id: '3',
-    name: 'Group',
-    description: 'Schedule group sessions or webinars',
-    activeBookings: 9,
-    conversionRate: 35,
-    icon: 'Users',
-  },
-  {
-    id: '4',
-    name: 'Google Calendar',
-    description: 'Connected external calendar',
-    activeBookings: 12,
-    conversionRate: 40,
-    icon: 'Calendar',
-    isConnected: true,
-    source: 'google',
+    id: 'cal-3',
+    name: 'Service Calendar',
+    description: 'Calendar for service-based appointments',
+    type: 'service',
+    isActive: false,
+    color: '#F97316',
+    appointmentCount: 0,
   },
 ];
+
+export const defaultAppointmentTypes: AppointmentType[] = [
+  {
+    id: 'apt-1',
+    name: 'Initial Consultation',
+    description: 'First meeting with a new client',
+    duration: 30,
+    price: 50,
+    color: '#6E59A5',
+    isActive: true,
+    calendarId: 'cal-1',
+    locations: ['In-person', 'Video call'],
+    bufferTimeBefore: 10,
+    bufferTimeAfter: 5,
+    availableDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+  },
+  {
+    id: 'apt-2',
+    name: 'Follow-up Meeting',
+    description: 'Follow-up session with existing client',
+    duration: 45,
+    price: 75,
+    color: '#0EA5E9',
+    isActive: true,
+    calendarId: 'cal-1',
+    locations: ['In-person', 'Phone call', 'Video call'],
+    bufferTimeBefore: 5,
+    bufferTimeAfter: 5,
+    availableDays: ['monday', 'wednesday', 'friday'],
+  },
+  {
+    id: 'apt-3',
+    name: 'Strategy Session',
+    description: 'Deep dive into business strategy',
+    duration: 60,
+    price: 100,
+    color: '#F97316',
+    isActive: true,
+    calendarId: 'cal-2',
+    locations: ['In-person', 'Video call'],
+    bufferTimeBefore: 15,
+    bufferTimeAfter: 10,
+    availableDays: ['tuesday', 'thursday'],
+  },
+  {
+    id: 'apt-4',
+    name: 'Quick Check-in',
+    description: 'Brief status update meeting',
+    duration: 15,
+    price: 0,
+    color: '#8B5CF6',
+    isActive: true,
+    calendarId: 'cal-2',
+    locations: ['Phone call', 'Video call'],
+    bufferTimeBefore: 5,
+    bufferTimeAfter: 5,
+    availableDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+  },
+];
+
+export const createDefaultEvent = (partial: Partial<CalendarEvent> = {}): CalendarEvent => {
+  return {
+    id: uuidv4(),
+    title: 'New Event',
+    date: new Date(),
+    startTime: '09:00',
+    endTime: '09:30',
+    contactName: 'John Doe',
+    contactEmail: 'john@example.com',
+    status: 'confirmed',
+    ...partial,
+  };
+};
 
 export const defaultEvents: CalendarEvent[] = [
   {
-    id: '1',
-    title: 'Discovery Call with Michael Brown',
-    date: today,
-    time: '9:00 AM - 9:30 AM',
-    contact: {
-      name: 'Michael Brown',
-      email: 'michael@example.com',
-      avatar: '',
-      initials: 'MB',
-    },
-    type: 'Video Call',
-    appointmentTypeId: '1',
+    id: 'evt-1',
+    title: 'Initial Consultation with Sarah',
+    date: new Date(new Date().setDate(new Date().getDate() + 1)),
+    startTime: '09:00',
+    endTime: '09:30',
+    appointmentTypeId: 'apt-1',
+    calendarId: 'cal-1',
+    contactId: 'contact-1',
+    contactName: 'Sarah Johnson',
+    contactEmail: 'sarah@example.com',
+    contactPhone: '(555) 123-4567',
     status: 'confirmed',
-    location: 'Zoom',
+    location: 'Video call',
+    color: '#6E59A5',
   },
   {
-    id: '2',
-    title: 'Strategy Session with Emma Davis',
-    date: today,
-    time: '11:00 AM - 12:00 PM',
-    contact: {
-      name: 'Emma Davis',
-      email: 'emma@example.com',
-      avatar: '',
-      initials: 'ED',
-    },
-    type: 'In Person',
-    appointmentTypeId: '2',
+    id: 'evt-2',
+    title: 'Follow-up with Michael',
+    date: new Date(),
+    startTime: '11:00',
+    endTime: '11:45',
+    appointmentTypeId: 'apt-2',
+    calendarId: 'cal-1',
+    contactId: 'contact-2',
+    contactName: 'Michael Brown',
+    contactEmail: 'michael@example.com',
+    contactPhone: '(555) 987-6543',
     status: 'confirmed',
-    location: 'Office - Room 302',
+    location: 'In-person',
+    color: '#0EA5E9',
   },
   {
-    id: '3',
-    title: 'Website Review with James Wilson',
-    date: tomorrow,
-    time: '2:30 PM - 3:15 PM',
-    contact: {
-      name: 'James Wilson',
-      email: 'james@example.com',
-      avatar: '',
-      initials: 'JW',
-    },
-    type: 'Video Call',
-    appointmentTypeId: '3',
+    id: 'evt-3',
+    title: 'Strategy Session with Emma',
+    date: new Date(),
+    startTime: '14:00',
+    endTime: '15:00',
+    appointmentTypeId: 'apt-3',
+    calendarId: 'cal-2',
+    contactId: 'contact-3',
+    contactName: 'Emma Davis',
+    contactEmail: 'emma@example.com',
+    contactPhone: '(555) 345-6789',
     status: 'pending',
-    location: 'Google Meet',
+    location: 'Video call',
+    notes: 'Prepare quarterly strategy documents',
+    color: '#F97316',
   },
   {
-    id: '4',
-    title: 'Follow-up Call with Sarah Parker',
-    date: dayAfter,
-    time: '10:00 AM - 10:30 AM',
-    contact: {
-      name: 'Sarah Parker',
-      email: 'sarah@example.com',
-      avatar: '',
-      initials: 'SP',
-    },
-    type: 'Video Call',
-    appointmentTypeId: '1',
+    id: 'evt-4',
+    title: 'Quick Check-in with James',
+    date: new Date(new Date().setDate(new Date().getDate() - 1)),
+    startTime: '16:00',
+    endTime: '16:15',
+    appointmentTypeId: 'apt-4',
+    calendarId: 'cal-2',
+    contactId: 'contact-4',
+    contactName: 'James Wilson',
+    contactEmail: 'james@example.com',
+    status: 'completed',
+    location: 'Phone call',
+    color: '#8B5CF6',
+  },
+  {
+    id: 'evt-5',
+    title: 'Initial Consultation with Olivia',
+    date: new Date(new Date().setDate(new Date().getDate() + 2)),
+    startTime: '10:00',
+    endTime: '10:30',
+    appointmentTypeId: 'apt-1',
+    calendarId: 'cal-1',
+    contactId: 'contact-5',
+    contactName: 'Olivia Smith',
+    contactEmail: 'olivia@example.com',
     status: 'confirmed',
-    location: 'Zoom',
+    location: 'In-person',
+    color: '#6E59A5',
   },
   {
-    id: '5',
-    title: 'Project Kickoff with Alex Wong',
-    date: nextWeek,
-    time: '1:00 PM - 2:00 PM',
-    contact: {
-      name: 'Alex Wong',
-      email: 'alex@example.com',
-      avatar: '',
-      initials: 'AW',
-    },
-    type: 'In Person',
-    appointmentTypeId: '2',
-    status: 'confirmed',
-    location: 'Conference Room A',
+    id: 'evt-6',
+    title: 'Follow-up with William',
+    date: new Date(new Date().setDate(new Date().getDate() + 1)),
+    startTime: '13:00',
+    endTime: '13:45',
+    appointmentTypeId: 'apt-2',
+    calendarId: 'cal-1',
+    contactId: 'contact-6',
+    contactName: 'William Taylor',
+    contactEmail: 'william@example.com',
+    status: 'cancelled',
+    location: 'Video call',
+    notes: 'Client requested cancellation',
+    color: '#0EA5E9',
   },
-  {
-    id: '6',
-    title: 'Quick Check-in with David Miller',
-    date: nextWeek,
-    time: '3:30 PM - 3:45 PM',
-    contact: {
-      name: 'David Miller',
-      email: 'david@example.com',
-      avatar: '',
-      initials: 'DM',
-    },
-    type: 'Phone Call',
-    appointmentTypeId: '4',
-    status: 'rescheduled',
-    notes: 'Originally scheduled for yesterday',
-  }
-];
-
-export const defaultAvailability: AvailabilitySlot[] = [
-  { day: 'Monday', startTime: '09:00 AM', endTime: '05:00 PM', isAvailable: true },
-  { day: 'Tuesday', startTime: '09:00 AM', endTime: '05:00 PM', isAvailable: true },
-  { day: 'Wednesday', startTime: '09:00 AM', endTime: '05:00 PM', isAvailable: true },
-  { day: 'Thursday', startTime: '09:00 AM', endTime: '05:00 PM', isAvailable: true },
-  { day: 'Friday', startTime: '09:00 AM', endTime: '03:00 PM', isAvailable: true },
-  { day: 'Saturday', startTime: '10:00 AM', endTime: '02:00 PM', isAvailable: false },
-  { day: 'Sunday', startTime: '', endTime: '', isAvailable: false },
 ];
