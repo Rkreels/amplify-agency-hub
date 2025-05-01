@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { defaultAppointmentTypes, defaultCalendarTypes, type AppointmentType, type CalendarType, type CalendarEvent } from '@/lib/calendar-data';
+import { defaultAppointmentTypes, defaultCalendarTypes, defaultEvents, type AppointmentType, type CalendarType, type CalendarEvent } from '@/lib/calendar-data';
 
 interface CalendarStore {
   appointmentTypes: AppointmentType[];
@@ -30,7 +30,7 @@ interface CalendarStore {
 export const useCalendarStore = create<CalendarStore>((set) => ({
   appointmentTypes: defaultAppointmentTypes,
   calendarTypes: defaultCalendarTypes,
-  events: [],
+  events: defaultEvents, // Load events by default
   selectedDate: new Date(),
   selectedTab: "appointments",
   selectedCalendarView: "month",
