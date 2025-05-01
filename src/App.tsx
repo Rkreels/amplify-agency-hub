@@ -29,7 +29,14 @@ import AppointmentTypes from "./pages/calendar/AppointmentTypes";
 import CalendarAvailability from "./pages/calendar/CalendarAvailability";
 import CalendarIntegrations from "./pages/calendar/CalendarIntegrations";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

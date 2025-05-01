@@ -27,6 +27,7 @@ interface CalendarStore {
   setBufferBefore: (time: string) => void;
   setBufferAfter: (time: string) => void;
   getEventsForDate: (date: Date) => CalendarEvent[];
+  editAppointmentType: (type: AppointmentType) => void;
 }
 
 export const useCalendarStore = create<CalendarStore>()(
@@ -52,6 +53,12 @@ export const useCalendarStore = create<CalendarStore>()(
         set((state) => ({
           appointmentTypes: state.appointmentTypes.map((type) => 
             type.id === id ? { ...type, ...updates } : type
+          ),
+        })),
+      editAppointmentType: (type) =>
+        set((state) => ({
+          appointmentTypes: state.appointmentTypes.map((item) => 
+            item.id === type.id ? type : item
           ),
         })),
       addCalendarType: (type) =>
