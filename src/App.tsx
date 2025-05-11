@@ -29,6 +29,12 @@ import AppointmentTypes from "./pages/calendar/AppointmentTypes";
 import CalendarAvailability from "./pages/calendar/CalendarAvailability";
 import CalendarIntegrations from "./pages/calendar/CalendarIntegrations";
 
+// Automation pages
+import SmsAutomations from "./pages/automation/SmsAutomations";
+
+// Marketing pages
+import SmsCampaigns from "./pages/marketing/SmsCampaigns";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -56,11 +62,17 @@ const App = () => (
           <Route path="/calendars/availability" element={<CalendarAvailability />} />
           <Route path="/calendars/integrations" element={<CalendarIntegrations />} />
           
+          {/* Automation Routes */}
+          <Route path="/automation" element={<Automation />} />
+          <Route path="/automation/sms" element={<SmsAutomations />} />
+          
+          {/* Marketing Routes */}
+          <Route path="/marketing" element={<Marketing />} />
+          <Route path="/marketing/sms-campaigns" element={<SmsCampaigns />} />
+          
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/pipelines" element={<Pipeline />} />
           <Route path="/payments" element={<Payments />} />
-          <Route path="/marketing" element={<Marketing />} />
-          <Route path="/automation" element={<Automation />} />
           <Route path="/sites" element={<Sites />} />
           <Route path="/memberships" element={<Memberships />} />
           <Route path="/reputation" element={<Reputation />} />

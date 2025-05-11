@@ -24,6 +24,7 @@ export interface AppointmentType {
   bufferTimeBefore?: number;
   bufferTimeAfter?: number;
   availableDays?: string[];
+  isDefault?: boolean;
 }
 
 export interface CalendarEvent {
@@ -42,7 +43,35 @@ export interface CalendarEvent {
   notes?: string;
   location?: string;
   color?: string;
+  // Add missing properties used in AppointmentItem.tsx
+  time?: string;
+  type?: string;
+  contact?: {
+    name: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
+    initials: string;
+  };
 }
+
+export interface AvailabilitySlot {
+  id: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+}
+
+export const defaultAvailability: AvailabilitySlot[] = [
+  { id: 'slot-1', day: 'monday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+  { id: 'slot-2', day: 'tuesday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+  { id: 'slot-3', day: 'wednesday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+  { id: 'slot-4', day: 'thursday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+  { id: 'slot-5', day: 'friday', startTime: '09:00', endTime: '17:00', isAvailable: true },
+  { id: 'slot-6', day: 'saturday', startTime: '00:00', endTime: '00:00', isAvailable: false },
+  { id: 'slot-7', day: 'sunday', startTime: '00:00', endTime: '00:00', isAvailable: false },
+];
 
 export const defaultCalendarTypes: CalendarType[] = [
   {
@@ -88,6 +117,7 @@ export const defaultAppointmentTypes: AppointmentType[] = [
     bufferTimeBefore: 10,
     bufferTimeAfter: 5,
     availableDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    isDefault: false,
   },
   {
     id: 'apt-2',
@@ -102,6 +132,7 @@ export const defaultAppointmentTypes: AppointmentType[] = [
     bufferTimeBefore: 5,
     bufferTimeAfter: 5,
     availableDays: ['monday', 'wednesday', 'friday'],
+    isDefault: true,
   },
   {
     id: 'apt-3',
@@ -116,6 +147,7 @@ export const defaultAppointmentTypes: AppointmentType[] = [
     bufferTimeBefore: 15,
     bufferTimeAfter: 10,
     availableDays: ['tuesday', 'thursday'],
+    isDefault: false,
   },
   {
     id: 'apt-4',
@@ -130,6 +162,7 @@ export const defaultAppointmentTypes: AppointmentType[] = [
     bufferTimeBefore: 5,
     bufferTimeAfter: 5,
     availableDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    isDefault: false,
   },
 ];
 
@@ -163,6 +196,14 @@ export const defaultEvents: CalendarEvent[] = [
     status: 'confirmed',
     location: 'Video call',
     color: '#6E59A5',
+    time: '09:00 - 09:30',
+    type: 'Video call',
+    contact: {
+      name: 'Sarah Johnson',
+      email: 'sarah@example.com',
+      phone: '(555) 123-4567',
+      initials: 'SJ'
+    }
   },
   {
     id: 'evt-2',
@@ -179,6 +220,14 @@ export const defaultEvents: CalendarEvent[] = [
     status: 'confirmed',
     location: 'In-person',
     color: '#0EA5E9',
+    time: '11:00 - 11:45',
+    type: 'In-person',
+    contact: {
+      name: 'Michael Brown',
+      email: 'michael@example.com',
+      phone: '(555) 987-6543',
+      initials: 'MB'
+    }
   },
   {
     id: 'evt-3',
@@ -196,6 +245,14 @@ export const defaultEvents: CalendarEvent[] = [
     location: 'Video call',
     notes: 'Prepare quarterly strategy documents',
     color: '#F97316',
+    time: '14:00 - 15:00',
+    type: 'Video call',
+    contact: {
+      name: 'Emma Davis',
+      email: 'emma@example.com',
+      phone: '(555) 345-6789',
+      initials: 'ED'
+    }
   },
   {
     id: 'evt-4',
@@ -211,6 +268,13 @@ export const defaultEvents: CalendarEvent[] = [
     status: 'completed',
     location: 'Phone call',
     color: '#8B5CF6',
+    time: '16:00 - 16:15',
+    type: 'Phone call',
+    contact: {
+      name: 'James Wilson',
+      email: 'james@example.com',
+      initials: 'JW'
+    }
   },
   {
     id: 'evt-5',
@@ -226,6 +290,13 @@ export const defaultEvents: CalendarEvent[] = [
     status: 'confirmed',
     location: 'In-person',
     color: '#6E59A5',
+    time: '10:00 - 10:30',
+    type: 'In-person',
+    contact: {
+      name: 'Olivia Smith',
+      email: 'olivia@example.com',
+      initials: 'OS'
+    }
   },
   {
     id: 'evt-6',
@@ -242,5 +313,12 @@ export const defaultEvents: CalendarEvent[] = [
     location: 'Video call',
     notes: 'Client requested cancellation',
     color: '#0EA5E9',
+    time: '13:00 - 13:45',
+    type: 'Video call',
+    contact: {
+      name: 'William Taylor',
+      email: 'william@example.com',
+      initials: 'WT'
+    }
   },
 ];

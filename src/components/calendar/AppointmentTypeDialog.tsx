@@ -14,10 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { v4 as uuidv4 } from "uuid";
 
 export function AppointmentTypeDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("30");
   const [color, setColor] = useState("blue");
   const addAppointmentType = useCalendarStore((state) => state.addAppointmentType);
@@ -26,7 +28,7 @@ export function AppointmentTypeDialog() {
     e.preventDefault();
     
     if (!name || !duration) {
-      toast.error("Please fill in all fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -37,10 +39,17 @@ export function AppointmentTypeDialog() {
     }
 
     const newType = {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       name,
+      description: description || `${name} appointment type`,
       duration: durationNum,
       color: `bg-${color}-500`,
+      isActive: true,
+      locations: ["In-person", "Video call"],
+      bufferTimeBefore: 5,
+      bufferTimeAfter: 5,
+      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+      isDefault: false
     };
 
     addAppointmentType(newType);
@@ -48,6 +57,7 @@ export function AppointmentTypeDialog() {
 
     setOpen(false);
     setName("");
+    setDescription("");
     setDuration("30");
     setColor("blue");
   };
@@ -78,7 +88,7 @@ export function AppointmentTypeDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Name*</Label>
             <Input
               id="name"
               value={name}
@@ -87,7 +97,16 @@ export function AppointmentTypeDialog() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes)</Label>
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of this appointment type"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="duration">Duration (minutes)*</Label>
             <Input
               id="duration"
               type="number"
