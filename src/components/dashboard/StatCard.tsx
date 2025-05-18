@@ -1,82 +1,165 @@
 
+import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Users,
+  DollarSign,
+  BarChart2,
+  CalendarClock,
+  Layout,
+  ListChecks,
+  FileText,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
-import React from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
+
+type StatCardIcon = "users" | "dollar-sign" | "bar-chart-2" | "calendar-clock" | "layout" | "list-checks" | "file-text";
 
 interface StatCardProps {
   title: string;
-  value: string | number;
-  icon?: LucideIcon;
+  value: string | ReactNode;
   description?: string;
-  positive?: boolean;
-  negative?: boolean;
+  icon?: StatCardIcon;
+  change?: number;
+  variant?: "simple" | "chart";
+  chart?: "pie" | "bar" | "radial";
   className?: string;
-  color?: string;
-  variant?: "default" | "simple";
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
+
+const IconMap: Record<StatCardIcon, ReactNode> = {
+  "users": <Users className="h-4 w-4" />,
+  "dollar-sign": <DollarSign className="h-4 w-4" />,
+  "bar-chart-2": <BarChart2 className="h-4 w-4" />,
+  "calendar-clock": <CalendarClock className="h-4 w-4" />,
+  "layout": <Layout className="h-4 w-4" />,
+  "list-checks": <ListChecks className="h-4 w-4" />,
+  "file-text": <FileText className="h-4 w-4" />
+};
+
+// Mock data for opportunity status
+const opportunityStatusData = [
+  { name: "Open", value: 60872, color: "#3498db" },
+  { name: "Won", value: 2735, color: "#2ecc71" },
+  { name: "Lost", value: 1, color: "#e74c3c" }
+];
+
+// Mock data for opportunity value
+const opportunityValueData = [
+  { name: "Open", value: 20000000, color: "#3498db" },
+  { name: "Won", value: 3770000, color: "#2ecc71" },
+  { name: "Lost", value: 500000, color: "#e74c3c" }
+];
 
 export function StatCard({
   title,
   value,
-  icon: Icon,
   description,
-  positive,
-  negative,
+  icon,
+  change,
+  variant = "simple",
+  chart = "pie",
   className,
-  color,
-  variant = "default",
-  children
+  children,
 }: StatCardProps) {
-  if (variant === "simple") {
-    return (
-      <Card className={cn("shadow-sm border", className)}>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-medium">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="text-3xl font-bold text-center py-4">{value}</div>
-          {description && (
-            <p className="text-xs text-muted-foreground text-center">{description}</p>
-          )}
-          {children}
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className={cn("transition-all shadow-sm border", 
-      positive && "border-l-green-500",
-      negative && "border-l-red-500",
-      color && `border-l-[${color}]`,
-      !positive && !negative && !color && "border-l-primary",
-      className)}
-    >
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className={cn("h-full", className)}>
+      <CardHeader className="flex flex-row items-center justify-between p-4">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {Icon && (
-          <div className="bg-primary/10 p-1.5 rounded-full">
-            <Icon className="h-4 w-4 text-primary" />
+        {icon && (
+          <div className="text-muted-foreground">
+            {IconMap[icon]}
           </div>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+      <CardContent className="p-4 pt-0 flex flex-col justify-between h-[calc(100%-60px)]">
+        <div>
+          {variant === "simple" ? (
+            <div className="text-2xl font-bold">{value}</div>
+          ) : variant === "chart" && chart === "pie" ? (
+            <div className="h-40 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={opportunityStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={60}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {opportunityStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-2xl font-bold">{value}</div>
+              </div>
+            </div>
+          ) : variant === "chart" && chart === "bar" ? (
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  layout="vertical"
+                  data={opportunityValueData}
+                  margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" hide />
+                  <Bar dataKey="value" fill="#3498db" radius={[0, 4, 4, 0]}>
+                    {opportunityValueData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="text-2xl font-bold text-center mt-2">{value}</div>
+            </div>
+          ) : variant === "chart" && chart === "radial" ? (
+            <div className="h-40 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[{ name: "Converted", value: 4.3 }, { name: "Not Converted", value: 95.7 }]}
+                    cx="50%"
+                    cy="50%"
+                    startAngle={90}
+                    endAngle={-270}
+                    innerRadius={50}
+                    outerRadius={60}
+                    paddingAngle={0}
+                    dataKey="value"
+                  >
+                    <Cell fill="#36cff8" />
+                    <Cell fill="#f0f0f0" />
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-2xl font-bold">{value}</div>
+              </div>
+            </div>
+          ) : null}
+          {children}
+        </div>
         {description && (
-          <p
-            className={cn(
-              "text-xs",
-              positive && "text-green-600 dark:text-green-400",
-              negative && "text-red-600 dark:text-red-400",
-              !positive && !negative && "text-muted-foreground"
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-muted-foreground">{description}</p>
+            {typeof change === "number" && (
+              <Badge
+                variant={change >= 0 ? "outline" : "destructive"}
+                className={change >= 0 ? "text-green-600" : ""}
+              >
+                {change >= 0 ? "+" : ""}
+                {change}%
+              </Badge>
             )}
-          >
-            {description}
-          </p>
+          </div>
         )}
-        {children}
       </CardContent>
     </Card>
   );
