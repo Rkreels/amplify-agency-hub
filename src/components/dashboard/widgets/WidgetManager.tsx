@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { GridLayout, Responsive, WidthProvider } from "react-grid-layout";
+import { Responsive, WidthProvider } from "react-grid-layout";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowDownUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -156,7 +155,7 @@ export const WidgetManager: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  const handleLayoutChange = (currentLayout: GridLayout.Layout[], allLayouts: GridLayout.Layouts) => {
+  const handleLayoutChange = (currentLayout: any[], allLayouts: any) => {
     setLayouts(allLayouts);
   };
 
