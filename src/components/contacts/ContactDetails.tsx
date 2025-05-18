@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useContactsStore, type Contact } from "@/store/useContactsStore";
 import { Button } from "@/components/ui/button";
@@ -10,11 +9,13 @@ import { ContactForm } from "./ContactForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   PhoneCall, Mail, Building, MapPin, Calendar, Clock, Plus, 
-  Trash2, Edit, CheckCircle, Tag 
+  Trash2, Edit, CheckCircle, Tag, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ContactDetailsProps {
   contact: Contact;
