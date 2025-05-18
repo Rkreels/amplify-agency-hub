@@ -5,6 +5,7 @@ export interface WidgetConfig {
   id: string;
   name: string;
   description: string;
+  icon?: ReactNode;
   defaultSize: {
     w: number;
     h: number;

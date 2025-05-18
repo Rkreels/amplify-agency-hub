@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -12,10 +11,13 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { CalendarSettingsHeader } from "@/components/calendar/CalendarSettingsHeader";
+import { ColorPicker } from "@/components/calendar/ColorPicker";
 
 export default function CalendarSettings() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [calendarColor, setCalendarColor] = useState("#4361ee");
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,28 +32,15 @@ export default function CalendarSettings() {
   
   return (
     <AppLayout>
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/calendars")}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Calendars
-        </Button>
-      </div>
-      
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Calendar Settings</h1>
-          <p className="text-muted-foreground">
-            Configure your calendar preferences and options
-          </p>
-        </div>
-        <Button onClick={handleSubmit} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
+      <CalendarSettingsHeader
+        title="Calendar Settings"
+        description="Configure your calendar preferences and options"
+        saving={saving}
+        onSave={handleSubmit}
+      />
       
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full sm:w-auto flex flex-wrap">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="booking">Booking Rules</TabsTrigger>
@@ -84,6 +73,12 @@ export default function CalendarSettings() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div className="space-y-2">
+                  <Label>Calendar Color</Label>
+                  <ColorPicker color={calendarColor} onChange={setCalendarColor} />
+                </div>
+                
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea id="description" defaultValue="My primary calendar for client meetings and appointments." />

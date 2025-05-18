@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDownUp } from "lucide-react";
+import { Plus, ArrowDownUp, MoveHorizontal, Grid, Maximize, Minimize, Calendar, BarChart, MessageSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { DashboardWidgetProps, WidgetConfig } from "./types";
@@ -13,6 +13,7 @@ import { UpcomingTasks } from "../UpcomingTasks";
 import { AvailableWidgetCard } from "./AvailableWidgetCard";
 import { EmptyDashboard } from "./EmptyDashboard";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useIsMobile } from "@/hooks/use-mobile";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
@@ -24,9 +25,10 @@ const availableWidgets: WidgetConfig[] = [
     id: "stats",
     name: "Key Metrics",
     description: "Display key business metrics",
+    icon: <BarChart className="h-5 w-5" />,
     defaultSize: { w: 12, h: 2, minW: 6, minH: 2 },
     component: (props: DashboardWidgetProps) => (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
         <StatCard
           title="Total Revenue"
           value="$245,300"
@@ -136,6 +138,42 @@ const availableWidgets: WidgetConfig[] = [
         {...props}
       />
     )
+  },
+  {
+    id: "calendar-overview",
+    name: "Calendar Overview",
+    description: "View your upcoming appointments",
+    icon: <Calendar className="h-5 w-5" />,
+    defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Calendar Overview"
+        value="8 events"
+        variant="chart"
+        chart="calendar"
+        description="This week"
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "message-analytics",
+    name: "Message Analytics",
+    description: "Track communication metrics",
+    icon: <MessageSquare className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Messages"
+        value="156"
+        variant="chart"
+        chart="line"
+        description="Last 30 days"
+        className="h-full"
+        {...props}
+      />
+    )
   }
 ];
 
@@ -148,15 +186,31 @@ const defaultLayout = [
   { i: "upcoming-tasks", x: 6, y: 6, w: 6, h: 4 }
 ];
 
+// Layout breakpoints
+const breakpoints = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+const cols = { lg: 12, md: 8, sm: 6, xs: 4, xxs: 2 };
+
 export const WidgetManager: React.FC = () => {
   const [isAddWidgetOpen, setIsAddWidgetOpen] = useState(false);
   const [layouts, setLayouts] = useLocalStorage("dashboard-layout", { lg: defaultLayout });
   const [activeWidgets, setActiveWidgets] = useLocalStorage("active-widgets", defaultLayout.map(item => item.i));
   const [isDragging, setIsDragging] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [currentBreakpoint, setCurrentBreakpoint] = useState("lg");
+  const [mounted, setMounted] = useState(false);
+  const isMobile = useIsMobile();
+  
+  // Set mounted state after component mounts to prevent SSR issues with window sizing
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLayoutChange = (currentLayout: any[], allLayouts: any) => {
     setLayouts(allLayouts);
+  };
+
+  const handleBreakpointChange = (breakpoint: string) => {
+    setCurrentBreakpoint(breakpoint);
   };
 
   const handleAddWidget = (widgetId: string) => {
@@ -171,19 +225,21 @@ export const WidgetManager: React.FC = () => {
     const { defaultSize } = widgetConfig;
     
     // Find the highest y value in the current layout to place the new widget below
-    const maxY = Math.max(...(layouts.lg || []).map(item => item.y + item.h), 0);
+    const maxY = Math.max(...(layouts[currentBreakpoint] || []).map(item => item.y + item.h), 0);
     
     const newWidget = {
       i: widgetId,
       x: 0, // Start at the beginning of the row
       y: maxY, // Place below the lowest widget
-      w: defaultSize.w,
+      w: isMobile ? Math.min(cols[currentBreakpoint as keyof typeof cols], defaultSize.w) : defaultSize.w,
       h: defaultSize.h
     };
     
+    const currentLayoutArray = layouts[currentBreakpoint] || [];
+    
     const newLayouts = {
       ...layouts,
-      lg: [...(layouts.lg || []), newWidget]
+      [currentBreakpoint]: [...currentLayoutArray, newWidget]
     };
     
     setLayouts(newLayouts);
@@ -194,11 +250,18 @@ export const WidgetManager: React.FC = () => {
   };
 
   const handleRemoveWidget = (widgetId: string) => {
-    setLayouts({
-      ...layouts,
-      lg: (layouts.lg || []).filter(item => item.i !== widgetId)
+    // Remove from all responsive layouts
+    const updatedLayouts = { ...layouts };
+    
+    Object.keys(updatedLayouts).forEach(breakpoint => {
+      if (updatedLayouts[breakpoint]) {
+        updatedLayouts[breakpoint] = updatedLayouts[breakpoint].filter(
+          (item: any) => item.i !== widgetId
+        );
+      }
     });
     
+    setLayouts(updatedLayouts);
     setActiveWidgets(activeWidgets.filter(id => id !== widgetId));
     toast.success("Widget removed from dashboard");
   };
@@ -218,26 +281,39 @@ export const WidgetManager: React.FC = () => {
     toast.success("Dashboard reset to default layout");
   };
 
+  // Don't render until component is mounted to avoid SSR hydration issues
+  if (!mounted) return null;
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {activeWidgets.length > 0 && (
             <>
               <Button 
                 variant={isEditMode ? "default" : "outline"} 
                 onClick={toggleEditMode}
+                size={isMobile ? "sm" : "default"}
+                className="flex items-center"
               >
-                {isEditMode ? "Save Changes" : "Customize Dashboard"}
+                <MoveHorizontal className="h-4 w-4 mr-2" />
+                {isEditMode ? "Save Changes" : "Customize"}
               </Button>
-              <Button variant="outline" onClick={resetDashboard}>
+              <Button 
+                variant="outline" 
+                onClick={resetDashboard}
+                size={isMobile ? "sm" : "default"}
+              >
                 <ArrowDownUp className="h-4 w-4 mr-2" />
-                Reset Layout
+                Reset
               </Button>
             </>
           )}
-          <Button onClick={() => setIsAddWidgetOpen(true)}>
+          <Button 
+            onClick={() => setIsAddWidgetOpen(true)}
+            size={isMobile ? "sm" : "default"}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Widget
           </Button>
@@ -247,21 +323,29 @@ export const WidgetManager: React.FC = () => {
       {activeWidgets.length === 0 ? (
         <EmptyDashboard onAddWidgets={() => setIsAddWidgetOpen(true)} />
       ) : (
-        <div className={`transition-all duration-200 ${isDragging ? "opacity-75" : ""}`}>
+        <div 
+          className={`transition-all duration-200 ${isDragging ? "opacity-75" : ""}`}
+          data-edit-mode={isEditMode ? "true" : "false"}
+        >
           <ResponsiveGridLayout
             className="layout"
             layouts={layouts}
-            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+            breakpoints={breakpoints}
+            cols={cols}
             rowHeight={60}
             onLayoutChange={handleLayoutChange}
+            onBreakpointChange={handleBreakpointChange}
             isDraggable={isEditMode}
             isResizable={isEditMode}
             onDragStart={() => setIsDragging(true)}
             onDragStop={() => setIsDragging(false)}
             margin={[16, 16]}
+            containerPadding={[0, 0]}
+            useCSSTransforms={true}
+            compactType="vertical"
+            draggableHandle={isEditMode ? ".widget-drag-handle" : undefined}
           >
-            {(layouts.lg || [])
+            {(layouts[currentBreakpoint] || [])
               .filter(item => activeWidgets.includes(item.i))
               .map(item => {
                 const widgetConfig = availableWidgets.find(w => w.id === item.i);
@@ -270,11 +354,14 @@ export const WidgetManager: React.FC = () => {
                 const WidgetComponent = widgetConfig.component;
                 
                 return (
-                  <div key={item.i} className="bg-white rounded-lg shadow">
+                  <div key={item.i} className="bg-white rounded-lg shadow overflow-hidden">
                     <div className="h-full flex flex-col">
                       {isEditMode && (
-                        <div className="bg-muted/60 p-2 flex justify-between items-center border-b cursor-move">
-                          <span className="text-sm font-medium">{widgetConfig.name}</span>
+                        <div className="widget-drag-handle bg-muted/60 p-2 flex justify-between items-center border-b cursor-move">
+                          <div className="flex items-center gap-2">
+                            <Grid className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{widgetConfig.name}</span>
+                          </div>
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -299,14 +386,14 @@ export const WidgetManager: React.FC = () => {
       )}
       
       <Dialog open={isAddWidgetOpen} onOpenChange={setIsAddWidgetOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Widget</DialogTitle>
             <DialogDescription>
               Choose widgets to add to your dashboard.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
             {availableWidgets.map(widget => (
               <AvailableWidgetCard
                 key={widget.id}

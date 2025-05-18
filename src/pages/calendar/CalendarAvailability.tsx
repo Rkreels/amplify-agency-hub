@@ -2,23 +2,22 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Plus, Trash } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Trash } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { defaultAvailability, AvailabilitySlot } from "@/lib/calendar-data";
 import { Calendar } from "@/components/ui/calendar";
+import { CalendarSettingsHeader } from "@/components/calendar/CalendarSettingsHeader";
 
 export default function CalendarAvailability() {
-  const navigate = useNavigate();
   const [availability, setAvailability] = useState<AvailabilitySlot[]>(defaultAvailability);
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [activeTab, setActiveTab] = useState("weekly");
   
   const handleToggleDay = (dayIndex: number) => {
     setAvailability(availability.map((slot, i) => 
@@ -42,7 +41,6 @@ export default function CalendarAvailability() {
     }, 800);
   };
   
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const timeOptions = [
     { value: "", label: "Closed" },
     { value: "08:00 AM", label: "8:00 AM" },
@@ -59,33 +57,21 @@ export default function CalendarAvailability() {
   const handleAddDateOverride = () => {
     if (date) {
       toast.success(`Added date override for ${date.toLocaleDateString()}`);
+      setDate(new Date()); // Reset date selection
     }
   };
   
   return (
     <AppLayout>
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/calendars")}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Calendars
-        </Button>
-      </div>
+      <CalendarSettingsHeader
+        title="Availability Settings"
+        description="Set your working hours and availability for appointments"
+        saving={saving}
+        onSave={handleSaveChanges}
+      />
       
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Availability Settings</h1>
-          <p className="text-muted-foreground">
-            Set your working hours and availability for appointments
-          </p>
-        </div>
-        <Button onClick={handleSaveChanges} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
-      
-      <Tabs defaultValue="weekly" className="space-y-4">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="w-full sm:w-auto flex flex-wrap">
           <TabsTrigger value="weekly">Weekly Hours</TabsTrigger>
           <TabsTrigger value="dateOverrides">Date Overrides</TabsTrigger>
           <TabsTrigger value="unavailable">Unavailable Times</TabsTrigger>
@@ -175,7 +161,7 @@ export default function CalendarAvailability() {
                     onSelect={setDate}
                     className="rounded-md border pointer-events-auto"
                   />
-                  <Button onClick={handleAddDateOverride} className="mt-4 w-full">
+                  <Button onClick={handleAddDateOverride} className="mt-4 w-full" disabled={!date}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Date Override
                   </Button>
@@ -205,7 +191,7 @@ export default function CalendarAvailability() {
             <CardContent>
               <div className="space-y-6">
                 <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
                     <h3 className="font-medium">Vacation</h3>
                     <Button variant="outline" size="sm">
                       <Trash className="h-4 w-4 mr-2" />
@@ -215,17 +201,17 @@ export default function CalendarAvailability() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Start Date</Label>
-                      <div className="text-sm">July 15, 2025</div>
+                      <div className="text-sm mt-1">July 15, 2025</div>
                     </div>
                     <div>
                       <Label>End Date</Label>
-                      <div className="text-sm">July 22, 2025</div>
+                      <div className="text-sm mt-1">July 22, 2025</div>
                     </div>
                   </div>
                 </div>
                 
                 <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
                     <h3 className="font-medium">Conference</h3>
                     <Button variant="outline" size="sm">
                       <Trash className="h-4 w-4 mr-2" />
@@ -235,11 +221,11 @@ export default function CalendarAvailability() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Start Date</Label>
-                      <div className="text-sm">August 10, 2025</div>
+                      <div className="text-sm mt-1">August 10, 2025</div>
                     </div>
                     <div>
                       <Label>End Date</Label>
-                      <div className="text-sm">August 12, 2025</div>
+                      <div className="text-sm mt-1">August 12, 2025</div>
                     </div>
                   </div>
                 </div>

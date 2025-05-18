@@ -1,9 +1,9 @@
 
 import React from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { WidgetConfig } from "./types";
+import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
+import { WidgetConfig } from "./types";
 
 interface AvailableWidgetCardProps {
   widget: WidgetConfig;
@@ -11,29 +11,41 @@ interface AvailableWidgetCardProps {
   disabled?: boolean;
 }
 
-export const AvailableWidgetCard: React.FC<AvailableWidgetCardProps> = ({ widget, onAdd, disabled }) => {
+export const AvailableWidgetCard: React.FC<AvailableWidgetCardProps> = ({
+  widget,
+  onAdd,
+  disabled = false
+}) => {
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{widget.name}</CardTitle>
-        <CardDescription className="text-xs">{widget.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="h-20 bg-muted/30 rounded flex items-center justify-center">
-          <span className="text-muted-foreground text-sm">Widget Preview</span>
+    <Card className={`border ${disabled ? 'bg-muted/30 border-dashed' : 'hover:border-primary/50 hover:shadow-sm'} transition-all duration-200`}>
+      <div className="p-4 h-full flex flex-col">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-primary/10 p-2 rounded-md">
+            {widget.icon || <div className="w-5 h-5 bg-primary/20 rounded-sm" />}
+          </div>
+          <h3 className="font-medium">{widget.name}</h3>
         </div>
-      </CardContent>
-      <CardFooter className="pt-2">
+        
+        <p className="text-sm text-muted-foreground mb-4 flex-grow">
+          {widget.description}
+        </p>
+        
         <Button 
-          className="w-full" 
-          size="sm"
           onClick={() => onAdd(widget.id)} 
-          disabled={disabled}
+          disabled={disabled} 
+          variant={disabled ? "outline" : "default"}
+          className="w-full"
         >
-          <Plus className="h-4 w-4 mr-1" />
-          {disabled ? "Added" : "Add Widget"}
+          {disabled ? (
+            "Already Added"
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Add to Dashboard
+            </>
+          )}
         </Button>
-      </CardFooter>
+      </div>
     </Card>
   );
 };
