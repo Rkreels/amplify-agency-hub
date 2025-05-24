@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDownUp, MoveHorizontal, Grid, Maximize, Minimize, Calendar, BarChart, MessageSquare, DollarSign, Users, Target, TrendingUp, Clock, Mail, Phone } from "lucide-react";
+import { Plus, ArrowDownUp, MoveHorizontal, Grid, Maximize, Minimize, Calendar, BarChart, MessageSquare, DollarSign, Users, Target, TrendingUp, Clock, Mail, Phone, Star, Zap, Globe, Heart, Award, Activity } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { DashboardWidgetProps, WidgetConfig } from "./types";
@@ -20,7 +20,7 @@ import "react-resizable/css/styles.css";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-// All available widgets that can be added to the dashboard
+// Comprehensive widget collection
 const availableWidgets: WidgetConfig[] = [
   {
     id: "stats",
@@ -94,108 +94,57 @@ const availableWidgets: WidgetConfig[] = [
     component: UpcomingTasks
   },
   {
-    id: "revenue-overview",
-    name: "Revenue Overview",
-    description: "Monthly revenue tracking",
-    icon: <DollarSign className="h-5 w-5" />,
+    id: "email-performance",
+    name: "Email Performance",
+    description: "Email campaign metrics and open rates",
+    icon: <Mail className="h-5 w-5" />,
     defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Monthly Revenue"
-        value="$47,200"
+        title="Email Open Rate"
+        value="24.7%"
         variant="chart"
         chart="bar"
-        description="Revenue this month"
-        change={18}
+        description="Last 30 days"
+        change={3.2}
         className="h-full"
         {...props}
       />
     )
   },
   {
-    id: "conversion-rate",
-    name: "Conversion Rate",
-    description: "Lead to customer conversion percentage",
-    icon: <TrendingUp className="h-5 w-5" />,
+    id: "sms-performance",
+    name: "SMS Performance",
+    description: "SMS delivery and response rates",
+    icon: <MessageSquare className="h-5 w-5" />,
     defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Conversion Rate"
-        value="4.3%"
+        title="SMS Response Rate"
+        value="67.3%"
         variant="chart"
         chart="radial"
-        description="Lead to customer"
-        change={0.5}
+        description="Last 30 days"
+        change={8.1}
         className="h-full"
         {...props}
       />
     )
   },
   {
-    id: "opportunity-value",
-    name: "Opportunity Value",
-    description: "Value of all opportunities",
-    icon: <Target className="h-5 w-5" />,
+    id: "social-engagement",
+    name: "Social Engagement",
+    description: "Social media engagement metrics",
+    icon: <Heart className="h-5 w-5" />,
     defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Pipeline Value"
-        value="$234,000"
+        title="Social Engagement"
+        value="12.4K"
         variant="chart"
         chart="pie"
-        description="Total opportunity value"
-        change={25}
-        className="h-full"
-        {...props}
-      />
-    )
-  },
-  {
-    id: "customer-satisfaction",
-    name: "Customer Satisfaction",
-    description: "Average customer satisfaction score",
-    icon: <Users className="h-5 w-5" />,
-    defaultSize: { w: 4, h: 3, minW: 3, minH: 3 },
-    component: (props: DashboardWidgetProps) => (
-      <StatCard
-        title="Customer Satisfaction"
-        value="4.8/5"
-        description="Average rating"
-        change={0.2}
-        className="h-full"
-        {...props}
-      />
-    )
-  },
-  {
-    id: "active-campaigns",
-    name: "Active Campaigns",
-    description: "Currently running marketing campaigns",
-    icon: <Mail className="h-5 w-5" />,
-    defaultSize: { w: 4, h: 3, minW: 3, minH: 3 },
-    component: (props: DashboardWidgetProps) => (
-      <StatCard
-        title="Active Campaigns"
-        value="12"
-        description="Running campaigns"
-        change={3}
-        className="h-full"
-        {...props}
-      />
-    )
-  },
-  {
-    id: "support-tickets",
-    name: "Support Tickets",
-    description: "Open and pending support tickets",
-    icon: <MessageSquare className="h-5 w-5" />,
-    defaultSize: { w: 4, h: 3, minW: 3, minH: 3 },
-    component: (props: DashboardWidgetProps) => (
-      <StatCard
-        title="Support Tickets"
-        value="28"
-        description="Open tickets"
-        change={-5}
+        description="Total interactions"
+        change={15.6}
         className="h-full"
         {...props}
       />
@@ -209,8 +158,8 @@ const availableWidgets: WidgetConfig[] = [
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Call Analytics"
-        value="156 calls"
+        title="Call Volume"
+        value="456 calls"
         variant="chart"
         chart="bar"
         description="This week"
@@ -221,19 +170,163 @@ const availableWidgets: WidgetConfig[] = [
     )
   },
   {
+    id: "conversation-analytics",
+    name: "Conversation Analytics",
+    description: "Multi-channel conversation metrics",
+    icon: <MessageSquare className="h-5 w-5" />,
+    defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Avg Response Time"
+        value="4.2 min"
+        variant="chart"
+        chart="radial"
+        description="Across all channels"
+        change={-12.5}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "lead-scoring",
+    name: "Lead Scoring",
+    description: "Top scored leads and scoring trends",
+    icon: <Star className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Avg Lead Score"
+        value="67.8"
+        description="Current average"
+        change={4.2}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "automation-performance",
+    name: "Automation Performance",
+    description: "Workflow and automation metrics",
+    icon: <Zap className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Active Automations"
+        value="23"
+        description="Running workflows"
+        change={3}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "website-analytics",
+    name: "Website Analytics",
+    description: "Website traffic and conversion data",
+    icon: <Globe className="h-5 w-5" />,
+    defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Website Visitors"
+        value="12.4K"
+        variant="chart"
+        chart="bar"
+        description="This month"
+        change={18.5}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "funnel-analytics",
+    name: "Funnel Analytics",
+    description: "Conversion funnel performance",
+    icon: <TrendingUp className="h-5 w-5" />,
+    defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Funnel Conversion"
+        value="3.2%"
+        variant="chart"
+        chart="pie"
+        description="Visitor to customer"
+        change={0.4}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "review-management",
+    name: "Review Management",
+    description: "Online reviews and reputation metrics",
+    icon: <Award className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Avg Rating"
+        value="4.7/5"
+        description="Across all platforms"
+        change={0.2}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
     id: "team-performance",
     name: "Team Performance",
-    description: "Team productivity metrics",
+    description: "Team productivity and performance metrics",
     icon: <Users className="h-5 w-5" />,
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Team Performance"
+        title="Team Productivity"
         value="87%"
         variant="chart"
         chart="radial"
-        description="Productivity score"
+        description="Overall efficiency"
         change={5}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "appointment-analytics",
+    name: "Appointment Analytics",
+    description: "Booking and appointment statistics",
+    icon: <Calendar className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Appointments Today"
+        value="18"
+        description="Scheduled meetings"
+        change={2}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "attribution-analytics",
+    name: "Attribution Analytics",
+    description: "Multi-touch attribution insights",
+    icon: <Activity className="h-5 w-5" />,
+    defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Attribution ROI"
+        value="324%"
+        variant="chart"
+        chart="bar"
+        description="Marketing attribution"
+        change={23.1}
         className="h-full"
         {...props}
       />
@@ -241,13 +334,16 @@ const availableWidgets: WidgetConfig[] = [
   }
 ];
 
-// Default layout for first time users
+// Enhanced default layout with more widgets
 const defaultLayout = [
   { i: "stats", x: 0, y: 0, w: 12, h: 2 },
   { i: "sales-pipeline", x: 0, y: 2, w: 6, h: 4 },
   { i: "leads-by-source", x: 6, y: 2, w: 6, h: 4 },
   { i: "recent-activities", x: 0, y: 6, w: 6, h: 4 },
-  { i: "upcoming-tasks", x: 6, y: 6, w: 6, h: 4 }
+  { i: "upcoming-tasks", x: 6, y: 6, w: 6, h: 4 },
+  { i: "email-performance", x: 0, y: 10, w: 4, h: 4 },
+  { i: "sms-performance", x: 4, y: 10, w: 4, h: 4 },
+  { i: "call-analytics", x: 8, y: 10, w: 4, h: 4 }
 ];
 
 // Layout breakpoints
@@ -450,11 +546,11 @@ export const WidgetManager: React.FC = () => {
       )}
       
       <Dialog open={isAddWidgetOpen} onOpenChange={setIsAddWidgetOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Widget</DialogTitle>
             <DialogDescription>
-              Choose widgets to add to your dashboard.
+              Choose from our comprehensive collection of widgets to customize your dashboard.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">

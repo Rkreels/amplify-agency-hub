@@ -1,9 +1,35 @@
-
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { v4 as uuidv4 } from 'uuid';
 
-export type ContactStatus = 'lead' | 'customer' | 'prospect' | 'inactive';
+export interface ContactCustomField {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'email' | 'phone' | 'date' | 'dropdown' | 'checkbox';
+  value: any;
+  options?: string[]; // For dropdown fields
+}
+
+export interface ContactTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface ContactScore {
+  total: number;
+  website_activity: number;
+  email_engagement: number;
+  social_engagement: number;
+  form_submissions: number;
+}
+
+export interface ContactActivity {
+  id: string;
+  type: 'email_opened' | 'email_clicked' | 'website_visit' | 'form_submit' | 'call' | 'sms' | 'meeting';
+  title: string;
+  description: string;
+  timestamp: Date;
+  metadata?: Record<string, any>;
+}
 
 export interface Contact {
   id: string;
@@ -11,236 +37,350 @@ export interface Contact {
   lastName: string;
   email: string;
   phone: string;
-  status: ContactStatus;
   company?: string;
-  tags: string[];
-  notes: string;
-  dateAdded: Date;
-  lastContacted?: Date;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
+  position?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  source: string;
+  status: 'lead' | 'prospect' | 'customer' | 'inactive';
+  lifecycle_stage: 'subscriber' | 'lead' | 'marketing_qualified' | 'sales_qualified' | 'opportunity' | 'customer' | 'evangelist';
+  tags: ContactTag[];
+  customFields: ContactCustomField[];
+  score: ContactScore;
+  activities: ContactActivity[];
+  assignedTo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastActivityAt?: Date;
+  avatar?: string;
+  notes?: string;
+  social?: {
+    linkedin?: string;
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
   };
-  source?: string;
-  avatarUrl?: string;
 }
 
 interface ContactsStore {
   contacts: Contact[];
+  availableTags: ContactTag[];
+  customFieldTemplates: Omit<ContactCustomField, 'id' | 'value'>[];
   selectedContact: Contact | null;
-  isLoading: boolean;
-  error: string | null;
-  
-  // CRUD Actions
-  addContact: (contact: Omit<Contact, 'id' | 'dateAdded'>) => void;
+  searchQuery: string;
+  statusFilter: string;
+  tagFilter: string[];
+  lifecycleFilter: string;
+  setSelectedContact: (contact: Contact | null) => void;
+  setSearchQuery: (query: string) => void;
+  setStatusFilter: (status: string) => void;
+  setTagFilter: (tags: string[]) => void;
+  setLifecycleFilter: (stage: string) => void;
+  addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateContact: (id: string, updates: Partial<Contact>) => void;
   deleteContact: (id: string) => void;
-  getContactById: (id: string) => Contact | undefined;
-  
-  // Selection & Filtering
-  setSelectedContact: (contact: Contact | null) => void;
-  searchContacts: (query: string) => Contact[];
-  filterContactsByStatus: (status: ContactStatus) => Contact[];
-  filterContactsByTags: (tags: string[]) => Contact[];
-  
-  // Batch Operations
-  deleteMultipleContacts: (ids: string[]) => void;
-  addTagToContacts: (ids: string[], tag: string) => void;
-  removeTagFromContacts: (ids: string[], tag: string) => void;
-  updateStatusForContacts: (ids: string[], status: ContactStatus) => void;
+  addTag: (tag: Omit<ContactTag, 'id'>) => void;
+  updateTag: (id: string, updates: Partial<ContactTag>) => void;
+  deleteTag: (id: string) => void;
+  addCustomFieldTemplate: (field: Omit<ContactCustomField, 'id' | 'value'>) => void;
+  addActivityToContact: (contactId: string, activity: Omit<ContactActivity, 'id'>) => void;
+  calculateContactScore: (contactId: string) => void;
+  bulkUpdateContacts: (contactIds: string[], updates: Partial<Contact>) => void;
+  exportContacts: (format: 'csv' | 'excel') => void;
+  importContacts: (contacts: Partial<Contact>[]) => void;
 }
 
-// Sample data
-const sampleContacts: Contact[] = [
-  {
-    id: uuidv4(),
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '(555) 123-4567',
-    status: 'customer',
-    company: 'Acme Inc',
-    tags: ['vip', 'recurring'],
-    notes: 'Long-term customer with multiple purchases',
-    dateAdded: new Date('2023-01-15'),
-    lastContacted: new Date('2023-05-20'),
-    address: {
-      street: '123 Main St',
-      city: 'Springfield',
-      state: 'IL',
-      zipCode: '62704',
-      country: 'USA'
-    },
-    source: 'Website',
-    avatarUrl: 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff'
-  },
-  {
-    id: uuidv4(),
-    firstName: 'Jane',
-    lastName: 'Smith',
-    email: 'jane.smith@example.com',
-    phone: '(555) 987-6543',
-    status: 'lead',
-    company: 'XYZ Corp',
-    tags: ['new', 'high-value'],
-    notes: 'Interested in premium package',
-    dateAdded: new Date('2023-04-10'),
-    lastContacted: new Date('2023-04-12'),
-    source: 'Referral',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Jane+Smith&background=4CAF50&color=fff'
-  },
-  {
-    id: uuidv4(),
-    firstName: 'Michael',
-    lastName: 'Johnson',
-    email: 'michael.j@example.com',
-    phone: '(555) 456-7890',
-    status: 'prospect',
-    company: 'Johnson LLC',
-    tags: ['follow-up'],
-    notes: 'Scheduled demo for next week',
-    dateAdded: new Date('2023-03-22'),
-    lastContacted: new Date('2023-05-01'),
-    source: 'LinkedIn',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Michael+Johnson&background=FF9800&color=fff'
-  },
-  {
-    id: uuidv4(),
-    firstName: 'Sarah',
-    lastName: 'Williams',
-    email: 'sarah.w@example.com',
-    phone: '(555) 234-5678',
-    status: 'inactive',
-    tags: ['past-customer'],
-    notes: 'Former client, subscription expired',
-    dateAdded: new Date('2022-11-05'),
-    lastContacted: new Date('2023-02-15'),
-    source: 'Previous customer',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Sarah+Williams&background=9C27B0&color=fff'
-  },
+const mockTags: ContactTag[] = [
+  { id: '1', name: 'Hot Lead', color: '#ef4444' },
+  { id: '2', name: 'Cold Lead', color: '#3b82f6' },
+  { id: '3', name: 'VIP', color: '#f59e0b' },
+  { id: '4', name: 'Newsletter', color: '#10b981' },
+  { id: '5', name: 'Webinar Attendee', color: '#8b5cf6' },
+  { id: '6', name: 'Trial User', color: '#06b6d4' },
 ];
 
-export const useContactsStore = create<ContactsStore>()(
-  persist(
-    (set, get) => ({
-      contacts: sampleContacts,
-      selectedContact: null,
-      isLoading: false,
-      error: null,
-      
-      // CRUD Actions
-      addContact: (contactData) => {
-        const newContact: Contact = {
-          ...contactData,
-          id: uuidv4(),
-          dateAdded: new Date(),
-        };
-        
-        set((state) => ({
-          contacts: [...state.contacts, newContact],
-        }));
-      },
-      
-      updateContact: (id, updates) => {
-        set((state) => ({
-          contacts: state.contacts.map((contact) => 
-            contact.id === id ? { ...contact, ...updates } : contact
-          ),
-        }));
-      },
-      
-      deleteContact: (id) => {
-        set((state) => ({
-          contacts: state.contacts.filter((contact) => contact.id !== id),
-          selectedContact: state.selectedContact?.id === id ? null : state.selectedContact,
-        }));
-      },
-      
-      getContactById: (id) => {
-        return get().contacts.find((contact) => contact.id === id);
-      },
-      
-      // Selection & Filtering
-      setSelectedContact: (contact) => {
-        set({ selectedContact: contact });
-      },
-      
-      searchContacts: (query) => {
-        const searchLower = query.toLowerCase();
-        return get().contacts.filter((contact) => 
-          contact.firstName.toLowerCase().includes(searchLower) ||
-          contact.lastName.toLowerCase().includes(searchLower) ||
-          contact.email.toLowerCase().includes(searchLower) ||
-          contact.phone.includes(searchLower) ||
-          contact.company?.toLowerCase().includes(searchLower) ||
-          contact.notes.toLowerCase().includes(searchLower)
-        );
-      },
-      
-      filterContactsByStatus: (status) => {
-        return get().contacts.filter((contact) => contact.status === status);
-      },
-      
-      filterContactsByTags: (tags) => {
-        return get().contacts.filter((contact) => 
-          tags.some((tag) => contact.tags.includes(tag))
-        );
-      },
-      
-      // Batch Operations
-      deleteMultipleContacts: (ids) => {
-        set((state) => ({
-          contacts: state.contacts.filter((contact) => !ids.includes(contact.id)),
-          selectedContact: state.selectedContact && ids.includes(state.selectedContact.id)
-            ? null
-            : state.selectedContact,
-        }));
-      },
-      
-      addTagToContacts: (ids, tag) => {
-        set((state) => ({
-          contacts: state.contacts.map((contact) => {
-            if (ids.includes(contact.id) && !contact.tags.includes(tag)) {
-              return { ...contact, tags: [...contact.tags, tag] };
-            }
-            return contact;
-          }),
-        }));
-      },
-      
-      removeTagFromContacts: (ids, tag) => {
-        set((state) => ({
-          contacts: state.contacts.map((contact) => {
-            if (ids.includes(contact.id)) {
-              return {
-                ...contact,
-                tags: contact.tags.filter((t) => t !== tag),
-              };
-            }
-            return contact;
-          }),
-        }));
-      },
-      
-      updateStatusForContacts: (ids, status) => {
-        set((state) => ({
-          contacts: state.contacts.map((contact) => {
-            if (ids.includes(contact.id)) {
-              return { ...contact, status };
-            }
-            return contact;
-          }),
-        }));
-      },
-    }),
-    {
-      name: 'contacts-store',
-      partialize: (state) => ({
-        contacts: state.contacts,
-      }),
+const mockCustomFields: Omit<ContactCustomField, 'id' | 'value'>[] = [
+  { name: 'Industry', type: 'dropdown', options: ['Technology', 'Healthcare', 'Finance', 'Education', 'Retail'] },
+  { name: 'Annual Revenue', type: 'number' },
+  { name: 'Last Purchase Date', type: 'date' },
+  { name: 'Preferred Communication', type: 'dropdown', options: ['Email', 'Phone', 'SMS', 'WhatsApp'] },
+  { name: 'Newsletter Subscriber', type: 'checkbox' },
+];
+
+const generateMockActivities = (): ContactActivity[] => [
+  {
+    id: '1',
+    type: 'email_opened',
+    title: 'Opened Welcome Email',
+    description: 'Opened the welcome email campaign',
+    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: '2',
+    type: 'website_visit',
+    title: 'Visited Pricing Page',
+    description: 'Spent 3 minutes on pricing page',
+    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    metadata: { duration: 180, page: '/pricing' }
+  },
+  {
+    id: '3',
+    type: 'form_submit',
+    title: 'Submitted Contact Form',
+    description: 'Filled out the contact us form',
+    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+  }
+];
+
+const mockContacts: Contact[] = [
+  {
+    id: '1',
+    firstName: 'Sarah',
+    lastName: 'Johnson',
+    email: 'sarah.johnson@example.com',
+    phone: '+1-555-0123',
+    company: 'Tech Solutions Inc',
+    position: 'Marketing Director',
+    address: '123 Main St',
+    city: 'San Francisco',
+    state: 'CA',
+    zipCode: '94105',
+    country: 'USA',
+    source: 'Website',
+    status: 'lead',
+    lifecycle_stage: 'marketing_qualified',
+    tags: [mockTags[0], mockTags[3]],
+    customFields: [
+      { id: '1', name: 'Industry', type: 'dropdown', value: 'Technology', options: ['Technology', 'Healthcare'] },
+      { id: '2', name: 'Annual Revenue', type: 'number', value: 2500000 }
+    ],
+    score: {
+      total: 85,
+      website_activity: 30,
+      email_engagement: 25,
+      social_engagement: 10,
+      form_submissions: 20
+    },
+    activities: generateMockActivities(),
+    assignedTo: 'John Doe',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    lastActivityAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    notes: 'Interested in enterprise package',
+    social: {
+      linkedin: 'https://linkedin.com/in/sarahjohnson',
+      twitter: '@sarahjohnson'
     }
-  )
-);
+  },
+  {
+    id: '2',
+    firstName: 'Michael',
+    lastName: 'Brown',
+    email: 'michael.brown@example.com',
+    phone: '+1-555-0124',
+    company: 'Global Innovations LLC',
+    position: 'CEO',
+    address: '456 Oak Ave',
+    city: 'Los Angeles',
+    state: 'CA',
+    zipCode: '90001',
+    country: 'USA',
+    source: 'Referral',
+    status: 'prospect',
+    lifecycle_stage: 'lead',
+    tags: [mockTags[1], mockTags[4]],
+    customFields: [
+      { id: '3', name: 'Industry', type: 'dropdown', value: 'Finance', options: ['Technology', 'Healthcare'] },
+      { id: '4', name: 'Annual Revenue', type: 'number', value: 5000000 }
+    ],
+    score: {
+      total: 60,
+      website_activity: 15,
+      email_engagement: 15,
+      social_engagement: 5,
+      form_submissions: 25
+    },
+    activities: generateMockActivities(),
+    assignedTo: 'Jane Smith',
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    lastActivityAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    notes: 'Potential for large deal',
+    social: {
+      linkedin: 'https://linkedin.com/in/michaelbrown',
+      twitter: '@michaelbrown'
+    }
+  },
+  {
+    id: '3',
+    firstName: 'Emily',
+    lastName: 'Davis',
+    email: 'emily.davis@example.com',
+    phone: '+1-555-0125',
+    company: 'Sunrise Marketing',
+    position: 'Marketing Manager',
+    address: '789 Pine Ln',
+    city: 'Seattle',
+    state: 'WA',
+    zipCode: '98101',
+    country: 'USA',
+    source: 'LinkedIn',
+    status: 'customer',
+    lifecycle_stage: 'customer',
+    tags: [mockTags[2], mockTags[5]],
+    customFields: [
+      { id: '5', name: 'Industry', type: 'dropdown', value: 'Marketing', options: ['Technology', 'Healthcare'] },
+      { id: '6', name: 'Annual Revenue', type: 'number', value: 1000000 }
+    ],
+    score: {
+      total: 95,
+      website_activity: 35,
+      email_engagement: 30,
+      social_engagement: 15,
+      form_submissions: 15
+    },
+    activities: generateMockActivities(),
+    assignedTo: 'John Doe',
+    createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    lastActivityAt: new Date(Date.now() - 18 * 60 * 60 * 1000),
+    notes: 'Long-term customer',
+    social: {
+      linkedin: 'https://linkedin.com/in/emilydavis',
+      twitter: '@emilydavis'
+    }
+  }
+];
+
+export const useContactsStore = create<ContactsStore>((set, get) => ({
+  contacts: mockContacts,
+  availableTags: mockTags,
+  customFieldTemplates: mockCustomFields,
+  selectedContact: null,
+  searchQuery: '',
+  statusFilter: 'all',
+  tagFilter: [],
+  lifecycleFilter: 'all',
+
+  setSelectedContact: (contact) => set({ selectedContact: contact }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setStatusFilter: (status) => set({ statusFilter: status }),
+  setTagFilter: (tags) => set({ tagFilter: tags }),
+  setLifecycleFilter: (stage) => set({ lifecycleFilter: stage }),
+
+  addContact: (contact) => set((state) => ({
+    contacts: [...state.contacts, {
+      ...contact,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }]
+  })),
+
+  updateContact: (id, updates) => set((state) => ({
+    contacts: state.contacts.map(contact =>
+      contact.id === id ? { ...contact, ...updates, updatedAt: new Date() } : contact
+    )
+  })),
+
+  deleteContact: (id) => set((state) => ({
+    contacts: state.contacts.filter(contact => contact.id !== id)
+  })),
+
+  addTag: (tag) => set((state) => ({
+    availableTags: [...state.availableTags, { ...tag, id: Date.now().toString() }]
+  })),
+
+  updateTag: (id, updates) => set((state) => ({
+    availableTags: state.availableTags.map(tag =>
+      tag.id === id ? { ...tag, ...updates } : tag
+    )
+  })),
+
+  deleteTag: (id) => set((state) => ({
+    availableTags: state.availableTags.filter(tag => tag.id !== id)
+  })),
+
+  addCustomFieldTemplate: (field) => set((state) => ({
+    customFieldTemplates: [...state.customFieldTemplates, field]
+  })),
+
+  addActivityToContact: (contactId, activity) => set((state) => ({
+    contacts: state.contacts.map(contact =>
+      contact.id === contactId
+        ? {
+            ...contact,
+            activities: [...contact.activities, { ...activity, id: Date.now().toString() }],
+            lastActivityAt: new Date(),
+            updatedAt: new Date()
+          }
+        : contact
+    )
+  })),
+
+  calculateContactScore: (contactId) => set((state) => ({
+    contacts: state.contacts.map(contact => {
+      if (contact.id !== contactId) return contact;
+      
+      const activities = contact.activities;
+      const websiteActivity = activities.filter(a => a.type === 'website_visit').length * 5;
+      const emailEngagement = activities.filter(a => a.type.includes('email')).length * 8;
+      const socialEngagement = activities.filter(a => a.type.includes('social')).length * 3;
+      const formSubmissions = activities.filter(a => a.type === 'form_submit').length * 15;
+      
+      const total = websiteActivity + emailEngagement + socialEngagement + formSubmissions;
+      
+      return {
+        ...contact,
+        score: {
+          total,
+          website_activity: websiteActivity,
+          email_engagement: emailEngagement,
+          social_engagement: socialEngagement,
+          form_submissions: formSubmissions
+        }
+      };
+    })
+  })),
+
+  bulkUpdateContacts: (contactIds, updates) => set((state) => ({
+    contacts: state.contacts.map(contact =>
+      contactIds.includes(contact.id) 
+        ? { ...contact, ...updates, updatedAt: new Date() }
+        : contact
+    )
+  })),
+
+  exportContacts: (format) => {
+    // Implementation for exporting contacts
+    console.log(`Exporting contacts in ${format} format`);
+  },
+
+  importContacts: (contacts) => set((state) => ({
+    contacts: [
+      ...state.contacts,
+      ...contacts.map((contact, index) => ({
+        id: (Date.now() + index).toString(),
+        firstName: contact.firstName || '',
+        lastName: contact.lastName || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
+        company: contact.company,
+        position: contact.position,
+        source: contact.source || 'Import',
+        status: contact.status || 'lead',
+        lifecycle_stage: contact.lifecycle_stage || 'subscriber',
+        tags: contact.tags || [],
+        customFields: contact.customFields || [],
+        score: contact.score || { total: 0, website_activity: 0, email_engagement: 0, social_engagement: 0, form_submissions: 0 },
+        activities: contact.activities || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...contact
+      }))
+    ]
+  }))
+}));
