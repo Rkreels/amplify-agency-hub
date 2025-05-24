@@ -2,224 +2,162 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Star, MessageCircle, TrendingUp, Link2, Plus, ExternalLink, ThumbsUp, Mail } from "lucide-react";
+import { Star, MessageSquare, TrendingUp, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Reputation() {
+  const reviews = [
+    {
+      id: "1",
+      customer: "Sarah Johnson",
+      rating: 5,
+      comment: "Excellent service! The team was professional and delivered exactly what we needed.",
+      platform: "Google",
+      date: "2025-05-20"
+    },
+    {
+      id: "2",
+      customer: "Michael Brown",
+      rating: 4,
+      comment: "Great experience overall. Quick response time and quality work.",
+      platform: "Yelp", 
+      date: "2025-05-18"
+    },
+    {
+      id: "3",
+      customer: "Emma Davis",
+      rating: 5,
+      comment: "Outstanding results! Highly recommend their services.",
+      platform: "Facebook",
+      date: "2025-05-15"
+    }
+  ];
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < rating ? "text-yellow-400 fill-current" : "text-gray-300"
+        }`}
+      />
+    ));
+  };
+
   return (
     <AppLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reputation</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Reputation Management</h1>
           <p className="text-muted-foreground">
-            Manage reviews, testimonials, and your online reputation
+            Monitor and manage your online reviews and reputation
           </p>
         </div>
         <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Campaign
+          <MessageSquare className="h-4 w-4 mr-2" />
+          Request Review
         </Button>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium">Overall Rating</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Star className="h-4 w-4 mr-2" />
+              Average Rating
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.8/5.0</div>
-            <p className="text-xs text-muted-foreground">Based on 124 reviews</p>
+            <div className="text-2xl font-bold">4.8</div>
+            <div className="flex items-center mt-1">
+              {renderStars(5)}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium">Total Reviews</CardTitle>
-            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Total Reviews
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">124</div>
-            <p className="text-xs text-muted-foreground">+15 this month</p>
+            <div className="text-2xl font-bold">234</div>
+            <p className="text-xs text-muted-foreground">+12 this month</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium">Review Conversion</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Response Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">32%</div>
-            <p className="text-xs text-muted-foreground">From review requests</p>
+            <div className="text-2xl font-bold">95%</div>
+            <p className="text-xs text-muted-foreground">Review responses</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium">Active Campaigns</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Pending Reviews
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">Review generation</p>
+            <p className="text-xs text-muted-foreground">Need response</p>
           </CardContent>
         </Card>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Reviews</CardTitle>
-              <CardDescription>Your latest reviews across platforms</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { 
-                    id: 1, 
-                    name: "Sarah Johnson", 
-                    platform: "Google", 
-                    rating: 5, 
-                    content: "Excellent service! Their team was professional, responsive, and delivered outstanding results.",
-                    date: "2 days ago" 
-                  },
-                  { 
-                    id: 2, 
-                    name: "Michael Brown", 
-                    platform: "Facebook", 
-                    rating: 4, 
-                    content: "Very good experience overall. The only reason for 4 stars is that it took slightly longer than expected.",
-                    date: "1 week ago" 
-                  },
-                  { 
-                    id: 3, 
-                    name: "Emma Davis", 
-                    platform: "Yelp", 
-                    rating: 5, 
-                    content: "I cannot recommend this company enough. They went above and beyond to meet our needs and exceeded our expectations.",
-                    date: "2 weeks ago" 
-                  },
-                ].map((review) => (
-                  <div key={review.id} className="border rounded-md p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{review.platform}</Badge>
-                        <div className="flex">
-                          {Array(5).fill(0).map((_, i) => (
-                            <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`} />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{review.date}</span>
-                    </div>
-                    <p className="text-sm mb-3">{review.content}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">{review.name}</div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Respond
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Platforms Overview</CardTitle>
-              <CardDescription>Your presence across review platforms</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { name: "Google", reviews: 68, rating: 4.8, connected: true },
-                  { name: "Facebook", reviews: 42, rating: 4.6, connected: true },
-                  { name: "Yelp", reviews: 14, rating: 4.4, connected: true },
-                  { name: "Trustpilot", reviews: 0, rating: 0, connected: false },
-                ].map((platform, index) => (
-                  <div key={index} className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0">
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Reviews</CardTitle>
+          <CardDescription>
+            Latest customer reviews across all platforms
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {reviews.map((review) => (
+              <div key={review.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src="" />
+                      <AvatarFallback>
+                        {review.customer.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
-                      <div className="font-medium">{platform.name}</div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        {platform.connected ? (
-                          <>
-                            <div className="flex mr-2">
-                              {Array(5).fill(0).map((_, i) => (
-                                <Star key={i} className={`h-3 w-3 ${i < Math.floor(platform.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`} />
-                              ))}
-                            </div>
-                            <span>{platform.rating} ({platform.reviews})</span>
-                          </>
-                        ) : (
-                          <span>Not connected</span>
-                        )}
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      {platform.connected ? (
-                        <>
-                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                          View
-                        </>
-                      ) : (
-                        <>
-                          <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                          Connect
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Review Campaigns</CardTitle>
-              <CardDescription>Generate more customer reviews</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { id: 1, name: "Post-Purchase Review", status: "active", stats: { sent: 85, completed: 23 } },
-                  { id: 2, name: "30-Day Follow-up", status: "active", stats: { sent: 124, completed: 41 } },
-                  { id: 3, name: "Testimonial Collection", status: "active", stats: { sent: 48, completed: 12 } },
-                ].map((campaign) => (
-                  <div key={campaign.id} className="border rounded-md p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-medium">{campaign.name}</div>
-                      <Badge>{campaign.status}</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center">
-                        <Mail className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                        <span>{campaign.stats.sent} sent</span>
-                      </div>
-                      <div className="flex items-center">
-                        <ThumbsUp className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                        <span>{campaign.stats.completed} completed</span>
+                      <h4 className="font-medium">{review.customer}</h4>
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {renderStars(review.rating)}
+                        </div>
+                        <Badge variant="outline">{review.platform}</Badge>
                       </div>
                     </div>
                   </div>
-                ))}
-                <Button variant="outline" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Campaign
-                </Button>
+                  <span className="text-sm text-muted-foreground">{review.date}</span>
+                </div>
+                <p className="text-muted-foreground">{review.comment}</p>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="outline" size="sm">
+                    Reply
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Share
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </AppLayout>
   );
 }
