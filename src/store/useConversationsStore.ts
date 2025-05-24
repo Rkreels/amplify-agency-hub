@@ -90,6 +90,88 @@ const mockConversations: Conversation[] = [
         read: true
       }
     ]
+  },
+  {
+    id: '3',
+    contactId: 'contact-3',
+    contactName: 'Emma Davis',
+    contactAvatar: undefined,
+    lastMessage: 'I\'m interested in your marketing services. Could you send me more details?',
+    lastMessageTime: new Date(Date.now() - 8 * 60 * 60 * 1000),
+    unreadCount: 1,
+    channel: 'WhatsApp',
+    status: 'active',
+    tags: ['Hot Lead', 'Marketing'],
+    messages: [
+      {
+        id: 'msg-4',
+        content: 'I\'m interested in your marketing services. Could you send me more details?',
+        timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
+        sender: 'contact',
+        type: 'text',
+        read: false
+      }
+    ]
+  },
+  {
+    id: '4',
+    contactId: 'contact-4',
+    contactName: 'James Wilson',
+    contactAvatar: undefined,
+    lastMessage: 'The proposal looks great! When can we start?',
+    lastMessageTime: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    unreadCount: 0,
+    channel: 'Facebook',
+    status: 'active',
+    tags: ['Closing', 'Proposal'],
+    messages: [
+      {
+        id: 'msg-5',
+        content: 'Here\'s the detailed proposal for your review.',
+        timestamp: new Date(Date.now() - 14 * 60 * 60 * 1000),
+        sender: 'user',
+        type: 'text',
+        read: true
+      },
+      {
+        id: 'msg-6',
+        content: 'The proposal looks great! When can we start?',
+        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
+        sender: 'contact',
+        type: 'text',
+        read: true
+      }
+    ]
+  },
+  {
+    id: '5',
+    contactId: 'contact-5',
+    contactName: 'Lisa Anderson',
+    contactAvatar: undefined,
+    lastMessage: 'Payment processed successfully. Thank you!',
+    lastMessageTime: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    unreadCount: 0,
+    channel: 'Instagram',
+    status: 'active',
+    tags: ['Customer', 'Paid'],
+    messages: [
+      {
+        id: 'msg-7',
+        content: 'Your invoice is ready for payment.',
+        timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000),
+        sender: 'user',
+        type: 'text',
+        read: true
+      },
+      {
+        id: 'msg-8',
+        content: 'Payment processed successfully. Thank you!',
+        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        sender: 'contact',
+        type: 'text',
+        read: true
+      }
+    ]
   }
 ];
 

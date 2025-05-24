@@ -83,6 +83,88 @@ const mockOpportunities: Opportunity[] = [
     tags: ['Marketing', 'Digital'],
     assignedTo: 'Jane Smith',
     activities: []
+  },
+  {
+    id: '3',
+    title: 'E-commerce Platform',
+    contactId: 'contact-3',
+    contactName: 'Emma Davis',
+    value: 25000,
+    stage: 'negotiation',
+    probability: 80,
+    expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    createdDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+    source: 'LinkedIn',
+    description: 'Full e-commerce platform development',
+    tags: ['E-commerce', 'Development'],
+    assignedTo: 'John Doe',
+    activities: [
+      {
+        id: 'act-2',
+        type: 'meeting',
+        title: 'Requirements gathering',
+        description: 'Detailed requirements discussion',
+        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        completed: true
+      }
+    ]
+  },
+  {
+    id: '4',
+    title: 'Mobile App Development',
+    contactId: 'contact-4',
+    contactName: 'James Wilson',
+    value: 35000,
+    stage: 'lead',
+    probability: 30,
+    expectedCloseDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+    createdDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    source: 'Cold Outreach',
+    description: 'iOS and Android mobile application',
+    tags: ['Mobile', 'App'],
+    assignedTo: 'Sarah Davis',
+    activities: []
+  },
+  {
+    id: '5',
+    title: 'SEO Optimization',
+    contactId: 'contact-5',
+    contactName: 'Lisa Anderson',
+    value: 5000,
+    stage: 'closed-won',
+    probability: 100,
+    expectedCloseDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    createdDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    source: 'Website',
+    description: 'Complete SEO audit and optimization',
+    tags: ['SEO', 'Marketing'],
+    assignedTo: 'Mike Johnson',
+    activities: [
+      {
+        id: 'act-3',
+        type: 'task',
+        title: 'SEO audit completed',
+        description: 'Comprehensive SEO analysis done',
+        date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+        completed: true
+      }
+    ]
+  },
+  {
+    id: '6',
+    title: 'Brand Identity Design',
+    contactId: 'contact-6',
+    contactName: 'Robert Taylor',
+    value: 12000,
+    stage: 'qualified',
+    probability: 65,
+    expectedCloseDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
+    createdDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+    source: 'Social Media',
+    description: 'Complete brand identity and logo design',
+    tags: ['Branding', 'Design'],
+    assignedTo: 'Emily Chen',
+    activities: []
   }
 ];
 

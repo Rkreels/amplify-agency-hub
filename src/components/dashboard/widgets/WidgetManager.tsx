@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDownUp, MoveHorizontal, Grid, Maximize, Minimize, Calendar, BarChart, MessageSquare } from "lucide-react";
+import { Plus, ArrowDownUp, MoveHorizontal, Grid, Maximize, Minimize, Calendar, BarChart, MessageSquare, DollarSign, Users, Target, TrendingUp, Clock, Mail, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { DashboardWidgetProps, WidgetConfig } from "./types";
@@ -65,6 +65,7 @@ const availableWidgets: WidgetConfig[] = [
     id: "sales-pipeline",
     name: "Sales Pipeline",
     description: "Overview of your deals by stage",
+    icon: <Target className="h-5 w-5" />,
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: SalesPipeline
   },
@@ -72,6 +73,7 @@ const availableWidgets: WidgetConfig[] = [
     id: "leads-by-source",
     name: "Leads by Source",
     description: "Lead distribution across channels",
+    icon: <Users className="h-5 w-5" />,
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: LeadsBySource
   },
@@ -79,6 +81,7 @@ const availableWidgets: WidgetConfig[] = [
     id: "recent-activities",
     name: "Recent Activities",
     description: "Latest activities in your account",
+    icon: <Clock className="h-5 w-5" />,
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: RecentActivities
   },
@@ -86,21 +89,24 @@ const availableWidgets: WidgetConfig[] = [
     id: "upcoming-tasks",
     name: "Upcoming Tasks",
     description: "Tasks scheduled for the next few days",
+    icon: <Calendar className="h-5 w-5" />,
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: UpcomingTasks
   },
   {
-    id: "opportunity-status",
-    name: "Opportunity Status",
-    description: "Status of all opportunities",
+    id: "revenue-overview",
+    name: "Revenue Overview",
+    description: "Monthly revenue tracking",
+    icon: <DollarSign className="h-5 w-5" />,
     defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Opportunity Status"
-        value="63,608"
+        title="Monthly Revenue"
+        value="$47,200"
         variant="chart"
-        chart="pie"
-        description="Total opportunities"
+        chart="bar"
+        description="Revenue this month"
+        change={18}
         className="h-full"
         {...props}
       />
@@ -110,6 +116,7 @@ const availableWidgets: WidgetConfig[] = [
     id: "conversion-rate",
     name: "Conversion Rate",
     description: "Lead to customer conversion percentage",
+    icon: <TrendingUp className="h-5 w-5" />,
     defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
@@ -118,6 +125,7 @@ const availableWidgets: WidgetConfig[] = [
         variant="chart"
         chart="radial"
         description="Lead to customer"
+        change={0.5}
         className="h-full"
         {...props}
       />
@@ -127,50 +135,105 @@ const availableWidgets: WidgetConfig[] = [
     id: "opportunity-value",
     name: "Opportunity Value",
     description: "Value of all opportunities",
+    icon: <Target className="h-5 w-5" />,
     defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Opportunity Value"
-        value="$23.77M"
+        title="Pipeline Value"
+        value="$234,000"
         variant="chart"
-        chart="bar"
+        chart="pie"
         description="Total opportunity value"
+        change={25}
         className="h-full"
         {...props}
       />
     )
   },
   {
-    id: "calendar-overview",
-    name: "Calendar Overview",
-    description: "View your upcoming appointments",
-    icon: <Calendar className="h-5 w-5" />,
+    id: "customer-satisfaction",
+    name: "Customer Satisfaction",
+    description: "Average customer satisfaction score",
+    icon: <Users className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 3, minW: 3, minH: 3 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Customer Satisfaction"
+        value="4.8/5"
+        description="Average rating"
+        change={0.2}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "active-campaigns",
+    name: "Active Campaigns",
+    description: "Currently running marketing campaigns",
+    icon: <Mail className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 3, minW: 3, minH: 3 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Active Campaigns"
+        value="12"
+        description="Running campaigns"
+        change={3}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "support-tickets",
+    name: "Support Tickets",
+    description: "Open and pending support tickets",
+    icon: <MessageSquare className="h-5 w-5" />,
+    defaultSize: { w: 4, h: 3, minW: 3, minH: 3 },
+    component: (props: DashboardWidgetProps) => (
+      <StatCard
+        title="Support Tickets"
+        value="28"
+        description="Open tickets"
+        change={-5}
+        className="h-full"
+        {...props}
+      />
+    )
+  },
+  {
+    id: "call-analytics",
+    name: "Call Analytics",
+    description: "Phone call metrics and statistics",
+    icon: <Phone className="h-5 w-5" />,
     defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Calendar Overview"
-        value="8 events"
+        title="Call Analytics"
+        value="156 calls"
         variant="chart"
-        chart="pie"
+        chart="bar"
         description="This week"
+        change={12}
         className="h-full"
         {...props}
       />
     )
   },
   {
-    id: "message-analytics",
-    name: "Message Analytics",
-    description: "Track communication metrics",
-    icon: <MessageSquare className="h-5 w-5" />,
-    defaultSize: { w: 4, h: 4, minW: 3, minH: 4 },
+    id: "team-performance",
+    name: "Team Performance",
+    description: "Team productivity metrics",
+    icon: <Users className="h-5 w-5" />,
+    defaultSize: { w: 6, h: 4, minW: 3, minH: 4 },
     component: (props: DashboardWidgetProps) => (
       <StatCard
-        title="Messages"
-        value="156"
+        title="Team Performance"
+        value="87%"
         variant="chart"
-        chart="bar"
-        description="Last 30 days"
+        chart="radial"
+        description="Productivity score"
+        change={5}
         className="h-full"
         {...props}
       />
