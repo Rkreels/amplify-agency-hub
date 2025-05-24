@@ -63,7 +63,7 @@ export function CalendarsTabContent() {
           />
         ))}
         
-        <CreateCalendarCard onCreateCalendar={handleCreateCalendar} />
+        <CreateCalendarCard />
       </div>
       
       <CalendarEmbedSection />
