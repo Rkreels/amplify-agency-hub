@@ -20,7 +20,11 @@ export function CalendarsTabContent() {
   };
   
   const handleCalendarSettings = () => {
-    navigate("/calendars/settings");
+    navigate("/calendar/settings");
+  };
+
+  const handleCreateCalendar = () => {
+    navigate("/calendar/create");
   };
 
   return (
@@ -59,7 +63,7 @@ export function CalendarsTabContent() {
           />
         ))}
         
-        <CreateCalendarCard />
+        <CreateCalendarCard onCreateCalendar={handleCreateCalendar} />
       </div>
       
       <CalendarEmbedSection />

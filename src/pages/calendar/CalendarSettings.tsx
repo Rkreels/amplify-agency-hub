@@ -19,8 +19,7 @@ export default function CalendarSettings() {
   const [saving, setSaving] = useState(false);
   const [calendarColor, setCalendarColor] = useState("#4361ee");
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
     setSaving(true);
     
     // Simulate API call
@@ -36,7 +35,7 @@ export default function CalendarSettings() {
         title="Calendar Settings"
         description="Configure your calendar preferences and options"
         saving={saving}
-        onSave={handleSubmit}
+        onSave={handleSave}
       />
       
       <Tabs defaultValue="general" className="space-y-4">

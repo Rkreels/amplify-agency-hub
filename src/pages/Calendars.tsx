@@ -95,7 +95,7 @@ export default function Calendars() {
         </TabsContent>
         
         <TabsContent value="calendars" className="mt-4">
-          <CalendarsTabContent onCreateCalendar={handleCreateCalendar} />
+          <CalendarsTabContent />
         </TabsContent>
         
         <TabsContent value="availability" className="mt-4">

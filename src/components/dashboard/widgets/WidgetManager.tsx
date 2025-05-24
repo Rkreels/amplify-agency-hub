@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { Button } from "@/components/ui/button";
@@ -150,7 +151,7 @@ const availableWidgets: WidgetConfig[] = [
         title="Calendar Overview"
         value="8 events"
         variant="chart"
-        chart="calendar"
+        chart="pie"
         description="This week"
         className="h-full"
         {...props}
@@ -168,7 +169,7 @@ const availableWidgets: WidgetConfig[] = [
         title="Messages"
         value="156"
         variant="chart"
-        chart="line"
+        chart="bar"
         description="Last 30 days"
         className="h-full"
         {...props}
