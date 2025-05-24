@@ -29,7 +29,7 @@ export function InvoiceForm({ invoice, onComplete }: InvoiceFormProps) {
     dueDate: invoice?.dueDate ? 
       invoice.dueDate.toISOString().split('T')[0] : 
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: invoice?.status || 'draft',
+    status: invoice?.status || 'draft' as const,
     notes: invoice?.notes || '',
     paymentTerms: invoice?.paymentTerms || 'Net 30',
   });
@@ -107,7 +107,7 @@ export function InvoiceForm({ invoice, onComplete }: InvoiceFormProps) {
       ...formData,
       issueDate: new Date(formData.issueDate),
       dueDate: new Date(formData.dueDate),
-      status: formData.status as Invoice['status'],
+      status: formData.status,
       items,
       subtotal,
       tax,
