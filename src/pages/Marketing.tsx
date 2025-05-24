@@ -1,200 +1,219 @@
 
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart2, Mail, MessageSquare, Upload, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Plus, Search, Play, Pause, BarChart3, Mail, MessageSquare, Share2, Target } from "lucide-react";
+import { useMarketingStore } from "@/store/useMarketingStore";
+import { formatDistanceToNow } from "date-fns";
 
 export default function Marketing() {
-  const marketingModules = [
-    {
-      title: "Email Campaigns",
-      description: "Create and send targeted email campaigns",
-      icon: Mail,
-      path: "/marketing",
-      stats: { sent: 2450, opened: "32%" }
-    },
-    {
-      title: "SMS Campaigns",
-      description: "Send text message campaigns to your contacts",
-      icon: MessageSquare,
-      path: "/marketing/sms-campaigns",
-      stats: { sent: 856, opened: "67%" }
-    },
-    {
-      title: "Landing Pages",
-      description: "Design high-converting landing pages",
-      icon: Upload,
-      path: "/marketing",
-      stats: { pages: 12, conversions: "8.4%" }
-    },
-    {
-      title: "Analytics",
-      description: "Track performance of all marketing activities",
-      icon: BarChart2,
-      path: "/reporting",
-      stats: { campaigns: 34, period: "30 days" }
-    },
-    {
-      title: "Audience Manager",
-      description: "Manage segments and targeting lists",
-      icon: Users,
-      path: "/marketing",
-      stats: { segments: 16, contacts: 4350 }
-    },
-  ];
-  
-  const recentCampaigns = [
-    {
-      name: "Spring Sale Announcement",
-      type: "Email",
-      sentDate: "May 8, 2025",
-      recipients: 1250,
-      performance: "+12% conversion"
-    },
-    {
-      name: "Weekend Flash Sale",
-      type: "SMS",
-      sentDate: "May 5, 2025",
-      recipients: 850,
-      performance: "+8% conversion"
-    },
-    {
-      name: "Webinar Invitation",
-      type: "Email",
-      sentDate: "Apr 28, 2025",
-      recipients: 1500,
-      performance: "+15% registration"
-    },
-    {
-      name: "New Product Launch",
-      type: "Email",
-      sentDate: "Apr 15, 2025",
-      recipients: 2000,
-      performance: "+25% clicks"
-    },
-  ];
+  const { 
+    campaigns, 
+    searchQuery, 
+    statusFilter, 
+    typeFilter,
+    setSearchQuery, 
+    setStatusFilter, 
+    setTypeFilter,
+    pauseCampaign,
+    resumeCampaign
+  } = useMarketingStore();
+
+  const filteredCampaigns = campaigns.filter(campaign => {
+    const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
+    const matchesType = typeFilter === 'all' || campaign.type === typeFilter;
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  const totalSpent = campaigns.reduce((sum, campaign) => sum + campaign.spent, 0);
+  const totalConversions = campaigns.reduce((sum, campaign) => sum + campaign.conversions, 0);
+  const avgROI = campaigns.length > 0 
+    ? campaigns.reduce((sum, campaign) => sum + campaign.metrics.roi, 0) / campaigns.length 
+    : 0;
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'scheduled': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'email': return Mail;
+      case 'sms': return MessageSquare;
+      case 'social': return Share2;
+      case 'ads': return Target;
+      default: return Mail;
+    }
+  };
 
   return (
     <AppLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Marketing</h1>
-        <p className="text-muted-foreground">
-          Create and manage marketing campaigns across multiple channels
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Marketing</h1>
+          <p className="text-muted-foreground">
+            Create and manage your marketing campaigns
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analytics
+          </Button>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            New Campaign
+          </Button>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Subscribers</CardTitle>
-            <CardDescription>Total active subscribers</CardDescription>
+            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">4,350</div>
+            <div className="text-2xl font-bold">${totalSpent.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{campaigns.length} campaigns</p>
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Campaigns Sent</CardTitle>
-            <CardDescription>Last 30 days</CardDescription>
+            <CardTitle className="text-sm font-medium">Total Conversions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">24</div>
+            <div className="text-2xl font-bold">{totalConversions.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All campaigns</p>
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Average Open Rate</CardTitle>
-            <CardDescription>All campaigns</CardDescription>
+            <CardTitle className="text-sm font-medium">Average ROI</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">32.4%</div>
+            <div className="text-2xl font-bold">{avgROI.toFixed(0)}%</div>
+            <p className="text-xs text-muted-foreground">Return on investment</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {campaigns.filter(c => c.status === 'active').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Currently running</p>
           </CardContent>
         </Card>
       </div>
-      
-      <h2 className="text-xl font-semibold mb-4">Marketing Tools</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {marketingModules.map((module) => (
-          <Card key={module.title} className="transition-all hover:shadow-md">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary/10 p-2 rounded-full">
-                  <module.icon className="h-5 w-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg">{module.title}</CardTitle>
-              </div>
-              <CardDescription>{module.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between text-sm">
-                {module.title === "Email Campaigns" && (
-                  <>
-                    <div>Sent: {module.stats.sent}</div>
-                    <div>Open rate: {module.stats.opened}</div>
-                  </>
-                )}
-                {module.title === "SMS Campaigns" && (
-                  <>
-                    <div>Sent: {module.stats.sent}</div>
-                    <div>Response rate: {module.stats.opened}</div>
-                  </>
-                )}
-                {module.title === "Landing Pages" && (
-                  <>
-                    <div>Pages: {module.stats.pages}</div>
-                    <div>Conversion: {module.stats.conversions}</div>
-                  </>
-                )}
-                {module.title === "Analytics" && (
-                  <>
-                    <div>Campaigns: {module.stats.campaigns}</div>
-                    <div>Period: {module.stats.period}</div>
-                  </>
-                )}
-                {module.title === "Audience Manager" && (
-                  <>
-                    <div>Segments: {module.stats.segments}</div>
-                    <div>Contacts: {module.stats.contacts}</div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Link to={module.path} className="w-full">
-                <Button variant="outline" className="w-full">
-                  <span>Manage {module.title}</span>
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        ))}
+
+      <div className="flex items-center gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search campaigns..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          {['all', 'active', 'paused', 'scheduled', 'completed'].map((status) => (
+            <Button
+              key={status}
+              variant={statusFilter === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter(status)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Button>
+          ))}
+        </div>
       </div>
-      
-      <h2 className="text-xl font-semibold mb-4">Recent Campaigns</h2>
-      <Card>
-        <CardContent className="p-0">
-          <div className="divide-y">
-            {recentCampaigns.map((campaign, i) => (
-              <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer">
-                <div>
-                  <div className="font-medium">{campaign.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {campaign.type} • {campaign.sentDate} • {campaign.recipients} recipients
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredCampaigns.map((campaign) => {
+          const TypeIcon = getTypeIcon(campaign.type);
+          const budgetUsed = (campaign.spent / campaign.budget) * 100;
+          
+          return (
+            <Card key={campaign.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <TypeIcon className="h-5 w-5" />
+                    <div>
+                      <CardTitle className="text-lg">{campaign.name}</CardTitle>
+                      <Badge className={getStatusColor(campaign.status)} variant="secondary">
+                        {campaign.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {campaign.status === 'active' ? (
+                      <Button variant="outline" size="sm" onClick={() => pauseCampaign(campaign.id)}>
+                        <Pause className="h-4 w-4" />
+                      </Button>
+                    ) : campaign.status === 'paused' ? (
+                      <Button variant="outline" size="sm" onClick={() => resumeCampaign(campaign.id)}>
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <span className="text-sm font-medium text-green-600">{campaign.performance}</span>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Budget Used</span>
+                    <span>${campaign.spent.toLocaleString()} / ${campaign.budget.toLocaleString()}</span>
+                  </div>
+                  <Progress value={budgetUsed} className="h-2" />
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Impressions</p>
+                    <p className="text-lg font-semibold">{campaign.impressions.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Clicks</p>
+                    <p className="text-lg font-semibold">{campaign.clicks.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Conversions</p>
+                    <p className="text-lg font-semibold">{campaign.conversions}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ROI</p>
+                    <p className="text-lg font-semibold">{campaign.metrics.roi}%</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">
+                    Started {formatDistanceToNow(campaign.startDate, { addSuffix: true })}
+                  </span>
+                  <Button variant="ghost" size="sm">
+                    View Details
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </AppLayout>
   );
 }
