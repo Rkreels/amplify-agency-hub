@@ -14,6 +14,7 @@ import Marketing from "./pages/Marketing";
 import SmsCampaigns from "./pages/marketing/SmsCampaigns";
 import Automation from "./pages/Automation";
 import SmsAutomations from "./pages/automation/SmsAutomations";
+import AutomationBuilder from "./pages/automation/AutomationBuilder";
 import AppointmentTypes from "./pages/calendar/AppointmentTypes";
 import CalendarIntegrations from "./pages/calendar/CalendarIntegrations";
 import Conversations from "./pages/Conversations";
@@ -47,6 +48,7 @@ function App() {
         <Route path="/marketing/sms-campaigns" element={<SmsCampaigns />} />
         <Route path="/automation" element={<Automation />} />
         <Route path="/automation/sms" element={<SmsAutomations />} />
+        <Route path="/automation/builder" element={<AutomationBuilder />} />
         <Route path="/sites" element={<Sites />} />
         <Route path="/memberships" element={<Memberships />} />
         <Route path="/reputation" element={<Reputation />} />

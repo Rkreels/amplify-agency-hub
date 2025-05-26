@@ -1,14 +1,21 @@
-
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Bell, Mail, MessageSquare, CheckCheck, Calendar } from "lucide-react";
+import { ArrowRight, Bell, Mail, MessageSquare, CheckCheck, Calendar, Plus, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Automation() {
   const automationTypes = [
     {
-      title: "SMS Automations",
+      title: "Visual Workflow Builder",
+      description: "Create complex automations with drag-and-drop visual builder",
+      icon: Workflow,
+      path: "/automation/builder",
+      count: 0,
+      isNew: true
+    },
+    {
+      title: "SMS Automations", 
       description: "Create automated SMS sequences triggered by specific events",
       icon: MessageSquare,
       path: "/automation/sms",
@@ -69,11 +76,19 @@ export default function Automation() {
 
   return (
     <AppLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Automation</h1>
-        <p className="text-muted-foreground">
-          Create and manage automated workflows for your business
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Automation</h1>
+          <p className="text-muted-foreground">
+            Create and manage automated workflows for your business
+          </p>
+        </div>
+        <Link to="/automation/builder">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Workflow
+          </Button>
+        </Link>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -111,7 +126,12 @@ export default function Automation() {
       <h2 className="text-xl font-semibold mb-4">Automation Types</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {automationTypes.map((type) => (
-          <Card key={type.title} className="transition-all hover:shadow-md">
+          <Card key={type.title} className="transition-all hover:shadow-md relative">
+            {type.isNew && (
+              <div className="absolute top-2 right-2">
+                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+              </div>
+            )}
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <div className="bg-primary/10 p-2 rounded-full">
@@ -122,10 +142,12 @@ export default function Automation() {
               <CardDescription>{type.description}</CardDescription>
             </CardHeader>
             <CardFooter className="flex justify-between">
-              <span className="text-sm text-muted-foreground">{type.count} automations</span>
+              <span className="text-sm text-muted-foreground">
+                {type.count} {type.isNew ? 'workflows' : 'automations'}
+              </span>
               <Link to={type.path}>
                 <Button variant="ghost" size="sm">
-                  Manage
+                  {type.isNew ? 'Start Building' : 'Manage'}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
