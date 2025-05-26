@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface ContactCustomField {
@@ -31,6 +32,8 @@ export interface ContactActivity {
   metadata?: Record<string, any>;
 }
 
+export type ContactStatus = 'lead' | 'prospect' | 'customer' | 'inactive';
+
 export interface Contact {
   id: string;
   firstName: string;
@@ -45,7 +48,7 @@ export interface Contact {
   zipCode?: string;
   country?: string;
   source: string;
-  status: 'lead' | 'prospect' | 'customer' | 'inactive';
+  status: ContactStatus;
   lifecycle_stage: 'subscriber' | 'lead' | 'marketing_qualified' | 'sales_qualified' | 'opportunity' | 'customer' | 'evangelist';
   tags: ContactTag[];
   customFields: ContactCustomField[];
@@ -57,6 +60,8 @@ export interface Contact {
   lastActivityAt?: Date;
   avatar?: string;
   notes?: string;
+  dateAdded?: Date;
+  lastContacted?: Date;
   social?: {
     linkedin?: string;
     twitter?: string;
@@ -276,7 +281,12 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
       ...contact,
       id: Date.now().toString(),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      dateAdded: new Date(),
+      lifecycle_stage: contact.lifecycle_stage || 'subscriber',
+      customFields: contact.customFields || [],
+      score: contact.score || { total: 0, website_activity: 0, email_engagement: 0, social_engagement: 0, form_submissions: 0 },
+      activities: contact.activities || []
     }]
   })),
 
@@ -355,7 +365,6 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
   })),
 
   exportContacts: (format) => {
-    // Implementation for exporting contacts
     console.log(`Exporting contacts in ${format} format`);
   },
 
@@ -379,6 +388,7 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
         activities: contact.activities || [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        dateAdded: new Date(),
         ...contact
       }))
     ]

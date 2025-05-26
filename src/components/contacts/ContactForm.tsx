@@ -26,11 +26,11 @@ export function ContactForm({ contact, onComplete }: ContactFormProps) {
   const [status, setStatus] = useState<ContactStatus>(contact?.status || "lead");
   const [notes, setNotes] = useState(contact?.notes || "");
   const [source, setSource] = useState(contact?.source || "");
-  const [street, setStreet] = useState(contact?.address?.street || "");
-  const [city, setCity] = useState(contact?.address?.city || "");
-  const [state, setState] = useState(contact?.address?.state || "");
-  const [zipCode, setZipCode] = useState(contact?.address?.zipCode || "");
-  const [country, setCountry] = useState(contact?.address?.country || "");
+  const [street, setStreet] = useState(contact?.address || "");
+  const [city, setCity] = useState(contact?.city || "");
+  const [state, setState] = useState(contact?.state || "");
+  const [zipCode, setZipCode] = useState(contact?.zipCode || "");
+  const [country, setCountry] = useState(contact?.country || "");
   
   const isEditing = !!contact;
 
@@ -53,13 +53,15 @@ export function ContactForm({ contact, onComplete }: ContactFormProps) {
       tags: contact?.tags || [],
       notes,
       source: source || undefined,
-      address: {
-        street,
-        city,
-        state,
-        zipCode,
-        country,
-      },
+      address: street,
+      city,
+      state,
+      zipCode,
+      country,
+      lifecycle_stage: contact?.lifecycle_stage || 'subscriber' as const,
+      customFields: contact?.customFields || [],
+      score: contact?.score || { total: 0, website_activity: 0, email_engagement: 0, social_engagement: 0, form_submissions: 0 },
+      activities: contact?.activities || []
     };
     
     if (isEditing && contact) {

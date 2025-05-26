@@ -127,7 +127,7 @@ export default function Contacts() {
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-3">
                       <Avatar>
-                        <AvatarImage src={contact.avatarUrl} />
+                        <AvatarImage src={contact.avatar} />
                         <AvatarFallback>
                           {contact.firstName.charAt(0) + contact.lastName.charAt(0)}
                         </AvatarFallback>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useContactsStore, type Contact } from "@/store/useContactsStore";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ interface ContactDetailsProps {
 }
 
 export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
-  const { deleteContact, updateContact } = useContactsStore();
+  const { deleteContact, updateContact, availableTags } = useContactsStore();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -40,23 +41,31 @@ export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
     if (!newTag.trim()) return;
     
     // Check if tag already exists
-    if (contact.tags.includes(newTag.trim())) {
+    if (contact.tags.some(tag => tag.name === newTag.trim())) {
       toast.error("Tag already exists");
       return;
     }
     
+    // Find or create the tag
+    const existingTag = availableTags.find(tag => tag.name === newTag.trim());
+    const tagToAdd = existingTag || {
+      id: Date.now().toString(),
+      name: newTag.trim(),
+      color: '#3b82f6'
+    };
+    
     // Add the tag
     updateContact(contact.id, {
-      tags: [...contact.tags, newTag.trim()]
+      tags: [...contact.tags, tagToAdd]
     });
     
     setNewTag("");
     toast.success("Tag added successfully");
   };
   
-  const handleRemoveTag = (tag: string) => {
+  const handleRemoveTag = (tagToRemove: string) => {
     updateContact(contact.id, {
-      tags: contact.tags.filter(t => t !== tag)
+      tags: contact.tags.filter(tag => tag.name !== tagToRemove)
     });
     toast.success("Tag removed");
   };
@@ -71,7 +80,7 @@ export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={contact.avatarUrl} />
+            <AvatarImage src={contact.avatar} />
             <AvatarFallback className="text-lg">
               {contact.firstName.charAt(0) + contact.lastName.charAt(0)}
             </AvatarFallback>
@@ -131,20 +140,20 @@ export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
                 </div>
               </div>
               
-              {(contact.address?.street || contact.address?.city || contact.address?.state) && (
+              {(contact.address || contact.city || contact.state) && (
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Address</h3>
                   <div className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
                     <div>
-                      {contact.address?.street && <div>{contact.address.street}</div>}
-                      {(contact.address?.city || contact.address?.state) && (
+                      {contact.address && <div>{contact.address}</div>}
+                      {(contact.city || contact.state) && (
                         <div>
-                          {contact.address.city}{contact.address.city && contact.address.state && ', '}
-                          {contact.address.state} {contact.address.zipCode}
+                          {contact.city}{contact.city && contact.state && ', '}
+                          {contact.state} {contact.zipCode}
                         </div>
                       )}
-                      {contact.address?.country && <div>{contact.address.country}</div>}
+                      {contact.country && <div>{contact.country}</div>}
                     </div>
                   </div>
                 </div>
@@ -157,11 +166,11 @@ export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
                     <span className="text-sm text-muted-foreground">No tags</span>
                   ) : (
                     contact.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="flex items-center gap-1">
-                        {tag}
+                      <Badge key={tag.id} variant="outline" className="flex items-center gap-1">
+                        {tag.name}
                         <button 
                           className="ml-1 hover:text-destructive" 
-                          onClick={() => handleRemoveTag(tag)}
+                          onClick={() => handleRemoveTag(tag.name)}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -191,14 +200,14 @@ export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
                     <span className="text-sm text-muted-foreground">Date Added</span>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(contact.dateAdded)}</span>
+                      <span>{formatDate(contact.dateAdded || contact.createdAt)}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Last Contacted</span>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(contact.lastContacted)}</span>
+                      <span>{formatDate(contact.lastContacted || contact.lastActivityAt)}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
