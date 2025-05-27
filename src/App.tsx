@@ -26,6 +26,7 @@ import Reporting from "./pages/Reporting";
 import AppMarketplace from "./pages/AppMarketplace";
 import MobileApp from "./pages/MobileApp";
 import Settings from "./pages/Settings";
+import AIFeatures from "./pages/AIFeatures";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Launchpad />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/ai-features" element={<AIFeatures />} />
         <Route path="/conversations" element={<Conversations />} />
         <Route path="/calendars" element={<Calendars />} />
         <Route path="/calendar/create" element={<CreateCalendar />} />

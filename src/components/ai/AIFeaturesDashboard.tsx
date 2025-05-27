@@ -21,6 +21,15 @@ import {
 } from 'lucide-react';
 import { useAIStore } from '@/store/useAIStore';
 import { toast } from 'sonner';
+import { AIConversationResponses } from './AIConversationResponses';
+import { AIContentGeneration } from './AIContentGeneration';
+import { AILeadScoring } from './AILeadScoring';
+import { AIVoiceAssistants } from './AIVoiceAssistants';
+import { AIChatbots } from './AIChatbots';
+import { AIAnalytics } from './AIAnalytics';
+import { AIAppointmentScheduling } from './AIAppointmentScheduling';
+import { AISocialMediaManagement } from './AISocialMediaManagement';
+import { AIReputationManagement } from './AIReputationManagement';
 
 export function AIFeaturesDashboard() {
   const {
@@ -39,6 +48,7 @@ export function AIFeaturesDashboard() {
   } = useAIStore();
 
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
 
   const aiFeatures = [
     {
@@ -141,6 +151,47 @@ export function AIFeaturesDashboard() {
   const handleQuickAction = async (action: string, featureId: string) => {
     toast.success(`${action} initiated for ${featureId}`);
   };
+
+  const renderSelectedComponent = () => {
+    switch (selectedComponent) {
+      case 'conversation_responses':
+        return <AIConversationResponses />;
+      case 'content_generation':
+        return <AIContentGeneration />;
+      case 'lead_scoring':
+        return <AILeadScoring />;
+      case 'voice_assistants':
+        return <AIVoiceAssistants />;
+      case 'chatbots':
+        return <AIChatbots />;
+      case 'analytics_insights':
+        return <AIAnalytics />;
+      case 'appointment_scheduling':
+        return <AIAppointmentScheduling />;
+      case 'social_media':
+        return <AISocialMediaManagement />;
+      case 'reputation_management':
+        return <AIReputationManagement />;
+      default:
+        return null;
+    }
+  };
+
+  if (selectedComponent) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setSelectedComponent(null)}
+          >
+            ← Back to AI Dashboard
+          </Button>
+        </div>
+        {renderSelectedComponent()}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -259,11 +310,11 @@ export function AIFeaturesDashboard() {
                         variant="outline"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleQuickAction('Configure', feature.id);
+                          setSelectedComponent(feature.id);
                         }}
                       >
                         <Settings className="h-3 w-3 mr-1" />
-                        Configure
+                        Open
                       </Button>
                       <Button 
                         size="sm" 
