@@ -20,7 +20,6 @@ import {
   Target
 } from 'lucide-react';
 import { useWorkflowStore, WorkflowNode, WorkflowConnection } from '@/store/useWorkflowStore';
-import { workflowEngine } from './WorkflowExecutionEngine';
 
 interface ConnectionPath {
   d: string;
