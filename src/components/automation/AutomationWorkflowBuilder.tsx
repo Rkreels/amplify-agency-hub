@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,10 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { 
-  Plus, 
   Mail, 
   Clock, 
-  ArrowRight, 
   User, 
   UserMinus, 
   Tag, 
@@ -26,24 +25,23 @@ import {
   Workflow,
   Users,
   Eye,
-  Trash2,
-  Copy,
-  Settings,
-  History,
   Save,
   Play,
   ChevronRight,
   ChevronDown,
   Edit,
-  BarChart3,
   Zap,
   GitBranch,
   PlayCircle,
-  AlertCircle
+  Settings2,
+  BarChart3,
+  History,
+  Pause
 } from 'lucide-react';
-import { useWorkflowStore, WorkflowNode } from '@/store/useWorkflowStore';
+import { useWorkflowStore } from '@/store/useWorkflowStore';
 import { TriggerConfigModal } from './TriggerConfigModal';
 import { ActionConfigModal } from './ActionConfigModal';
+import { EnhancedWorkflowBuilder } from './EnhancedWorkflowBuilder';
 
 interface ActionType {
   id: string;
@@ -54,242 +52,130 @@ interface ActionType {
 }
 
 const actionTypes: ActionType[] = [
+  // Communication Actions
+  { id: 'send-email', label: 'Send Email', icon: Mail, category: 'communication', description: 'Send an email to the contact' },
+  { id: 'send-sms', label: 'Send SMS', icon: MessageSquare, category: 'communication', description: 'Send an SMS to the contact' },
+  { id: 'send-internal-notification', label: 'Send Internal Notification', icon: Bell, category: 'communication', description: 'Send notification to team members' },
+  { id: 'send-review-request', label: 'Send Review Request', icon: Eye, category: 'communication', description: 'Send a review request' },
+  
+  // Contact Management
   { id: 'add-contact-tag', label: 'Add Contact Tag', icon: Tag, category: 'contact', description: 'Add a tag to the contact' },
   { id: 'remove-contact-tag', label: 'Remove Contact Tag', icon: TagIcon, category: 'contact', description: 'Remove a tag from the contact' },
-  { id: 'create-opportunity', label: 'Create/Update Opportunity', icon: Target, category: 'sales', description: 'Create or update an opportunity' },
-  { id: 'add-to-notes', label: 'Add To Notes', icon: FileText, category: 'contact', description: 'Add notes to the contact' },
   { id: 'assign-user', label: 'Assign To User', icon: User, category: 'contact', description: 'Assign contact to a user' },
   { id: 'remove-assigned-user', label: 'Remove Assigned User', icon: UserMinus, category: 'contact', description: 'Remove assigned user from contact' },
-  { id: 'set-event-date', label: 'Set Event Start Date', icon: Calendar, category: 'scheduling', description: 'Set an event start date' },
+  { id: 'add-to-notes', label: 'Add To Notes', icon: FileText, category: 'contact', description: 'Add notes to the contact' },
+  { id: 'set-contact-dnd', label: 'Set Contact DND', icon: Phone, category: 'contact', description: 'Set do not disturb for contact' },
+  
+  // Sales & Opportunities
+  { id: 'create-opportunity', label: 'Create/Update Opportunity', icon: Target, category: 'sales', description: 'Create or update an opportunity' },
+  { id: 'remove-opportunity', label: 'Remove Opportunity', icon: DollarSign, category: 'sales', description: 'Remove an opportunity' },
+  
+  // Workflow Management
   { id: 'add-to-workflow', label: 'Add To Workflow', icon: Workflow, category: 'automation', description: 'Add contact to another workflow' },
   { id: 'remove-from-workflow', label: 'Remove From Workflow', icon: Workflow, category: 'automation', description: 'Remove contact from workflow' },
   { id: 'remove-from-all-workflows', label: 'Remove From All Workflows', icon: Users, category: 'automation', description: 'Remove contact from all workflows' },
-  { id: 'remove-opportunity', label: 'Remove Opportunity', icon: DollarSign, category: 'sales', description: 'Remove an opportunity' },
-  { id: 'send-internal-notification', label: 'Send Internal Notification', icon: Bell, category: 'communication', description: 'Send notification to team members' },
-  { id: 'set-contact-dnd', label: 'Set Contact DND', icon: Phone, category: 'contact', description: 'Set do not disturb for contact' },
-  { id: 'edit-conversation', label: 'Edit Conversation', icon: MessageSquare, category: 'communication', description: 'Edit conversation details' },
-  { id: 'send-review-request', label: 'Send Review Request', icon: Eye, category: 'communication', description: 'Send a review request' },
-  { id: 'send-email', label: 'Email', icon: Mail, category: 'communication', description: 'Send an email' },
-  { id: 'send-sms', label: 'SMS', icon: MessageSquare, category: 'communication', description: 'Send an SMS' },
+  
+  // Scheduling
+  { id: 'set-event-date', label: 'Set Event Start Date', icon: Calendar, category: 'scheduling', description: 'Set an event start date' },
+  
+  // Flow Control
   { id: 'wait', label: 'Wait', icon: Clock, category: 'flow', description: 'Add a delay in the workflow' },
-  { id: 'go-to', label: 'Go To', icon: ArrowRight, category: 'flow', description: 'Jump to another part of the workflow' }
+  { id: 'condition', label: 'If/Then Branch', icon: GitBranch, category: 'flow', description: 'Create conditional logic' },
+  { id: 'end', label: 'End Workflow', icon: Target, category: 'flow', description: 'Stop the workflow execution' }
 ];
 
 export function AutomationWorkflowBuilder() {
   const {
     currentWorkflow,
-    selectedNode,
     isConfigModalOpen,
     configModalNode,
-    setSelectedNode,
-    addNode,
-    updateNode,
-    deleteNode,
-    duplicateNode,
+    isExecuting,
+    closeConfigModal,
+    updateWorkflowName,
     saveWorkflow,
     activateWorkflow,
     deactivateWorkflow,
-    openConfigModal,
-    closeConfigModal,
-    updateWorkflowName,
-    testWorkflow
+    testWorkflow,
+    validateWorkflow,
+    addNode
   } = useWorkflowStore();
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedAction, setDraggedAction] = useState<ActionType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState('builder');
 
-  const handleDragStart = (action: ActionType) => {
-    setDraggedAction(action);
-    setIsDragging(true);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDragStart = (action: ActionType, e: React.DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(action));
+    e.dataTransfer.effectAllowed = 'copy';
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!draggedAction || !canvasRef.current) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const newNode: WorkflowNode = {
-      id: `${draggedAction.id}-${Date.now()}`,
-      type: 'action',
-      position: { x: x - 75, y: y - 25 },
-      data: {
-        label: draggedAction.label,
-        icon: draggedAction.icon,
-        isConfigured: false
-      }
-    };
-
-    addNode(newNode);
-    setIsDragging(false);
-    setDraggedAction(null);
     
-    // Auto-open config modal for new nodes
-    setTimeout(() => openConfigModal(newNode), 100);
+    try {
+      const actionData = JSON.parse(e.dataTransfer.getData('application/json'));
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      const x = e.clientX - rect.left - 100;
+      const y = e.clientY - rect.top - 25;
+
+      const newNode = {
+        id: `${actionData.id}-${Date.now()}`,
+        type: actionData.category === 'flow' ? actionData.id : 'action',
+        position: { x: Math.max(0, x), y: Math.max(0, y) },
+        data: {
+          label: actionData.label,
+          icon: actionData.icon,
+          isConfigured: false
+        }
+      };
+
+      addNode(newNode);
+      
+      // Auto-open config modal for new nodes
+      setTimeout(() => {
+        useWorkflowStore.getState().openConfigModal(newNode);
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error dropping action:', error);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
 
   const addTrigger = () => {
-    const newNode: WorkflowNode = {
+    const newNode = {
       id: `trigger-${Date.now()}`,
-      type: 'trigger',
+      type: 'trigger' as const,
       position: { x: 500, y: 200 },
       data: {
-        label: 'Add New Workflow Trigger',
+        label: 'New Trigger',
         icon: Zap,
         isConfigured: false
       }
     };
     addNode(newNode);
-    setTimeout(() => openConfigModal(newNode), 100);
+    setTimeout(() => useWorkflowStore.getState().openConfigModal(newNode), 100);
   };
 
-  const handleNodeClick = (node: WorkflowNode) => {
-    setSelectedNode(node.id);
-    if (!node.data.isConfigured) {
-      openConfigModal(node);
+  const handleTestWorkflow = async () => {
+    const validation = validateWorkflow();
+    if (!validation.isValid) {
+      toast.error(`Cannot test workflow: ${validation.errors.join(', ')}`);
+      return;
     }
-  };
 
-  const handleNodeDoubleClick = (node: WorkflowNode) => {
-    openConfigModal(node);
-  };
+    const mockContactData = {
+      id: 'test-contact-123',
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      phone: '+1234567890'
+    };
 
-  const renderConnectionLines = () => {
-    if (!currentWorkflow?.connections) return null;
-    
-    return currentWorkflow.connections.map((connection) => {
-      const sourceNode = currentWorkflow.nodes.find(n => n.id === connection.source);
-      const targetNode = currentWorkflow.nodes.find(n => n.id === connection.target);
-      
-      if (!sourceNode || !targetNode) return null;
-      
-      const x1 = sourceNode.position.x + 75; // Center of source node
-      const y1 = sourceNode.position.y + 25;
-      const x2 = targetNode.position.x + 75; // Center of target node
-      const y2 = targetNode.position.y + 25;
-      
-      return (
-        <svg 
-          key={connection.id}
-          className="absolute pointer-events-none"
-          style={{ left: 0, top: 0, width: '100%', height: '100%' }}
-        >
-          <line
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="#94a3b8"
-            strokeWidth="2"
-            markerEnd="url(#arrowhead)"
-          />
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="#94a3b8"
-              />
-            </marker>
-          </defs>
-        </svg>
-      );
-    });
-  };
-
-  const renderNode = (node: WorkflowNode) => {
-    const Icon = node.data.icon;
-    const isSelected = selectedNode === node.id;
-    const isConfigured = node.data.isConfigured;
-    
-    return (
-      <div
-        key={node.id}
-        className={`absolute cursor-pointer transition-all group ${
-          isSelected ? 'ring-2 ring-blue-500 z-10' : 'z-0'
-        }`}
-        style={{ 
-          left: node.position.x, 
-          top: node.position.y,
-        }}
-        onClick={() => handleNodeClick(node)}
-        onDoubleClick={() => handleNodeDoubleClick(node)}
-      >
-        {node.type === 'trigger' ? (
-          <div className={`bg-white border-2 rounded-lg p-6 min-w-[300px] text-center shadow-lg ${
-            isConfigured ? 'border-green-400' : 'border-orange-400'
-          }`}>
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <Icon className="h-5 w-5" />
-              {!isConfigured && <AlertCircle className="h-4 w-4 text-orange-500" />}
-            </div>
-            <div className={`font-medium ${isConfigured ? 'text-gray-700' : 'text-gray-400'}`}>
-              {node.data.label}
-            </div>
-            {isConfigured && (
-              <Badge variant="secondary" className="mt-2">Configured</Badge>
-            )}
-          </div>
-        ) : (
-          <div className={`bg-white border-2 rounded-lg p-3 min-w-[180px] max-w-[220px] shadow-lg ${
-            isConfigured ? 'border-green-300' : 'border-gray-300'
-          }`}>
-            <div className="flex items-center space-x-2 mb-2">
-              <div className={`p-1 rounded ${isConfigured ? 'bg-green-100' : 'bg-gray-100'}`}>
-                <Icon className={`h-4 w-4 ${isConfigured ? 'text-green-600' : 'text-gray-500'}`} />
-              </div>
-              <span className="text-sm font-medium truncate flex-1">{node.data.label}</span>
-              {!isConfigured && <AlertCircle className="h-3 w-3 text-orange-500 flex-shrink-0" />}
-            </div>
-            
-            {isConfigured && (
-              <Badge variant="outline" className="text-xs">
-                Ready
-              </Badge>
-            )}
-            
-            <div className="absolute -bottom-1 -right-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 bg-white shadow-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  duplicateNode(node.id);
-                }}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 bg-white shadow-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteNode(node.id);
-                }}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    await testWorkflow(mockContactData);
   };
 
   const groupedActions = actionTypes.reduce((acc, action) => {
@@ -300,12 +186,27 @@ export function AutomationWorkflowBuilder() {
     return acc;
   }, {} as Record<string, ActionType[]>);
 
-  const hasTrigger = currentWorkflow?.nodes.some(node => node.type === 'trigger');
-  const hasActions = currentWorkflow?.nodes.some(node => node.type === 'action');
+  const categoryIcons = {
+    communication: Mail,
+    contact: User,
+    sales: Target,
+    automation: Workflow,
+    scheduling: Calendar,
+    flow: GitBranch
+  };
+
+  const categoryNames = {
+    communication: 'Communication',
+    contact: 'Contact Management',
+    sales: 'Sales & Opportunities',
+    automation: 'Workflow Management',
+    scheduling: 'Scheduling',
+    flow: 'Flow Control'
+  };
 
   return (
     <div className="h-screen flex bg-gray-50">
-      {/* Main Canvas */}
+      {/* Main Canvas Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="bg-slate-700 text-white p-4 flex items-center justify-between">
@@ -314,23 +215,26 @@ export function AutomationWorkflowBuilder() {
               value={currentWorkflow?.name || ''}
               onChange={(e) => updateWorkflowName(e.target.value)}
               className="bg-transparent border-none text-white text-lg font-medium focus-visible:ring-0 focus-visible:ring-offset-0 min-w-[300px]"
+              placeholder="Workflow Name"
             />
             <Button variant="ghost" size="sm" className="text-white hover:bg-slate-600">
               <Edit className="h-4 w-4" />
             </Button>
             {currentWorkflow?.isActive && (
-              <Badge className="bg-green-600">Active</Badge>
+              <Badge className="bg-green-600 hover:bg-green-600">Active</Badge>
             )}
           </div>
+          
           <div className="flex items-center space-x-2">
             <Button 
               variant="outline" 
               size="sm" 
               className="bg-transparent border-white text-white hover:bg-slate-600"
-              onClick={testWorkflow}
+              onClick={handleTestWorkflow}
+              disabled={isExecuting}
             >
               <PlayCircle className="h-4 w-4 mr-2" />
-              Test
+              {isExecuting ? 'Testing...' : 'Test'}
             </Button>
             <Button 
               variant="outline" 
@@ -356,7 +260,7 @@ export function AutomationWorkflowBuilder() {
             >
               {currentWorkflow?.isActive ? (
                 <>
-                  <Play className="h-4 w-4 mr-2 rotate-180" />
+                  <Pause className="h-4 w-4 mr-2" />
                   Deactivate
                 </>
               ) : (
@@ -371,65 +275,56 @@ export function AutomationWorkflowBuilder() {
 
         {/* Tab Navigation */}
         <div className="bg-white border-b">
-          <Tabs defaultValue="builder" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-transparent border-b-0 h-12">
-              <TabsTrigger value="builder" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
+              <TabsTrigger 
+                value="builder" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
                 Builder
               </TabsTrigger>
-              <TabsTrigger value="settings" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
+              <TabsTrigger 
+                value="settings" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
                 Settings
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
+              <TabsTrigger 
+                value="analytics" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="history" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
+              <TabsTrigger 
+                value="history" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
                 History
               </TabsTrigger>
             </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Canvas */}
-        <div className="flex-1 relative">
-          <div
-            ref={canvasRef}
-            className="w-full h-full overflow-auto bg-gray-50 relative"
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            {/* Connection Lines */}
-            {renderConnectionLines()}
             
-            {/* Render Nodes */}
-            {currentWorkflow?.nodes.map(renderNode)}
-            
-            {/* Empty State */}
-            {!hasTrigger && (
-              <div className="flex flex-col items-center justify-center h-full">
-                <div 
-                  className="bg-white border-2 border-dashed border-orange-400 rounded-lg p-8 mb-8 cursor-pointer hover:border-orange-500 transition-colors hover:shadow-lg"
-                  onClick={addTrigger}
-                >
-                  <div className="text-center">
-                    <Zap className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-                    <div className="text-gray-600 text-xl font-medium">
-                      Add Workflow Trigger
-                    </div>
-                    <div className="text-gray-400 text-sm mt-2">
-                      Click to start building your automation
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="text-2xl font-semibold text-gray-700 mt-8">
-                  Start by adding a trigger
-                </div>
-                <div className="text-gray-500 mt-2">
-                  Triggers define when your workflow should run
-                </div>
+            <TabsContent value="builder" className="mt-0 h-[calc(100vh-140px)]">
+              <div 
+                className="h-full"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <EnhancedWorkflowBuilder />
               </div>
-            )}
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="settings" className="mt-0 p-6">
+              <WorkflowSettings />
+            </TabsContent>
+            
+            <TabsContent value="analytics" className="mt-0 p-6">
+              <WorkflowAnalytics />
+            </TabsContent>
+            
+            <TabsContent value="history" className="mt-0 p-6">
+              <WorkflowHistory />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
@@ -487,18 +382,22 @@ export function AutomationWorkflowBuilder() {
                 {currentWorkflow && (
                   <div className="space-y-3">
                     <h4 className="font-medium">Workflow Stats</h4>
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="bg-blue-50 p-2 rounded">
                         <div className="text-lg font-bold text-blue-600">{currentWorkflow.nodes.length}</div>
                         <div className="text-xs text-blue-600">Nodes</div>
                       </div>
                       <div className="bg-green-50 p-2 rounded">
-                        <div className="text-lg font-bold text-green-600">{currentWorkflow.stats.triggered}</div>
-                        <div className="text-xs text-green-600">Triggered</div>
+                        <div className="text-lg font-bold text-green-600">{currentWorkflow.connections.length}</div>
+                        <div className="text-xs text-green-600">Connections</div>
                       </div>
                       <div className="bg-purple-50 p-2 rounded">
-                        <div className="text-lg font-bold text-purple-600">{currentWorkflow.stats.completed}</div>
-                        <div className="text-xs text-purple-600">Completed</div>
+                        <div className="text-lg font-bold text-purple-600">{currentWorkflow.stats.triggered}</div>
+                        <div className="text-xs text-purple-600">Triggered</div>
+                      </div>
+                      <div className="bg-orange-50 p-2 rounded">
+                        <div className="text-lg font-bold text-orange-600">{currentWorkflow.stats.completed}</div>
+                        <div className="text-xs text-orange-600">Completed</div>
                       </div>
                     </div>
                   </div>
@@ -508,37 +407,43 @@ export function AutomationWorkflowBuilder() {
                 <div className="space-y-3">
                   <h3 className="font-semibold text-lg">Available Actions</h3>
                   
-                  {Object.entries(groupedActions).map(([category, actions]) => (
-                    <Collapsible key={category} defaultOpen={category === 'communication'}>
-                      <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded">
-                        <h4 className="font-medium text-sm uppercase tracking-wide">
-                          {category.charAt(0).toUpperCase() + category.slice(1)}
-                        </h4>
-                        <ChevronDown className="h-4 w-4" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-1 mt-2">
-                        {actions.map((action) => {
-                          const Icon = action.icon;
-                          return (
-                            <div
-                              key={action.id}
-                              draggable
-                              onDragStart={() => handleDragStart(action)}
-                              className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-move transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm"
-                            >
-                              <div className="bg-gray-700 text-white p-2 rounded mr-3">
-                                <Icon className="h-4 w-4" />
+                  {Object.entries(groupedActions).map(([category, actions]) => {
+                    const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons];
+                    const categoryName = categoryNames[category as keyof typeof categoryNames];
+                    
+                    return (
+                      <Collapsible key={category} defaultOpen={category === 'communication'}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded">
+                          <div className="flex items-center space-x-2">
+                            <CategoryIcon className="h-4 w-4" />
+                            <h4 className="font-medium text-sm">{categoryName}</h4>
+                          </div>
+                          <ChevronDown className="h-4 w-4" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-1 mt-2">
+                          {actions.map((action) => {
+                            const Icon = action.icon;
+                            return (
+                              <div
+                                key={action.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(action, e)}
+                                className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-move transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                              >
+                                <div className="bg-gray-700 text-white p-2 rounded mr-3">
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm truncate">{action.label}</div>
+                                  <div className="text-xs text-gray-500 truncate">{action.description}</div>
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">{action.label}</div>
-                                <div className="text-xs text-gray-500 truncate">{action.description}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ))}
+                            );
+                          })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })}
                 </div>
               </div>
             </ScrollArea>
@@ -555,13 +460,120 @@ export function AutomationWorkflowBuilder() {
         />
       )}
       
-      {configModalNode?.type === 'action' && (
+      {(configModalNode?.type === 'action' || configModalNode?.type === 'condition' || configModalNode?.type === 'wait') && (
         <ActionConfigModal
           isOpen={isConfigModalOpen}
           onClose={closeConfigModal}
           node={configModalNode}
         />
       )}
+    </div>
+  );
+}
+
+// Additional components for different tabs
+function WorkflowSettings() {
+  const { currentWorkflow, updateWorkflowSettings } = useWorkflowStore();
+  
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Workflow Settings</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Execution Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Settings form would go here */}
+              <div className="text-sm text-gray-500">
+                Configure workflow execution parameters
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Error Handling</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-gray-500">
+                Set how errors should be handled during execution
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowAnalytics() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Workflow Analytics</h3>
+        <div className="grid grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">98.5%</div>
+              <div className="text-sm text-gray-500">Success Rate</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Execution Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">2.3s</div>
+              <div className="text-sm text-gray-500">Avg Duration</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Total Runs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">1,234</div>
+              <div className="text-sm text-gray-500">Last 30 Days</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowHistory() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Execution History</h3>
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="p-4 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">Execution #{1000 + i}</div>
+                    <div className="text-sm text-gray-500">
+                      Started {new Date(Date.now() - i * 3600000).toLocaleString()}
+                    </div>
+                  </div>
+                  <Badge variant={i % 3 === 0 ? 'default' : 'secondary'}>
+                    {i % 3 === 0 ? 'Completed' : 'Running'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
