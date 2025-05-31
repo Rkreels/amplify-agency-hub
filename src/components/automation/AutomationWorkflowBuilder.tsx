@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -38,20 +36,15 @@ import {
   ChevronRight,
   ChevronDown,
   Edit,
-  BarChart3
+  BarChart3,
+  Zap,
+  GitBranch,
+  PlayCircle,
+  AlertCircle
 } from 'lucide-react';
-
-interface WorkflowNode {
-  id: string;
-  type: 'trigger' | 'condition' | 'action' | 'wait';
-  position: { x: number; y: number };
-  data: {
-    label: string;
-    icon: any;
-    config?: any;
-  };
-  connections?: string[];
-}
+import { useWorkflowStore, WorkflowNode } from '@/store/useWorkflowStore';
+import { TriggerConfigModal } from './TriggerConfigModal';
+import { ActionConfigModal } from './ActionConfigModal';
 
 interface ActionType {
   id: string;
@@ -84,12 +77,28 @@ const actionTypes: ActionType[] = [
 ];
 
 export function AutomationWorkflowBuilder() {
-  const [nodes, setNodes] = useState<WorkflowNode[]>([]);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [automationName, setAutomationName] = useState('New Workflow : 1644273575181');
+  const {
+    currentWorkflow,
+    selectedNode,
+    isConfigModalOpen,
+    configModalNode,
+    setSelectedNode,
+    addNode,
+    updateNode,
+    deleteNode,
+    duplicateNode,
+    saveWorkflow,
+    activateWorkflow,
+    deactivateWorkflow,
+    openConfigModal,
+    closeConfigModal,
+    updateWorkflowName,
+    testWorkflow
+  } = useWorkflowStore();
+
   const [isDragging, setIsDragging] = useState(false);
   const [draggedAction, setDraggedAction] = useState<ActionType | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const handleDragStart = (action: ActionType) => {
@@ -115,13 +124,17 @@ export function AutomationWorkflowBuilder() {
       position: { x: x - 75, y: y - 25 },
       data: {
         label: draggedAction.label,
-        icon: draggedAction.icon
+        icon: draggedAction.icon,
+        isConfigured: false
       }
     };
 
-    setNodes(prev => [...prev, newNode]);
+    addNode(newNode);
     setIsDragging(false);
     setDraggedAction(null);
+    
+    // Auto-open config modal for new nodes
+    setTimeout(() => openConfigModal(newNode), 100);
   };
 
   const addTrigger = () => {
@@ -131,66 +144,130 @@ export function AutomationWorkflowBuilder() {
       position: { x: 500, y: 200 },
       data: {
         label: 'Add New Workflow Trigger',
-        icon: Plus
+        icon: Zap,
+        isConfigured: false
       }
     };
-    setNodes(prev => [...prev, newNode]);
+    addNode(newNode);
+    setTimeout(() => openConfigModal(newNode), 100);
   };
 
-  const addFirstAction = () => {
-    setSidebarOpen(true);
-  };
-
-  const deleteNode = (nodeId: string) => {
-    setNodes(prev => prev.filter(node => node.id !== nodeId));
-    if (selectedNode === nodeId) {
-      setSelectedNode(null);
+  const handleNodeClick = (node: WorkflowNode) => {
+    setSelectedNode(node.id);
+    if (!node.data.isConfigured) {
+      openConfigModal(node);
     }
   };
 
-  const duplicateNode = (nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
+  const handleNodeDoubleClick = (node: WorkflowNode) => {
+    openConfigModal(node);
+  };
 
-    const newNode: WorkflowNode = {
-      ...node,
-      id: `${node.id}-copy-${Date.now()}`,
-      position: { x: node.position.x + 20, y: node.position.y + 20 }
-    };
-    setNodes(prev => [...prev, newNode]);
+  const renderConnectionLines = () => {
+    if (!currentWorkflow?.connections) return null;
+    
+    return currentWorkflow.connections.map((connection) => {
+      const sourceNode = currentWorkflow.nodes.find(n => n.id === connection.source);
+      const targetNode = currentWorkflow.nodes.find(n => n.id === connection.target);
+      
+      if (!sourceNode || !targetNode) return null;
+      
+      const x1 = sourceNode.position.x + 75; // Center of source node
+      const y1 = sourceNode.position.y + 25;
+      const x2 = targetNode.position.x + 75; // Center of target node
+      const y2 = targetNode.position.y + 25;
+      
+      return (
+        <svg 
+          key={connection.id}
+          className="absolute pointer-events-none"
+          style={{ left: 0, top: 0, width: '100%', height: '100%' }}
+        >
+          <line
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="#94a3b8"
+            strokeWidth="2"
+            markerEnd="url(#arrowhead)"
+          />
+          <defs>
+            <marker
+              id="arrowhead"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+            >
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="#94a3b8"
+              />
+            </marker>
+          </defs>
+        </svg>
+      );
+    });
   };
 
   const renderNode = (node: WorkflowNode) => {
     const Icon = node.data.icon;
+    const isSelected = selectedNode === node.id;
+    const isConfigured = node.data.isConfigured;
     
     return (
       <div
         key={node.id}
-        className={`absolute cursor-pointer transition-all ${
-          selectedNode === node.id ? 'ring-2 ring-blue-500' : ''
+        className={`absolute cursor-pointer transition-all group ${
+          isSelected ? 'ring-2 ring-blue-500 z-10' : 'z-0'
         }`}
         style={{ 
           left: node.position.x, 
           top: node.position.y,
         }}
-        onClick={() => setSelectedNode(node.id)}
+        onClick={() => handleNodeClick(node)}
+        onDoubleClick={() => handleNodeDoubleClick(node)}
       >
         {node.type === 'trigger' ? (
-          <div className="bg-white border-2 border-orange-400 rounded-lg p-6 min-w-[300px] text-center shadow-sm">
-            <div className="text-gray-400 text-lg font-medium">{node.data.label}</div>
+          <div className={`bg-white border-2 rounded-lg p-6 min-w-[300px] text-center shadow-lg ${
+            isConfigured ? 'border-green-400' : 'border-orange-400'
+          }`}>
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <Icon className="h-5 w-5" />
+              {!isConfigured && <AlertCircle className="h-4 w-4 text-orange-500" />}
+            </div>
+            <div className={`font-medium ${isConfigured ? 'text-gray-700' : 'text-gray-400'}`}>
+              {node.data.label}
+            </div>
+            {isConfigured && (
+              <Badge variant="secondary" className="mt-2">Configured</Badge>
+            )}
           </div>
         ) : (
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-3 min-w-[150px] max-w-[200px] shadow-sm">
-            <div className="flex items-center space-x-2">
-              <Icon className="h-4 w-4" />
-              <span className="text-sm font-medium truncate">{node.data.label}</span>
+          <div className={`bg-white border-2 rounded-lg p-3 min-w-[180px] max-w-[220px] shadow-lg ${
+            isConfigured ? 'border-green-300' : 'border-gray-300'
+          }`}>
+            <div className="flex items-center space-x-2 mb-2">
+              <div className={`p-1 rounded ${isConfigured ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <Icon className={`h-4 w-4 ${isConfigured ? 'text-green-600' : 'text-gray-500'}`} />
+              </div>
+              <span className="text-sm font-medium truncate flex-1">{node.data.label}</span>
+              {!isConfigured && <AlertCircle className="h-3 w-3 text-orange-500 flex-shrink-0" />}
             </div>
             
-            <div className="absolute -bottom-1 -right-1 flex space-x-1">
+            {isConfigured && (
+              <Badge variant="outline" size="sm" className="text-xs">
+                Ready
+              </Badge>
+            )}
+            
+            <div className="absolute -bottom-1 -right-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 bg-white shadow-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   duplicateNode(node.id);
@@ -201,7 +278,7 @@ export function AutomationWorkflowBuilder() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 bg-white shadow-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteNode(node.id);
@@ -224,8 +301,8 @@ export function AutomationWorkflowBuilder() {
     return acc;
   }, {} as Record<string, ActionType[]>);
 
-  const hasTrigger = nodes.some(node => node.type === 'trigger');
-  const hasActions = nodes.some(node => node.type === 'action');
+  const hasTrigger = currentWorkflow?.nodes.some(node => node.type === 'trigger');
+  const hasActions = currentWorkflow?.nodes.some(node => node.type === 'action');
 
   return (
     <div className="h-screen flex bg-gray-50">
@@ -235,41 +312,79 @@ export function AutomationWorkflowBuilder() {
         <div className="bg-slate-700 text-white p-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Input
-              value={automationName}
-              onChange={(e) => setAutomationName(e.target.value)}
-              className="bg-transparent border-none text-white text-lg font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
+              value={currentWorkflow?.name || ''}
+              onChange={(e) => updateWorkflowName(e.target.value)}
+              className="bg-transparent border-none text-white text-lg font-medium focus-visible:ring-0 focus-visible:ring-offset-0 min-w-[300px]"
             />
             <Button variant="ghost" size="sm" className="text-white hover:bg-slate-600">
               <Edit className="h-4 w-4" />
             </Button>
+            {currentWorkflow?.isActive && (
+              <Badge className="bg-green-600">Active</Badge>
+            )}
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" className="bg-transparent border-white text-white hover:bg-slate-600">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-transparent border-white text-white hover:bg-slate-600"
+              onClick={testWorkflow}
+            >
+              <PlayCircle className="h-4 w-4 mr-2" />
+              Test
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-transparent border-white text-white hover:bg-slate-600"
+              onClick={saveWorkflow}
+            >
               <Save className="h-4 w-4 mr-2" />
               Save
             </Button>
-            <Button size="sm" className="bg-green-600 hover:bg-green-700">
-              <Play className="h-4 w-4 mr-2" />
-              Activate
+            <Button 
+              size="sm" 
+              className={currentWorkflow?.isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+              onClick={() => {
+                if (currentWorkflow?.isActive) {
+                  deactivateWorkflow(currentWorkflow.id);
+                  toast.success('Workflow deactivated');
+                } else if (currentWorkflow) {
+                  activateWorkflow(currentWorkflow.id);
+                  toast.success('Workflow activated');
+                }
+              }}
+            >
+              {currentWorkflow?.isActive ? (
+                <>
+                  <Play className="h-4 w-4 mr-2 rotate-180" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Activate
+                </>
+              )}
             </Button>
           </div>
         </div>
 
         {/* Tab Navigation */}
         <div className="bg-white border-b">
-          <Tabs defaultValue="actions" className="w-full">
+          <Tabs defaultValue="builder" className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-transparent border-b-0 h-12">
-              <TabsTrigger value="actions" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
-                Actions
+              <TabsTrigger value="builder" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
+                Builder
               </TabsTrigger>
               <TabsTrigger value="settings" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
                 Settings
               </TabsTrigger>
+              <TabsTrigger value="analytics" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
+                Analytics
+              </TabsTrigger>
               <TabsTrigger value="history" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
                 History
-              </TabsTrigger>
-              <TabsTrigger value="status" className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none">
-                Status
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -279,41 +394,39 @@ export function AutomationWorkflowBuilder() {
         <div className="flex-1 relative">
           <div
             ref={canvasRef}
-            className="w-full h-full overflow-auto bg-gray-50"
+            className="w-full h-full overflow-auto bg-gray-50 relative"
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           >
+            {/* Connection Lines */}
+            {renderConnectionLines()}
+            
             {/* Render Nodes */}
-            {nodes.map(renderNode)}
+            {currentWorkflow?.nodes.map(renderNode)}
             
             {/* Empty State */}
             {!hasTrigger && (
               <div className="flex flex-col items-center justify-center h-full">
                 <div 
-                  className="bg-white border-2 border-dashed border-orange-400 rounded-lg p-8 mb-8 cursor-pointer hover:border-orange-500 transition-colors"
+                  className="bg-white border-2 border-dashed border-orange-400 rounded-lg p-8 mb-8 cursor-pointer hover:border-orange-500 transition-colors hover:shadow-lg"
                   onClick={addTrigger}
                 >
-                  <div className="text-gray-400 text-xl font-medium text-center">
-                    Add New Workflow<br />Trigger
+                  <div className="text-center">
+                    <Zap className="h-12 w-12 text-orange-400 mx-auto mb-4" />
+                    <div className="text-gray-600 text-xl font-medium">
+                      Add Workflow Trigger
+                    </div>
+                    <div className="text-gray-400 text-sm mt-2">
+                      Click to start building your automation
+                    </div>
                   </div>
                 </div>
                 
-                {/* Connection Line */}
-                <div className="w-0.5 h-16 bg-gray-300 mb-4"></div>
-                
-                {/* Plus Button */}
-                <div 
-                  className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors mb-4"
-                  onClick={addFirstAction}
-                >
-                  <Plus className="h-6 w-6 text-white" />
+                <div className="text-2xl font-semibold text-gray-700 mt-8">
+                  Start by adding a trigger
                 </div>
-                
-                {/* Dashed Line */}
-                <div className="w-0.5 h-16 border-l-2 border-dashed border-gray-300 mb-8"></div>
-                
-                <div className="text-2xl font-semibold text-gray-700">
-                  Add your first Action
+                <div className="text-gray-500 mt-2">
+                  Triggers define when your workflow should run
                 </div>
               </div>
             )}
@@ -321,7 +434,7 @@ export function AutomationWorkflowBuilder() {
         </div>
       </div>
 
-      {/* Collapsible Right Sidebar */}
+      {/* Enhanced Right Sidebar */}
       <div className={`bg-white border-l transition-all duration-300 ${sidebarOpen ? 'w-80' : 'w-12'}`}>
         <div className="h-full flex flex-col">
           {/* Collapse/Expand Button */}
@@ -335,7 +448,7 @@ export function AutomationWorkflowBuilder() {
               {sidebarOpen ? (
                 <>
                   <ChevronRight className="h-4 w-4 mr-2" />
-                  Actions
+                  Actions & Tools
                 </>
               ) : (
                 <ChevronRight className="h-4 w-4" />
@@ -345,45 +458,111 @@ export function AutomationWorkflowBuilder() {
           
           {sidebarOpen && (
             <ScrollArea className="flex-1">
-              <div className="p-4 space-y-4">
-                <h3 className="font-semibold text-lg">Available Actions</h3>
-                
-                {Object.entries(groupedActions).map(([category, actions]) => (
-                  <Collapsible key={category} defaultOpen={false}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded">
-                      <h4 className="font-medium text-sm uppercase tracking-wide">
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                      </h4>
-                      <ChevronDown className="h-4 w-4" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-1 mt-2">
-                      {actions.map((action) => {
-                        const Icon = action.icon;
-                        return (
-                          <div
-                            key={action.id}
-                            draggable
-                            onDragStart={() => handleDragStart(action)}
-                            className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-move transition-colors border border-gray-200"
-                          >
-                            <div className="bg-gray-700 text-white p-2 rounded mr-3">
-                              <Icon className="h-4 w-4" />
+              <div className="p-4 space-y-6">
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Quick Actions</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={addTrigger}
+                      className="h-auto flex-col gap-1 p-3"
+                    >
+                      <Zap className="h-4 w-4" />
+                      <span className="text-xs">Add Trigger</span>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-auto flex-col gap-1 p-3"
+                      onClick={() => toast.info('Drag an action from below to the canvas')}
+                    >
+                      <GitBranch className="h-4 w-4" />
+                      <span className="text-xs">Add Action</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Workflow Stats */}
+                {currentWorkflow && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Workflow Stats</h4>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-blue-50 p-2 rounded">
+                        <div className="text-lg font-bold text-blue-600">{currentWorkflow.nodes.length}</div>
+                        <div className="text-xs text-blue-600">Nodes</div>
+                      </div>
+                      <div className="bg-green-50 p-2 rounded">
+                        <div className="text-lg font-bold text-green-600">{currentWorkflow.stats.triggered}</div>
+                        <div className="text-xs text-green-600">Triggered</div>
+                      </div>
+                      <div className="bg-purple-50 p-2 rounded">
+                        <div className="text-lg font-bold text-purple-600">{currentWorkflow.stats.completed}</div>
+                        <div className="text-xs text-purple-600">Completed</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Available Actions */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Available Actions</h3>
+                  
+                  {Object.entries(groupedActions).map(([category, actions]) => (
+                    <Collapsible key={category} defaultOpen={category === 'communication'}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded">
+                        <h4 className="font-medium text-sm uppercase tracking-wide">
+                          {category.charAt(0).toUpperCase() + category.slice(1)}
+                        </h4>
+                        <ChevronDown className="h-4 w-4" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-1 mt-2">
+                        {actions.map((action) => {
+                          const Icon = action.icon;
+                          return (
+                            <div
+                              key={action.id}
+                              draggable
+                              onDragStart={() => handleDragStart(action)}
+                              className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-move transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                            >
+                              <div className="bg-gray-700 text-white p-2 rounded mr-3">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{action.label}</div>
+                                <div className="text-xs text-gray-500 truncate">{action.description}</div>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{action.label}</div>
-                              <div className="text-xs text-gray-500">{action.description}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </CollapsibleContent>
-                  </Collapsible>
-                ))}
+                          );
+                        })}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
               </div>
             </ScrollArea>
           )}
         </div>
       </div>
+
+      {/* Configuration Modals */}
+      {configModalNode?.type === 'trigger' && (
+        <TriggerConfigModal
+          isOpen={isConfigModalOpen}
+          onClose={closeConfigModal}
+          node={configModalNode}
+        />
+      )}
+      
+      {configModalNode?.type === 'action' && (
+        <ActionConfigModal
+          isOpen={isConfigModalOpen}
+          onClose={closeConfigModal}
+          node={configModalNode}
+        />
+      )}
     </div>
   );
 }
