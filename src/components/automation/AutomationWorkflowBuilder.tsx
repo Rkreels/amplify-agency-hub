@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -258,7 +257,7 @@ export function AutomationWorkflowBuilder() {
             </div>
             
             {isConfigured && (
-              <Badge variant="outline" size="sm" className="text-xs">
+              <Badge variant="outline" className="text-xs">
                 Ready
               </Badge>
             )}

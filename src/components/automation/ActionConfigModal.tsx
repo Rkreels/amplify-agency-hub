@@ -109,7 +109,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
   const [selectedType, setSelectedType] = useState<string>('');
   const [actionName, setActionName] = useState('');
   const [settings, setSettings] = useState<Record<string, any>>({});
-  const [delay, setDelay] = useState({ amount: 0, unit: 'minutes' as const });
+  const [delay, setDelay] = useState<{ amount: number; unit: 'minutes' | 'hours' | 'days' }>({ amount: 0, unit: 'minutes' });
 
   const handleSave = () => {
     if (!node || !selectedType || !actionName) {
