@@ -334,7 +334,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                 onChange={(e) => setSettings({ ...settings, message: e.target.value })}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Available variables: {{first_name}}, {{last_name}}, {{email}}, {{company}}
+                Available variables: {{'{first_name}'}}, {{'{last_name}'}}, {{'{email}'}}, {{'{company}'}}
               </p>
             </div>
             
@@ -368,7 +368,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                 onChange={(e) => setSettings({ ...settings, message: e.target.value })}
               />
               <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>Available variables: {{first_name}}, {{last_name}}, {{phone}}</span>
+                <span>Available variables: {{'{first_name}'}}, {{'{last_name}'}}, {{'{phone}'}}</span>
                 <span>{(settings.message || '').length}/160 characters</span>
               </div>
             </div>
