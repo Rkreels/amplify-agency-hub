@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -33,10 +34,19 @@ import {
   Zap
 } from 'lucide-react';
 
+// Comprehensive action types mapping
 const actionTypes = [
   // Communication Actions
   {
     id: 'send_email',
+    name: 'Send Email',
+    description: 'Send personalized email to contact',
+    icon: Mail,
+    category: 'Communication',
+    fields: ['templateId', 'subject', 'message', 'fromEmail']
+  },
+  {
+    id: 'send-email', // Alternative ID for compatibility
     name: 'Send Email',
     description: 'Send personalized email to contact',
     icon: Mail,
@@ -52,6 +62,14 @@ const actionTypes = [
     fields: ['message', 'fromNumber']
   },
   {
+    id: 'send-sms',
+    name: 'Send SMS',
+    description: 'Send SMS message to contact',
+    icon: MessageSquare,
+    category: 'Communication',
+    fields: ['message', 'fromNumber']
+  },
+  {
     id: 'send_notification',
     name: 'Send Internal Notification',
     description: 'Send notification to team members',
@@ -59,10 +77,34 @@ const actionTypes = [
     category: 'Communication',
     fields: ['message', 'recipientType', 'recipients']
   },
+  {
+    id: 'send-internal-notification',
+    name: 'Send Internal Notification',
+    description: 'Send notification to team members',
+    icon: Bell,
+    category: 'Communication',
+    fields: ['message', 'recipientType', 'recipients']
+  },
+  {
+    id: 'send-review-request',
+    name: 'Send Review Request',
+    description: 'Send a review request',
+    icon: Bell,
+    category: 'Communication',
+    fields: ['message', 'platform']
+  },
   
   // Contact Management
   {
     id: 'add_tag',
+    name: 'Add Contact Tag',
+    description: 'Add a tag to the contact',
+    icon: Tag,
+    category: 'Contact Management',
+    fields: ['tagName', 'tagColor']
+  },
+  {
+    id: 'add-contact-tag',
     name: 'Add Contact Tag',
     description: 'Add a tag to the contact',
     icon: Tag,
@@ -78,12 +120,36 @@ const actionTypes = [
     fields: ['tagName']
   },
   {
+    id: 'remove-contact-tag',
+    name: 'Remove Contact Tag',
+    description: 'Remove a tag from the contact',
+    icon: Tag,
+    category: 'Contact Management',
+    fields: ['tagName']
+  },
+  {
     id: 'assign_user',
     name: 'Assign To User',
     description: 'Assign contact to a team member',
     icon: User,
     category: 'Contact Management',
     fields: ['userId', 'notifyUser']
+  },
+  {
+    id: 'assign-user',
+    name: 'Assign To User',
+    description: 'Assign contact to a team member',
+    icon: User,
+    category: 'Contact Management',
+    fields: ['userId', 'notifyUser']
+  },
+  {
+    id: 'remove-assigned-user',
+    name: 'Remove Assigned User',
+    description: 'Remove assigned user from contact',
+    icon: User,
+    category: 'Contact Management',
+    fields: ['userId']
   },
   {
     id: 'add_notes',
@@ -94,7 +160,23 @@ const actionTypes = [
     fields: ['noteContent', 'noteType']
   },
   {
+    id: 'add-to-notes',
+    name: 'Add To Notes',
+    description: 'Add notes to the contact record',
+    icon: FileText,
+    category: 'Contact Management',
+    fields: ['noteContent', 'noteType']
+  },
+  {
     id: 'set_dnd',
+    name: 'Set Contact DND',
+    description: 'Set do not disturb for contact',
+    icon: Phone,
+    category: 'Contact Management',
+    fields: ['dndType', 'duration']
+  },
+  {
+    id: 'set-contact-dnd',
     name: 'Set Contact DND',
     description: 'Set do not disturb for contact',
     icon: Phone,
@@ -112,7 +194,23 @@ const actionTypes = [
     fields: ['title', 'value', 'stage', 'probability', 'closeDate']
   },
   {
+    id: 'create-opportunity',
+    name: 'Create/Update Opportunity',
+    description: 'Create or update sales opportunity',
+    icon: Target,
+    category: 'Sales & Opportunities',
+    fields: ['title', 'value', 'stage', 'probability', 'closeDate']
+  },
+  {
     id: 'remove_opportunity',
+    name: 'Remove Opportunity',
+    description: 'Remove an opportunity from contact',
+    icon: DollarSign,
+    category: 'Sales & Opportunities',
+    fields: ['opportunityId', 'reason']
+  },
+  {
+    id: 'remove-opportunity',
     name: 'Remove Opportunity',
     description: 'Remove an opportunity from contact',
     icon: DollarSign,
@@ -130,6 +228,14 @@ const actionTypes = [
     fields: ['workflowId', 'startImmediately']
   },
   {
+    id: 'add-to-workflow',
+    name: 'Add To Workflow',
+    description: 'Add contact to another workflow',
+    icon: Workflow,
+    category: 'Workflow Management',
+    fields: ['workflowId', 'startImmediately']
+  },
+  {
     id: 'remove_from_workflow',
     name: 'Remove From Workflow',
     description: 'Remove contact from specific workflow',
@@ -138,7 +244,23 @@ const actionTypes = [
     fields: ['workflowId']
   },
   {
+    id: 'remove-from-workflow',
+    name: 'Remove From Workflow',
+    description: 'Remove contact from specific workflow',
+    icon: Workflow,
+    category: 'Workflow Management',
+    fields: ['workflowId']
+  },
+  {
     id: 'remove_from_all_workflows',
+    name: 'Remove From All Workflows',
+    description: 'Remove contact from all active workflows',
+    icon: Users,
+    category: 'Workflow Management',
+    fields: ['excludeCurrentWorkflow']
+  },
+  {
+    id: 'remove-from-all-workflows',
     name: 'Remove From All Workflows',
     description: 'Remove contact from all active workflows',
     icon: Users,
@@ -157,6 +279,14 @@ const actionTypes = [
   },
   {
     id: 'set_event_date',
+    name: 'Set Event Start Date',
+    description: 'Set an event start date for contact',
+    icon: Calendar,
+    category: 'Scheduling',
+    fields: ['eventType', 'eventDate', 'reminder']
+  },
+  {
+    id: 'set-event-date',
     name: 'Set Event Start Date',
     description: 'Set an event start date for contact',
     icon: Calendar,
@@ -188,6 +318,14 @@ const actionTypes = [
     icon: FileText,
     category: 'Task Management',
     fields: ['title', 'description', 'assignedTo', 'priority', 'dueDate']
+  },
+  {
+    id: 'end',
+    name: 'End Workflow',
+    description: 'Stop the workflow execution',
+    icon: Target,
+    category: 'Flow Control',
+    fields: []
   }
 ];
 
@@ -287,14 +425,25 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
       }
     } catch (error) {
       toast.error('Test execution failed');
+      console.error('Test error:', error);
     }
   };
 
   const renderActionSettings = () => {
     const selectedAction = actionTypes.find(a => a.id === selectedType);
-    if (!selectedAction) return null;
+    if (!selectedAction) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+          <p>Select an action type to configure its settings.</p>
+        </div>
+      );
+    }
 
-    switch (selectedType) {
+    // Normalize action type for consistent handling
+    const normalizedType = selectedType.replace(/-/g, '_');
+
+    switch (normalizedType) {
       case 'send_email':
         return (
           <div className="space-y-4">
@@ -327,7 +476,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
               <Label htmlFor="email-message">Message Content *</Label>
               <Textarea
                 id="email-message"
-                placeholder="Email content... Use {{first_name}}, {{last_name}}, {{email}} for personalization"
+                placeholder="Email content... Use variables for personalization"
                 rows={6}
                 value={settings.message || ''}
                 onChange={(e) => setSettings({ ...settings, message: e.target.value })}
@@ -360,7 +509,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
               <Label htmlFor="sms-message">SMS Message *</Label>
               <Textarea
                 id="sms-message"
-                placeholder="SMS content... Use {{first_name}}, {{last_name}} for personalization"
+                placeholder="SMS content... Use variables for personalization"
                 rows={4}
                 maxLength={160}
                 value={settings.message || ''}
@@ -387,7 +536,58 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
           </div>
         );
 
+      case 'send_notification':
+      case 'send_internal_notification':
+      case 'send_review_request':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="notification-message">Message *</Label>
+              <Textarea
+                id="notification-message"
+                placeholder="Notification message"
+                rows={4}
+                value={settings.message || ''}
+                onChange={(e) => setSettings({ ...settings, message: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="recipient-type">Recipient Type</Label>
+              <Select value={settings.recipientType || ''} onValueChange={(value) => setSettings({ ...settings, recipientType: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select recipient type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Team Members</SelectItem>
+                  <SelectItem value="assigned">Assigned User</SelectItem>
+                  <SelectItem value="admin">Administrators</SelectItem>
+                  <SelectItem value="custom">Custom Recipients</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {normalizedType === 'send_review_request' && (
+              <div>
+                <Label htmlFor="platform">Platform</Label>
+                <Select value={settings.platform || ''} onValueChange={(value) => setSettings({ ...settings, platform: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="google">Google Reviews</SelectItem>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="yelp">Yelp</SelectItem>
+                    <SelectItem value="custom">Custom Platform</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        );
+
       case 'add_tag':
+      case 'add_contact_tag':
         return (
           <div className="space-y-4">
             <div>
@@ -418,6 +618,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
         );
 
       case 'remove_tag':
+      case 'remove_contact_tag':
         return (
           <div className="space-y-4">
             <div>
@@ -433,10 +634,11 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
         );
 
       case 'assign_user':
+      case 'remove_assigned_user':
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="assign-user">Assign To *</Label>
+              <Label htmlFor="assign-user">{normalizedType === 'assign_user' ? 'Assign To' : 'Remove User'} *</Label>
               <Select value={settings.userId || ''} onValueChange={(value) => setSettings({ ...settings, userId: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select team member" />
@@ -449,13 +651,77 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="notify-user"
-                checked={settings.notifyUser || false}
-                onCheckedChange={(checked) => setSettings({ ...settings, notifyUser: checked })}
+            {normalizedType === 'assign_user' && (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="notify-user"
+                  checked={settings.notifyUser || false}
+                  onCheckedChange={(checked) => setSettings({ ...settings, notifyUser: checked })}
+                />
+                <Label htmlFor="notify-user">Notify user via email</Label>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'add_notes':
+      case 'add_to_notes':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="note-content">Note Content *</Label>
+              <Textarea
+                id="note-content"
+                placeholder="Enter note content"
+                rows={4}
+                value={settings.noteContent || ''}
+                onChange={(e) => setSettings({ ...settings, noteContent: e.target.value })}
               />
-              <Label htmlFor="notify-user">Notify user via email</Label>
+            </div>
+            <div>
+              <Label htmlFor="note-type">Note Type</Label>
+              <Select value={settings.noteType || ''} onValueChange={(value) => setSettings({ ...settings, noteType: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select note type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General Note</SelectItem>
+                  <SelectItem value="call">Call Note</SelectItem>
+                  <SelectItem value="meeting">Meeting Note</SelectItem>
+                  <SelectItem value="task">Task Note</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'set_dnd':
+      case 'set_contact_dnd':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="dnd-type">DND Type *</Label>
+              <Select value={settings.dndType || ''} onValueChange={(value) => setSettings({ ...settings, dndType: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select DND type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Communications</SelectItem>
+                  <SelectItem value="calls">Calls Only</SelectItem>
+                  <SelectItem value="sms">SMS Only</SelectItem>
+                  <SelectItem value="emails">Emails Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="dnd-duration">Duration</Label>
+              <Input
+                id="dnd-duration"
+                placeholder="Duration in hours (0 for permanent)"
+                type="number"
+                value={settings.duration || ''}
+                onChange={(e) => setSettings({ ...settings, duration: parseInt(e.target.value) || 0 })}
+              />
             </div>
           </div>
         );
@@ -515,6 +781,183 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
           </div>
         );
 
+      case 'remove_opportunity':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="opp-id">Opportunity ID</Label>
+              <Input
+                id="opp-id"
+                placeholder="Enter opportunity ID (leave blank to remove all)"
+                value={settings.opportunityId || ''}
+                onChange={(e) => setSettings({ ...settings, opportunityId: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="remove-reason">Reason</Label>
+              <Textarea
+                id="remove-reason"
+                placeholder="Reason for removing opportunity"
+                rows={3}
+                value={settings.reason || ''}
+                onChange={(e) => setSettings({ ...settings, reason: e.target.value })}
+              />
+            </div>
+          </div>
+        );
+
+      case 'add_to_workflow':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="workflow-id">Target Workflow *</Label>
+              <Select value={settings.workflowId || ''} onValueChange={(value) => setSettings({ ...settings, workflowId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select workflow" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="workflow1">Follow-up Sequence</SelectItem>
+                  <SelectItem value="workflow2">Nurture Campaign</SelectItem>
+                  <SelectItem value="workflow3">Onboarding Flow</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="start-immediately"
+                checked={settings.startImmediately || false}
+                onCheckedChange={(checked) => setSettings({ ...settings, startImmediately: checked })}
+              />
+              <Label htmlFor="start-immediately">Start immediately</Label>
+            </div>
+          </div>
+        );
+
+      case 'remove_from_workflow':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="workflow-id">Workflow to Remove From *</Label>
+              <Select value={settings.workflowId || ''} onValueChange={(value) => setSettings({ ...settings, workflowId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select workflow" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="workflow1">Follow-up Sequence</SelectItem>
+                  <SelectItem value="workflow2">Nurture Campaign</SelectItem>
+                  <SelectItem value="workflow3">Onboarding Flow</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'remove_from_all_workflows':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="exclude-current"
+                checked={settings.excludeCurrentWorkflow || false}
+                onCheckedChange={(checked) => setSettings({ ...settings, excludeCurrentWorkflow: checked })}
+              />
+              <Label htmlFor="exclude-current">Exclude current workflow</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This will remove the contact from all active workflows {settings.excludeCurrentWorkflow ? 'except the current one' : 'including the current one'}.
+            </p>
+          </div>
+        );
+
+      case 'schedule_appointment':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="appointment-type">Appointment Type *</Label>
+              <Select value={settings.appointmentType || ''} onValueChange={(value) => setSettings({ ...settings, appointmentType: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select appointment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="demo">Demo Call</SelectItem>
+                  <SelectItem value="follow-up">Follow-up Meeting</SelectItem>
+                  <SelectItem value="onboarding">Onboarding Session</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="duration">Duration (minutes)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  placeholder="30"
+                  value={settings.duration || ''}
+                  onChange={(e) => setSettings({ ...settings, duration: parseInt(e.target.value) || 30 })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="date-time">Date & Time</Label>
+                <Input
+                  id="date-time"
+                  type="datetime-local"
+                  value={settings.dateTime || ''}
+                  onChange={(e) => setSettings({ ...settings, dateTime: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="appointment-notes">Notes</Label>
+              <Textarea
+                id="appointment-notes"
+                placeholder="Appointment notes"
+                rows={3}
+                value={settings.notes || ''}
+                onChange={(e) => setSettings({ ...settings, notes: e.target.value })}
+              />
+            </div>
+          </div>
+        );
+
+      case 'set_event_date':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="event-type">Event Type *</Label>
+              <Select value={settings.eventType || ''} onValueChange={(value) => setSettings({ ...settings, eventType: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select event type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="birthday">Birthday</SelectItem>
+                  <SelectItem value="anniversary">Anniversary</SelectItem>
+                  <SelectItem value="contract-renewal">Contract Renewal</SelectItem>
+                  <SelectItem value="follow-up">Follow-up Date</SelectItem>
+                  <SelectItem value="custom">Custom Event</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="event-date">Event Date *</Label>
+              <Input
+                id="event-date"
+                type="date"
+                value={settings.eventDate || ''}
+                onChange={(e) => setSettings({ ...settings, eventDate: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="set-reminder"
+                checked={settings.reminder || false}
+                onCheckedChange={(checked) => setSettings({ ...settings, reminder: checked })}
+              />
+              <Label htmlFor="set-reminder">Set reminder</Label>
+            </div>
+          </div>
+        );
+
       case 'create_task':
         return (
           <div className="space-y-4">
@@ -565,6 +1008,15 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label htmlFor="due-date">Due Date</Label>
+              <Input
+                id="due-date"
+                type="date"
+                value={settings.dueDate || ''}
+                onChange={(e) => setSettings({ ...settings, dueDate: e.target.value })}
+              />
             </div>
           </div>
         );
@@ -619,6 +1071,9 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                   <SelectItem value="tags">Tags</SelectItem>
                   <SelectItem value="source">Source</SelectItem>
                   <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="company">Company</SelectItem>
+                  <SelectItem value="city">City</SelectItem>
+                  <SelectItem value="state">State</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -635,6 +1090,8 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                   <SelectItem value="not_contains">Does Not Contain</SelectItem>
                   <SelectItem value="exists">Exists</SelectItem>
                   <SelectItem value="not_exists">Does Not Exist</SelectItem>
+                  <SelectItem value="greater_than">Greater Than</SelectItem>
+                  <SelectItem value="less_than">Less Than</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -650,11 +1107,23 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
           </div>
         );
 
+      case 'end':
+        return (
+          <div className="text-center py-8">
+            <Target className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-lg font-medium mb-2">End Workflow</p>
+            <p className="text-sm text-muted-foreground">
+              This action will stop the workflow execution. No additional configuration is required.
+            </p>
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-8 text-muted-foreground">
             <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-            <p>Select an action type to configure its settings.</p>
+            <p>Configuration for "{selectedAction.name}" is not yet implemented.</p>
+            <p className="text-xs mt-2">Action type: {selectedType}</p>
           </div>
         );
     }
@@ -664,7 +1133,10 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
     if (!acc[action.category]) {
       acc[action.category] = [];
     }
-    acc[action.category].push(action);
+    // Avoid duplicates
+    if (!acc[action.category].find(a => a.id === action.id)) {
+      acc[action.category].push(action);
+    }
     return acc;
   }, {} as Record<string, typeof actionTypes>);
 
@@ -806,6 +1278,7 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
                     <p><strong>Contact:</strong> John Doe (john.doe@example.com)</p>
                     <p><strong>Phone:</strong> +1 (555) 123-4567</p>
                     <p><strong>Tags:</strong> prospect, interested</p>
+                    <p><strong>Company:</strong> Acme Corp</p>
                   </div>
                 </div>
                 

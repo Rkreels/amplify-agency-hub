@@ -1,426 +1,524 @@
 
-import { useWorkflowStore, WorkflowNode, WorkflowConnection, WorkflowExecution } from '@/store/useWorkflowStore';
+import { useEffect } from 'react';
+import { useWorkflowStore, WorkflowExecution, ActionConfig } from '@/store/useWorkflowStore';
 import { toast } from 'sonner';
 
-export class WorkflowExecutionEngine {
-  private static instance: WorkflowExecutionEngine;
-  
-  public static getInstance(): WorkflowExecutionEngine {
-    if (!WorkflowExecutionEngine.instance) {
-      WorkflowExecutionEngine.instance = new WorkflowExecutionEngine();
-    }
-    return WorkflowExecutionEngine.instance;
-  }
+export function WorkflowExecutionEngine() {
+  const { currentWorkflow, executionLogs } = useWorkflowStore();
 
-  async executeWorkflow(
-    nodes: WorkflowNode[],
-    connections: WorkflowConnection[],
-    contactData: any,
-    executionId: string
-  ): Promise<{ success: boolean; logs: any[] }> {
-    const logs: any[] = [];
-    
+  useEffect(() => {
+    console.log('WorkflowExecutionEngine initialized');
+  }, []);
+
+  // Comprehensive action execution handler
+  const executeAction = async (actionConfig: ActionConfig, contactData: any): Promise<{ success: boolean; message: string; data?: any }> => {
     try {
-      console.log('Starting workflow execution:', { executionId, contactData });
-      
-      // Find trigger node
-      const triggerNode = nodes.find(node => node.type === 'trigger');
-      if (!triggerNode) {
-        throw new Error('No trigger node found in workflow');
+      console.log(`Executing action: ${actionConfig.type}`, { actionConfig, contactData });
+
+      // Normalize action type for consistent handling
+      const actionType = actionConfig.type.replace(/-/g, '_');
+
+      switch (actionType) {
+        // Communication Actions
+        case 'send_email':
+          return await executeSendEmail(actionConfig, contactData);
+        
+        case 'send_sms':
+          return await executeSendSMS(actionConfig, contactData);
+        
+        case 'send_notification':
+        case 'send_internal_notification':
+          return await executeSendNotification(actionConfig, contactData);
+        
+        case 'send_review_request':
+          return await executeSendReviewRequest(actionConfig, contactData);
+
+        // Contact Management Actions
+        case 'add_tag':
+        case 'add_contact_tag':
+          return await executeAddTag(actionConfig, contactData);
+        
+        case 'remove_tag':
+        case 'remove_contact_tag':
+          return await executeRemoveTag(actionConfig, contactData);
+        
+        case 'assign_user':
+          return await executeAssignUser(actionConfig, contactData);
+        
+        case 'remove_assigned_user':
+          return await executeRemoveAssignedUser(actionConfig, contactData);
+        
+        case 'add_notes':
+        case 'add_to_notes':
+          return await executeAddNotes(actionConfig, contactData);
+        
+        case 'set_dnd':
+        case 'set_contact_dnd':
+          return await executeSetDND(actionConfig, contactData);
+
+        // Sales & Opportunities Actions
+        case 'create_opportunity':
+          return await executeCreateOpportunity(actionConfig, contactData);
+        
+        case 'remove_opportunity':
+          return await executeRemoveOpportunity(actionConfig, contactData);
+
+        // Workflow Management Actions
+        case 'add_to_workflow':
+          return await executeAddToWorkflow(actionConfig, contactData);
+        
+        case 'remove_from_workflow':
+          return await executeRemoveFromWorkflow(actionConfig, contactData);
+        
+        case 'remove_from_all_workflows':
+          return await executeRemoveFromAllWorkflows(actionConfig, contactData);
+
+        // Scheduling Actions
+        case 'schedule_appointment':
+          return await executeScheduleAppointment(actionConfig, contactData);
+        
+        case 'set_event_date':
+          return await executeSetEventDate(actionConfig, contactData);
+
+        // Task Management Actions
+        case 'create_task':
+          return await executeCreateTask(actionConfig, contactData);
+
+        // Flow Control Actions
+        case 'wait':
+          return await executeWait(actionConfig, contactData);
+        
+        case 'condition':
+          return await executeCondition(actionConfig, contactData);
+        
+        case 'end':
+          return await executeEnd(actionConfig, contactData);
+
+        default:
+          console.warn(`Unknown action type: ${actionConfig.type}`);
+          return {
+            success: false,
+            message: `Unknown action type: ${actionConfig.type}`
+          };
       }
-
-      logs.push({
-        nodeId: triggerNode.id,
-        action: 'trigger_activated',
-        timestamp: new Date(),
-        result: 'success',
-        message: 'Workflow triggered successfully',
-        data: { contactData }
-      });
-
-      // Execute workflow from trigger
-      await this.executeFromNode(triggerNode, nodes, connections, contactData, logs);
-      
-      return { success: true, logs };
-    } catch (error: any) {
-      console.error('Workflow execution failed:', error);
-      
-      logs.push({
-        nodeId: 'system',
-        action: 'execution_error',
-        timestamp: new Date(),
-        result: 'failure',
-        message: error.message,
-        data: { error: error.stack }
-      });
-      
-      return { success: false, logs };
+    } catch (error) {
+      console.error(`Error executing action ${actionConfig.type}:`, error);
+      return {
+        success: false,
+        message: `Failed to execute ${actionConfig.type}: ${error.message}`
+      };
     }
-  }
+  };
 
-  private async executeFromNode(
-    node: WorkflowNode,
-    nodes: WorkflowNode[],
-    connections: WorkflowConnection[],
-    contactData: any,
-    logs: any[]
-  ): Promise<void> {
-    console.log(`Executing node: ${node.id} (${node.type})`);
+  // Communication Action Implementations
+  const executeSendEmail = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
     
-    // Execute current node
-    const result = await this.executeNode(node, contactData);
-    
-    logs.push({
-      nodeId: node.id,
-      action: node.type,
-      timestamp: new Date(),
-      result: result.success ? 'success' : 'failure',
-      message: result.message,
-      data: result.data || {}
-    });
-
-    if (!result.success) {
-      throw new Error(`Node ${node.id} failed: ${result.message}`);
-    }
-
-    // Find next nodes
-    const nextConnections = connections.filter(conn => conn.source === node.id);
-    
-    for (const connection of nextConnections) {
-      const nextNode = nodes.find(n => n.id === connection.target);
-      if (nextNode) {
-        // Check connection conditions if any
-        if (this.shouldFollowConnection(connection, result.data)) {
-          await this.executeFromNode(nextNode, nodes, connections, contactData, logs);
-        }
-      }
-    }
-  }
-
-  private async executeNode(node: WorkflowNode, contactData: any): Promise<{ success: boolean; message: string; data?: any }> {
-    const config = node.data.config as any;
-    
-    switch (node.type) {
-      case 'trigger':
-        return this.executeTrigger(node, contactData);
-      case 'action':
-        return this.executeAction(node, contactData);
-      case 'condition':
-        return this.executeCondition(node, contactData);
-      case 'wait':
-        return this.executeWait(node);
-      default:
-        console.log(`Executing generic node: ${node.type}`);
-        return { success: true, message: `Node ${node.type} executed successfully` };
-    }
-  }
-
-  private async executeTrigger(node: WorkflowNode, contactData: any): Promise<{ success: boolean; message: string; data?: any }> {
-    const config = node.data.config as any;
-    
-    console.log('Executing trigger:', config);
-    
-    // Simulate trigger validation
-    if (config?.conditions) {
-      const meetsConditions = this.evaluateConditions(config.conditions, contactData);
-      if (!meetsConditions) {
-        return { success: false, message: 'Contact does not meet trigger conditions' };
-      }
-    }
-    
-    return { success: true, message: 'Trigger activated successfully', data: contactData };
-  }
-
-  private async executeAction(node: WorkflowNode, contactData: any): Promise<{ success: boolean; message: string; data?: any }> {
-    const config = node.data.config as any;
-    
-    if (!config?.type) {
-      return { success: false, message: 'Action type not configured' };
-    }
-
-    console.log('Executing action:', config.type, config);
-    
-    switch (config.type) {
-      case 'send_email':
-        return this.sendEmail(config.settings, contactData);
-      case 'send_sms':
-        return this.sendSMS(config.settings, contactData);
-      case 'send_notification':
-        return this.sendNotification(config.settings, contactData);
-      case 'add_tag':
-        return this.addTag(config.settings, contactData);
-      case 'remove_tag':
-        return this.removeTag(config.settings, contactData);
-      case 'assign_user':
-        return this.assignUser(config.settings, contactData);
-      case 'add_notes':
-        return this.addNotes(config.settings, contactData);
-      case 'set_dnd':
-        return this.setDND(config.settings, contactData);
-      case 'create_opportunity':
-        return this.createOpportunity(config.settings, contactData);
-      case 'remove_opportunity':
-        return this.removeOpportunity(config.settings, contactData);
-      case 'add_to_workflow':
-        return this.addToWorkflow(config.settings, contactData);
-      case 'remove_from_workflow':
-        return this.removeFromWorkflow(config.settings, contactData);
-      case 'remove_from_all_workflows':
-        return this.removeFromAllWorkflows(config.settings, contactData);
-      case 'schedule_appointment':
-        return this.scheduleAppointment(config.settings, contactData);
-      case 'set_event_date':
-        return this.setEventDate(config.settings, contactData);
-      case 'create_task':
-        return this.createTask(config.settings, contactData);
-      default:
-        return { success: true, message: `Action ${config.type} executed successfully` };
-    }
-  }
-
-  private async executeCondition(node: WorkflowNode, contactData: any): Promise<{ success: boolean; message: string; data?: any }> {
-    const config = node.data.config as any;
-    
-    if (!config?.settings) {
-      return { success: false, message: 'Condition not properly configured' };
-    }
-
-    const { conditionField, operator, value } = config.settings;
-    const result = this.evaluateCondition(conditionField, operator, value, contactData);
-    
-    return { 
-      success: true, 
-      message: `Condition evaluated to ${result}`, 
-      data: { conditionResult: result } 
-    };
-  }
-
-  private async executeWait(node: WorkflowNode): Promise<{ success: boolean; message: string; data?: any }> {
-    const config = node.data.config as any;
-    const delay = config?.delay;
-    
-    if (delay && delay.amount > 0) {
-      const milliseconds = this.convertToMilliseconds(delay.amount, delay.unit);
-      console.log(`Waiting for ${delay.amount} ${delay.unit} (${milliseconds}ms)`);
-      
-      // In a real implementation, this would be handled by a job queue
-      // For demo purposes, we'll simulate with a shorter delay
-      const actualDelay = Math.min(milliseconds, 5000); // Max 5s for demo
-      await new Promise(resolve => setTimeout(resolve, actualDelay));
-    }
-    
-    return { success: true, message: `Wait completed (${delay?.amount || 0} ${delay?.unit || 'seconds'})` };
-  }
-
-  // Communication Actions
-  private async sendEmail(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Sending email:', config);
-    
-    if (!config.subject || !config.message) {
-      return { success: false, message: 'Email subject and message are required' };
-    }
-
-    // Simulate email sending delay
+    // Simulate email sending
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const personalizedMessage = this.replacePlaceholders(config.message, contactData);
-    const personalizedSubject = this.replacePlaceholders(config.subject, contactData);
+    const personalizedSubject = replaceVariables(settings.subject || '', contactData);
+    const personalizedMessage = replaceVariables(settings.message || '', contactData);
     
-    toast.success(`Email sent to ${contactData.email || 'contact'}: ${personalizedSubject}`);
-    return { success: true, message: `Email sent successfully to ${contactData.email}` };
-  }
-
-  private async sendSMS(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Sending SMS:', config);
+    console.log('Sending email:', {
+      to: contactData.email,
+      subject: personalizedSubject,
+      message: personalizedMessage,
+      template: settings.templateId,
+      from: settings.fromEmail
+    });
     
-    if (!config.message) {
-      return { success: false, message: 'SMS message is required' };
-    }
+    return {
+      success: true,
+      message: `Email sent to ${contactData.email}`,
+      data: { emailId: `email_${Date.now()}` }
+    };
+  };
 
+  const executeSendSMS = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const personalizedMessage = replaceVariables(settings.message || '', contactData);
+    
+    console.log('Sending SMS:', {
+      to: contactData.phone,
+      message: personalizedMessage,
+      from: settings.fromNumber
+    });
+    
+    return {
+      success: true,
+      message: `SMS sent to ${contactData.phone}`,
+      data: { smsId: `sms_${Date.now()}` }
+    };
+  };
+
+  const executeSendNotification = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    const personalizedMessage = this.replacePlaceholders(config.message, contactData);
-    
-    toast.success(`SMS sent to ${contactData.phone || 'contact'}`);
-    return { success: true, message: `SMS sent successfully to ${contactData.phone}` };
-  }
-
-  private async sendNotification(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Sending notification:', config);
-    
-    toast.info(`Internal notification: ${config.message}`);
-    return { success: true, message: 'Internal notification sent successfully' };
-  }
-
-  // Contact Management Actions
-  private async addTag(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Adding tag:', config.tagName);
-    
-    if (!config.tagName) {
-      return { success: false, message: 'Tag name is required' };
-    }
-    
-    toast.success(`Tag "${config.tagName}" added to ${contactData.firstName || 'contact'}`);
-    return { success: true, message: `Tag "${config.tagName}" added successfully` };
-  }
-
-  private async removeTag(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Removing tag:', config.tagName);
-    
-    if (!config.tagName) {
-      return { success: false, message: 'Tag name is required' };
-    }
-    
-    toast.success(`Tag "${config.tagName}" removed from ${contactData.firstName || 'contact'}`);
-    return { success: true, message: `Tag "${config.tagName}" removed successfully` };
-  }
-
-  private async assignUser(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Assigning user:', config);
-    
-    if (!config.userId) {
-      return { success: false, message: 'User ID is required' };
-    }
-    
-    toast.success(`Contact assigned to user ${config.userId}`);
-    return { success: true, message: `Contact assigned successfully` };
-  }
-
-  private async addNotes(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Adding notes:', config);
-    
-    toast.success(`Notes added to ${contactData.firstName || 'contact'}`);
-    return { success: true, message: 'Notes added successfully' };
-  }
-
-  private async setDND(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Setting DND:', config);
-    
-    toast.success(`DND status updated for ${contactData.firstName || 'contact'}`);
-    return { success: true, message: 'DND status updated successfully' };
-  }
-
-  // Sales & Opportunities Actions
-  private async createOpportunity(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Creating opportunity:', config);
-    
-    if (!config.title) {
-      return { success: false, message: 'Opportunity title is required' };
-    }
-    
-    toast.success(`Opportunity "${config.title}" created for ${contactData.firstName || 'contact'}`);
-    return { success: true, message: `Opportunity "${config.title}" created successfully` };
-  }
-
-  private async removeOpportunity(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Removing opportunity:', config);
-    
-    toast.success(`Opportunity removed from ${contactData.firstName || 'contact'}`);
-    return { success: true, message: 'Opportunity removed successfully' };
-  }
-
-  // Workflow Management Actions
-  private async addToWorkflow(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Adding to workflow:', config);
-    
-    toast.success(`Contact added to workflow ${config.workflowId}`);
-    return { success: true, message: 'Contact added to workflow successfully' };
-  }
-
-  private async removeFromWorkflow(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Removing from workflow:', config);
-    
-    toast.success(`Contact removed from workflow ${config.workflowId}`);
-    return { success: true, message: 'Contact removed from workflow successfully' };
-  }
-
-  private async removeFromAllWorkflows(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Removing from all workflows:', config);
-    
-    toast.success(`Contact removed from all workflows`);
-    return { success: true, message: 'Contact removed from all workflows successfully' };
-  }
-
-  // Scheduling Actions
-  private async scheduleAppointment(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Scheduling appointment:', config);
-    
-    toast.success(`Appointment scheduled for ${contactData.firstName || 'contact'}`);
-    return { success: true, message: 'Appointment scheduled successfully' };
-  }
-
-  private async setEventDate(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Setting event date:', config);
-    
-    toast.success(`Event date set for ${contactData.firstName || 'contact'}`);
-    return { success: true, message: 'Event date set successfully' };
-  }
-
-  private async createTask(config: any, contactData: any): Promise<{ success: boolean; message: string }> {
-    console.log('Creating task:', config);
-    
-    if (!config.title) {
-      return { success: false, message: 'Task title is required' };
-    }
-    
-    toast.success(`Task "${config.title}" created`);
-    return { success: true, message: `Task "${config.title}" created successfully` };
-  }
-
-  // Utility methods
-  private shouldFollowConnection(connection: WorkflowConnection, nodeData: any): boolean {
-    if (connection.type === 'condition' && nodeData?.conditionResult !== undefined) {
-      // For condition connections, check if the result matches the expected path
-      return connection.sourceHandle === (nodeData.conditionResult ? 'true' : 'false');
-    }
-    
-    return true; // Default to following the connection
-  }
-
-  private evaluateConditions(conditions: any, contactData: any): boolean {
-    if (!conditions) return true;
-    
-    // Simple condition evaluation - can be enhanced for complex logic
-    for (const [field, expectedValue] of Object.entries(conditions)) {
-      const actualValue = contactData[field];
-      if (actualValue !== expectedValue) {
-        return false;
-      }
-    }
-    
-    return true;
-  }
-
-  private evaluateCondition(field: string, operator: string, value: any, contactData: any): boolean {
-    const fieldValue = contactData[field];
-    
-    switch (operator) {
-      case 'equals':
-        return fieldValue === value;
-      case 'not_equals':
-        return fieldValue !== value;
-      case 'contains':
-        return typeof fieldValue === 'string' && fieldValue.includes(value);
-      case 'not_contains':
-        return typeof fieldValue === 'string' && !fieldValue.includes(value);
-      case 'exists':
-        return fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
-      case 'not_exists':
-        return fieldValue === undefined || fieldValue === null || fieldValue === '';
-      default:
-        return true;
-    }
-  }
-
-  private replacePlaceholders(text: string, contactData: any): string {
-    if (!text) return '';
-    
-    return text.replace(/\{\{(\w+)\}\}/g, (match, field) => {
-      return contactData[field] || match;
+    console.log('Sending notification:', {
+      message: settings.message,
+      recipientType: settings.recipientType,
+      recipients: settings.recipients
     });
-  }
+    
+    return {
+      success: true,
+      message: `Notification sent to ${settings.recipientType || 'team'}`,
+      data: { notificationId: `notif_${Date.now()}` }
+    };
+  };
 
-  private convertToMilliseconds(amount: number, unit: string): number {
+  const executeSendReviewRequest = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    console.log('Sending review request:', {
+      platform: settings.platform,
+      message: settings.message,
+      contact: contactData.email
+    });
+    
+    return {
+      success: true,
+      message: `Review request sent via ${settings.platform || 'default platform'}`,
+      data: { requestId: `review_${Date.now()}` }
+    };
+  };
+
+  // Contact Management Action Implementations
+  const executeAddTag = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    console.log('Adding tag:', {
+      contactId: contactData.id,
+      tagName: settings.tagName,
+      tagColor: settings.tagColor
+    });
+    
+    return {
+      success: true,
+      message: `Tag "${settings.tagName}" added to contact`,
+      data: { tagId: `tag_${Date.now()}` }
+    };
+  };
+
+  const executeRemoveTag = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    console.log('Removing tag:', {
+      contactId: contactData.id,
+      tagName: settings.tagName
+    });
+    
+    return {
+      success: true,
+      message: `Tag "${settings.tagName}" removed from contact`
+    };
+  };
+
+  const executeAssignUser = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    console.log('Assigning user:', {
+      contactId: contactData.id,
+      userId: settings.userId,
+      notifyUser: settings.notifyUser
+    });
+    
+    return {
+      success: true,
+      message: `Contact assigned to user ${settings.userId}`,
+      data: { assignmentId: `assign_${Date.now()}` }
+    };
+  };
+
+  const executeRemoveAssignedUser = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    console.log('Removing assigned user:', {
+      contactId: contactData.id,
+      userId: settings.userId
+    });
+    
+    return {
+      success: true,
+      message: `User assignment removed from contact`
+    };
+  };
+
+  const executeAddNotes = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log('Adding notes:', {
+      contactId: contactData.id,
+      noteContent: settings.noteContent,
+      noteType: settings.noteType
+    });
+    
+    return {
+      success: true,
+      message: `Note added to contact record`,
+      data: { noteId: `note_${Date.now()}` }
+    };
+  };
+
+  const executeSetDND = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    console.log('Setting DND:', {
+      contactId: contactData.id,
+      dndType: settings.dndType,
+      duration: settings.duration
+    });
+    
+    return {
+      success: true,
+      message: `DND set for ${settings.dndType} communications`,
+      data: { dndId: `dnd_${Date.now()}` }
+    };
+  };
+
+  // Sales & Opportunities Action Implementations
+  const executeCreateOpportunity = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    console.log('Creating opportunity:', {
+      contactId: contactData.id,
+      title: settings.title,
+      value: settings.value,
+      stage: settings.stage,
+      probability: settings.probability
+    });
+    
+    return {
+      success: true,
+      message: `Opportunity "${settings.title}" created`,
+      data: { opportunityId: `opp_${Date.now()}` }
+    };
+  };
+
+  const executeRemoveOpportunity = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    console.log('Removing opportunity:', {
+      contactId: contactData.id,
+      opportunityId: settings.opportunityId,
+      reason: settings.reason
+    });
+    
+    return {
+      success: true,
+      message: `Opportunity removed from contact`
+    };
+  };
+
+  // Workflow Management Action Implementations
+  const executeAddToWorkflow = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 700));
+    
+    console.log('Adding to workflow:', {
+      contactId: contactData.id,
+      workflowId: settings.workflowId,
+      startImmediately: settings.startImmediately
+    });
+    
+    return {
+      success: true,
+      message: `Contact added to workflow ${settings.workflowId}`,
+      data: { workflowEntryId: `entry_${Date.now()}` }
+    };
+  };
+
+  const executeRemoveFromWorkflow = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log('Removing from workflow:', {
+      contactId: contactData.id,
+      workflowId: settings.workflowId
+    });
+    
+    return {
+      success: true,
+      message: `Contact removed from workflow ${settings.workflowId}`
+    };
+  };
+
+  const executeRemoveFromAllWorkflows = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    console.log('Removing from all workflows:', {
+      contactId: contactData.id,
+      excludeCurrentWorkflow: settings.excludeCurrentWorkflow
+    });
+    
+    return {
+      success: true,
+      message: `Contact removed from all workflows`
+    };
+  };
+
+  // Scheduling Action Implementations
+  const executeScheduleAppointment = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Scheduling appointment:', {
+      contactId: contactData.id,
+      appointmentType: settings.appointmentType,
+      duration: settings.duration,
+      dateTime: settings.dateTime,
+      notes: settings.notes
+    });
+    
+    return {
+      success: true,
+      message: `${settings.appointmentType} appointment scheduled`,
+      data: { appointmentId: `appt_${Date.now()}` }
+    };
+  };
+
+  const executeSetEventDate = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    console.log('Setting event date:', {
+      contactId: contactData.id,
+      eventType: settings.eventType,
+      eventDate: settings.eventDate,
+      reminder: settings.reminder
+    });
+    
+    return {
+      success: true,
+      message: `${settings.eventType} date set for ${settings.eventDate}`,
+      data: { eventId: `event_${Date.now()}` }
+    };
+  };
+
+  // Task Management Action Implementations
+  const executeCreateTask = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    console.log('Creating task:', {
+      title: settings.title,
+      description: settings.description,
+      assignedTo: settings.assignedTo,
+      priority: settings.priority,
+      dueDate: settings.dueDate,
+      contactId: contactData.id
+    });
+    
+    return {
+      success: true,
+      message: `Task "${settings.title}" created`,
+      data: { taskId: `task_${Date.now()}` }
+    };
+  };
+
+  // Flow Control Action Implementations
+  const executeWait = async (actionConfig: ActionConfig, contactData: any) => {
+    const { delay } = actionConfig;
+    
+    if (!delay || delay.amount <= 0) {
+      return {
+        success: true,
+        message: 'No delay specified, continuing immediately'
+      };
+    }
+    
+    const delayMs = convertDelayToMs(delay);
+    console.log(`Waiting ${delay.amount} ${delay.unit} (${delayMs}ms)`);
+    
+    // In real implementation, this would schedule the next action
+    // For demo purposes, we'll just simulate a short delay
+    await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, 2000)));
+    
+    return {
+      success: true,
+      message: `Waited ${delay.amount} ${delay.unit}`,
+      data: { delayMs }
+    };
+  };
+
+  const executeCondition = async (actionConfig: ActionConfig, contactData: any) => {
+    const { settings } = actionConfig;
+    
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    const fieldValue = getContactFieldValue(contactData, settings.conditionField);
+    const conditionResult = evaluateCondition(fieldValue, settings.operator, settings.value);
+    
+    console.log('Evaluating condition:', {
+      field: settings.conditionField,
+      operator: settings.operator,
+      expectedValue: settings.value,
+      actualValue: fieldValue,
+      result: conditionResult
+    });
+    
+    return {
+      success: true,
+      message: `Condition evaluated: ${conditionResult ? 'TRUE' : 'FALSE'}`,
+      data: { conditionResult, fieldValue }
+    };
+  };
+
+  const executeEnd = async (actionConfig: ActionConfig, contactData: any) => {
+    console.log('Ending workflow execution for contact:', contactData.id);
+    
+    return {
+      success: true,
+      message: 'Workflow execution ended'
+    };
+  };
+
+  // Helper Functions
+  const replaceVariables = (text: string, contactData: any): string => {
+    if (!text || typeof text !== 'string') return text;
+    
+    return text
+      .replace(/\{\{first_name\}\}/g, contactData.firstName || '')
+      .replace(/\{\{last_name\}\}/g, contactData.lastName || '')
+      .replace(/\{\{email\}\}/g, contactData.email || '')
+      .replace(/\{\{phone\}\}/g, contactData.phone || '')
+      .replace(/\{\{company\}\}/g, contactData.company || '')
+      .replace(/\{\{full_name\}\}/g, `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim());
+  };
+
+  const convertDelayToMs = (delay: { amount: number; unit: 'minutes' | 'hours' | 'days' }): number => {
+    const { amount, unit } = delay;
     switch (unit) {
       case 'minutes':
         return amount * 60 * 1000;
@@ -429,9 +527,63 @@ export class WorkflowExecutionEngine {
       case 'days':
         return amount * 24 * 60 * 60 * 1000;
       default:
-        return amount * 1000;
+        return 0;
     }
-  }
-}
+  };
 
-export const workflowEngine = WorkflowExecutionEngine.getInstance();
+  const getContactFieldValue = (contactData: any, fieldName: string): any => {
+    switch (fieldName) {
+      case 'email':
+        return contactData.email;
+      case 'phone':
+        return contactData.phone;
+      case 'tags':
+        return contactData.tags || [];
+      case 'source':
+        return contactData.source;
+      case 'status':
+        return contactData.status;
+      case 'company':
+        return contactData.company;
+      case 'city':
+        return contactData.city;
+      case 'state':
+        return contactData.state;
+      default:
+        return contactData[fieldName];
+    }
+  };
+
+  const evaluateCondition = (fieldValue: any, operator: string, expectedValue: any): boolean => {
+    switch (operator) {
+      case 'equals':
+        return fieldValue === expectedValue;
+      case 'not_equals':
+        return fieldValue !== expectedValue;
+      case 'contains':
+        return String(fieldValue).toLowerCase().includes(String(expectedValue).toLowerCase());
+      case 'not_contains':
+        return !String(fieldValue).toLowerCase().includes(String(expectedValue).toLowerCase());
+      case 'exists':
+        return fieldValue !== null && fieldValue !== undefined && fieldValue !== '';
+      case 'not_exists':
+        return fieldValue === null || fieldValue === undefined || fieldValue === '';
+      case 'greater_than':
+        return Number(fieldValue) > Number(expectedValue);
+      case 'less_than':
+        return Number(fieldValue) < Number(expectedValue);
+      default:
+        return false;
+    }
+  };
+
+  // Expose the executeAction function for use by the workflow engine
+  (window as any).workflowExecuteAction = executeAction;
+
+  return (
+    <div className="hidden">
+      {/* This component runs in the background */}
+      <div id="workflow-execution-engine" data-initialized="true" />
+    </div>
+  );
+}
