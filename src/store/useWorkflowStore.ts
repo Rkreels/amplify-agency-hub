@@ -1,5 +1,6 @@
 
 import { create } from 'zustand';
+import { LucideIcon } from 'lucide-react';
 
 export interface TriggerConfig {
   id: string;
@@ -47,7 +48,7 @@ export interface WorkflowNode {
   position: { x: number; y: number };
   data: {
     label: string;
-    icon: any;
+    icon: LucideIcon | React.ComponentType<any>;
     config?: TriggerConfig | ActionConfig | ConditionConfig;
     isConfigured?: boolean;
     handles?: {
@@ -478,7 +479,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
   
   executeWorkflow: async (contactId) => {
-    // Implementation for real workflow execution
     console.log('Executing workflow for contact:', contactId);
   },
   
@@ -549,11 +549,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   
   loadTemplate: (templateId) => {
     console.log('Loading template:', templateId);
-    // Implementation for loading workflow templates
   },
   
   saveAsTemplate: (name) => {
     console.log('Saving as template:', name);
-    // Implementation for saving workflow as template
   }
 }));
