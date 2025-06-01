@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { WorkflowNode, WorkflowConnection, useWorkflowStore } from '@/store/useWorkflowStore';
 import { Card } from '@/components/ui/card';
@@ -44,16 +45,12 @@ export function EnhancedWorkflowBuilder() {
     currentWorkflow,
     selectedNode,
     setSelectedNode,
-    updateNodePosition,
+    updateNode,
     addConnection,
     deleteNode,
     duplicateNode,
     openConfigModal,
-    saveWorkflow,
-    undo,
-    redo,
-    canUndo,
-    canRedo
+    saveWorkflow
   } = useWorkflowStore();
 
   // Canvas state
@@ -92,6 +89,13 @@ export function EnhancedWorkflowBuilder() {
       y: Math.round(position.y / GRID_SIZE) * GRID_SIZE
     };
   }, [snapToGrid]);
+
+  const updateNodePosition = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    const node = currentWorkflow?.nodes.find(n => n.id === nodeId);
+    if (node) {
+      updateNode(nodeId, { ...node, position });
+    }
+  }, [currentWorkflow, updateNode]);
 
   const getNodeConnectionPoint = useCallback((node: WorkflowNode, handle?: string) => {
     const nodeWidth = 200;
@@ -180,8 +184,8 @@ export function EnhancedWorkflowBuilder() {
     const connectionId = `${connecting.sourceId}-${targetId}-${Date.now()}`;
     const newConnection: WorkflowConnection = {
       id: connectionId,
-      sourceId: connecting.sourceId,
-      targetId: targetId,
+      source: connecting.sourceId,
+      target: targetId,
       sourceHandle: connecting.sourceHandle || 'output',
       targetHandle: targetHandle || 'input'
     };
@@ -268,16 +272,6 @@ export function EnhancedWorkflowBuilder() {
     saveWorkflow();
   });
 
-  useHotkeys('cmd+z,ctrl+z', (e) => {
-    e.preventDefault();
-    if (canUndo) undo();
-  });
-
-  useHotkeys('cmd+shift+z,ctrl+shift+z', (e) => {
-    e.preventDefault();
-    if (canRedo) redo();
-  });
-
   // Fit view function
   const fitView = useCallback(() => {
     if (!currentWorkflow?.nodes.length) return;
@@ -310,8 +304,8 @@ export function EnhancedWorkflowBuilder() {
     if (!currentWorkflow) return [];
     
     return currentWorkflow.connections.map(connection => {
-      const sourceNode = currentWorkflow.nodes.find(n => n.id === connection.sourceId);
-      const targetNode = currentWorkflow.nodes.find(n => n.id === connection.targetId);
+      const sourceNode = currentWorkflow.nodes.find(n => n.id === connection.source);
+      const targetNode = currentWorkflow.nodes.find(n => n.id === connection.target);
       
       if (!sourceNode || !targetNode) return null;
       
@@ -435,30 +429,11 @@ export function EnhancedWorkflowBuilder() {
           canvasOffset={canvasOffset}
           zoom={zoom}
           setCanvasOffset={setCanvasOffset}
-          setZoom={setZoom}
         />
       )}
 
       {/* Toolbar */}
       <div className="absolute top-4 left-4 flex space-x-2 z-20">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={undo}
-          disabled={!canUndo}
-          className="bg-white"
-        >
-          <Undo className="h-4 w-4" />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={redo}
-          disabled={!canRedo}
-          className="bg-white"
-        >
-          <Redo className="h-4 w-4" />
-        </Button>
         <Button
           size="sm"
           variant="outline"

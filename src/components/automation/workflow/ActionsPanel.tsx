@@ -4,10 +4,17 @@ import { Button } from '@/components/ui/button';
 import { 
   Zap, 
   GitBranch,
-  Grip
+  Grip,
+  Mail,
+  User,
+  Target,
+  Workflow,
+  Calendar,
+  Settings,
+  ChevronDown
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Workflow } from '@/store/useWorkflowStore';
+import { Workflow as WorkflowType } from '@/store/useWorkflowStore';
 
 interface ActionType {
   id: string;
@@ -23,17 +30,17 @@ interface ActionsPanelProps {
   handleDragStart: (action: ActionType, e: React.DragEvent) => void;
   handleDragEnd: () => void;
   addTrigger: () => void;
-  currentWorkflow: Workflow | null;
+  currentWorkflow: WorkflowType | null;
 }
 
 // Category icons mapping
 const categoryIcons = {
-  communication: 'Mail',
-  contact: 'User',
-  sales: 'Target',
-  automation: 'Workflow',
-  scheduling: 'Calendar',
-  flow: 'GitBranch'
+  communication: Mail,
+  contact: User,
+  sales: Target,
+  automation: Workflow,
+  scheduling: Calendar,
+  flow: GitBranch
 };
 
 // Category display names
@@ -83,7 +90,6 @@ export function ActionsPanel({
               variant="outline" 
               size="sm" 
               className="h-auto flex-col gap-1 p-3 hover:bg-blue-50 hover:border-blue-300"
-              onClick={() => GitBranch}
             >
               <GitBranch className="h-4 w-4 text-blue-500" />
               <span className="text-xs">Add Condition</span>
@@ -124,22 +130,8 @@ export function ActionsPanel({
           </div>
           
           {Object.entries(groupedActions).map(([category, actions]) => {
-            // For each category, import the icon dynamically
-            const CategoryIconName = categoryIcons[category as keyof typeof categoryIcons] || 'Settings';
-            // Get proper display name for the category
+            const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons] || Settings;
             const categoryName = categoryNames[category as keyof typeof categoryNames] || category;
-            
-            // Import the icon component from lucide-react
-            const { Mail, User, Target, Workflow, Calendar, GitBranch, Settings } = require('lucide-react');
-            const CategoryIcon = {
-              'Mail': Mail,
-              'User': User,
-              'Target': Target,
-              'Workflow': Workflow,
-              'Calendar': Calendar,
-              'GitBranch': GitBranch,
-              'Settings': Settings
-            }[CategoryIconName];
             
             return (
               <Collapsible key={category} defaultOpen={category === 'communication'} className="mb-2">
@@ -148,7 +140,7 @@ export function ActionsPanel({
                     <CategoryIcon className="h-4 w-4" />
                     <h4 className="font-medium text-sm">{categoryName}</h4>
                   </div>
-                  <ChevronDownIcon className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-1 mt-2">
                   <div className="grid gap-2">
@@ -187,21 +179,3 @@ export function ActionsPanel({
     </ScrollArea>
   );
 }
-
-// Helper component for the dropdown chevron
-export const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-);
