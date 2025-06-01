@@ -442,7 +442,7 @@ export function AutomationWorkflowBuilder() {
             {sidebarOpen ? (
               <h3 className="font-medium text-gray-700">Actions & Tools</h3>
             ) : (
-              <div className="h-6" /> {/* Empty space to match height */}
+              <div className="h-6" />
             )}
           </div>
           
