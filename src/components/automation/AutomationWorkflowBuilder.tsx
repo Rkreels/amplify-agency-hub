@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,8 @@ import {
   Settings2,
   BarChart3,
   History,
-  Pause
+  Pause,
+  Grip
 } from 'lucide-react';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import { TriggerConfigModal } from './TriggerConfigModal';
@@ -106,11 +106,31 @@ export function AutomationWorkflowBuilder() {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('builder');
+  const [draggedAction, setDraggedAction] = useState<ActionType | null>(null);
 
   const handleDragStart = (action: ActionType, e: React.DragEvent) => {
     try {
+      setDraggedAction(action);
       e.dataTransfer.setData('application/json', JSON.stringify(action));
       e.dataTransfer.effectAllowed = 'copy';
+      
+      // Create a custom drag image
+      const dragImage = document.createElement('div');
+      dragImage.className = 'bg-white border-2 border-blue-400 rounded-lg p-3 shadow-lg';
+      dragImage.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 bg-blue-500 rounded"></div>
+          <span class="font-medium">${action.label}</span>
+        </div>
+      `;
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px';
+      document.body.appendChild(dragImage);
+      
+      e.dataTransfer.setDragImage(dragImage, 75, 25);
+      
+      setTimeout(() => document.body.removeChild(dragImage), 0);
+      
       console.log('Drag started for action:', action.id);
     } catch (error) {
       console.error('Error starting drag:', error);
@@ -118,8 +138,13 @@ export function AutomationWorkflowBuilder() {
     }
   };
 
+  const handleDragEnd = () => {
+    setDraggedAction(null);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDraggedAction(null);
     
     try {
       const actionData = JSON.parse(e.dataTransfer.getData('application/json'));
@@ -129,9 +154,11 @@ export function AutomationWorkflowBuilder() {
         throw new Error('Invalid action data');
       }
 
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      const x = e.clientX - rect.left - 100;
-      const y = e.clientY - rect.top - 25;
+      // Get the canvas element and calculate position
+      const canvasElement = e.currentTarget as HTMLElement;
+      const rect = canvasElement.getBoundingClientRect();
+      const x = Math.max(50, e.clientX - rect.left - 100);
+      const y = Math.max(50, e.clientY - rect.top - 40);
 
       // Determine node type based on action category
       let nodeType = 'action';
@@ -144,7 +171,7 @@ export function AutomationWorkflowBuilder() {
       const newNode = {
         id: `${actionData.id}-${Date.now()}`,
         type: nodeType as 'trigger' | 'condition' | 'action' | 'wait' | 'decision' | 'end',
-        position: { x: Math.max(0, x), y: Math.max(0, y) },
+        position: { x, y },
         data: {
           label: actionData.label,
           icon: actionData.icon,
@@ -179,10 +206,16 @@ export function AutomationWorkflowBuilder() {
 
   const addTrigger = () => {
     try {
+      const existingTriggers = currentWorkflow?.nodes.filter(n => n.type === 'trigger') || [];
+      if (existingTriggers.length > 0) {
+        toast.error('Only one trigger is allowed per workflow');
+        return;
+      }
+
       const newNode = {
         id: `trigger-${Date.now()}`,
         type: 'trigger' as const,
-        position: { x: 500, y: 200 },
+        position: { x: 400, y: 100 },
         data: {
           label: 'New Trigger',
           icon: Zap,
@@ -399,7 +432,7 @@ export function AutomationWorkflowBuilder() {
       </div>
 
       {/* Enhanced Right Sidebar */}
-      <div className={`bg-white border-l transition-all duration-300 ${sidebarOpen ? 'w-80' : 'w-12'}`}>
+      <div className={`bg-white border-l transition-all duration-300 ${sidebarOpen ? 'w-80' : 'w-12'} flex flex-col`}>
         <div className="h-full flex flex-col">
           {/* Collapse/Expand Button */}
           <div className="p-3 border-b">
@@ -431,18 +464,18 @@ export function AutomationWorkflowBuilder() {
                       variant="outline" 
                       size="sm" 
                       onClick={addTrigger}
-                      className="h-auto flex-col gap-1 p-3"
+                      className="h-auto flex-col gap-1 p-3 hover:bg-orange-50 hover:border-orange-300"
                     >
-                      <Zap className="h-4 w-4" />
+                      <Zap className="h-4 w-4 text-orange-500" />
                       <span className="text-xs">Add Trigger</span>
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-auto flex-col gap-1 p-3"
+                      className="h-auto flex-col gap-1 p-3 hover:bg-blue-50 hover:border-blue-300"
                       onClick={() => toast.info('Drag an action from below to the canvas')}
                     >
-                      <GitBranch className="h-4 w-4" />
+                      <GitBranch className="h-4 w-4 text-blue-500" />
                       <span className="text-xs">Add Action</span>
                     </Button>
                   </div>
@@ -453,19 +486,19 @@ export function AutomationWorkflowBuilder() {
                   <div className="space-y-3">
                     <h4 className="font-medium">Workflow Stats</h4>
                     <div className="grid grid-cols-2 gap-2 text-center">
-                      <div className="bg-blue-50 p-2 rounded">
+                      <div className="bg-blue-50 p-2 rounded border">
                         <div className="text-lg font-bold text-blue-600">{currentWorkflow.nodes.length}</div>
                         <div className="text-xs text-blue-600">Nodes</div>
                       </div>
-                      <div className="bg-green-50 p-2 rounded">
+                      <div className="bg-green-50 p-2 rounded border">
                         <div className="text-lg font-bold text-green-600">{currentWorkflow.connections.length}</div>
                         <div className="text-xs text-green-600">Connections</div>
                       </div>
-                      <div className="bg-purple-50 p-2 rounded">
+                      <div className="bg-purple-50 p-2 rounded border">
                         <div className="text-lg font-bold text-purple-600">{currentWorkflow.stats.triggered}</div>
                         <div className="text-xs text-purple-600">Triggered</div>
                       </div>
-                      <div className="bg-orange-50 p-2 rounded">
+                      <div className="bg-orange-50 p-2 rounded border">
                         <div className="text-lg font-bold text-orange-600">{currentWorkflow.stats.completed}</div>
                         <div className="text-xs text-orange-600">Completed</div>
                       </div>
@@ -476,6 +509,9 @@ export function AutomationWorkflowBuilder() {
                 {/* Available Actions */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-lg">Available Actions</h3>
+                  <div className="text-xs text-gray-500 mb-2">
+                    Drag and drop actions to the canvas
+                  </div>
                   
                   {Object.entries(groupedActions).map(([category, actions]) => {
                     const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons];
@@ -498,10 +534,16 @@ export function AutomationWorkflowBuilder() {
                                 key={action.id}
                                 draggable
                                 onDragStart={(e) => handleDragStart(action, e)}
-                                className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-move transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                                onDragEnd={handleDragEnd}
+                                className={`flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-grab active:cursor-grabbing transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm ${
+                                  draggedAction?.id === action.id ? 'opacity-50 scale-95' : ''
+                                }`}
                               >
-                                <div className="bg-gray-700 text-white p-2 rounded mr-3">
-                                  <Icon className="h-4 w-4" />
+                                <div className="flex items-center justify-center mr-3">
+                                  <Grip className="h-3 w-3 text-gray-400 mr-1" />
+                                  <div className="bg-gray-700 text-white p-2 rounded">
+                                    <Icon className="h-4 w-4" />
+                                  </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-sm truncate">{action.label}</div>
