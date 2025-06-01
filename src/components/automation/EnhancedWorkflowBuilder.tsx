@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { WorkflowNode, WorkflowConnection, useWorkflowStore } from '@/store/useWorkflowStore';
 import { Card } from '@/components/ui/card';
@@ -429,6 +428,7 @@ export function EnhancedWorkflowBuilder() {
           canvasOffset={canvasOffset}
           zoom={zoom}
           setCanvasOffset={setCanvasOffset}
+          canvasRef={canvasRef}
         />
       )}
 

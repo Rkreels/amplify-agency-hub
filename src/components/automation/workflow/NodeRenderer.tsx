@@ -3,16 +3,25 @@ import React, { memo } from 'react';
 import { WorkflowNode } from '@/store/useWorkflowStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle, Copy, Trash2 } from 'lucide-react';
+import { 
+  AlertCircle, 
+  CheckCircle, 
+  Copy, 
+  Trash2,
+  Zap, 
+  Mail, 
+  MessageSquare, 
+  Tag, 
+  User, 
+  DollarSign, 
+  Clock, 
+  Filter, 
+  GitBranch, 
+  Settings
+} from 'lucide-react';
 
 // Get icon component for node types
 const getIconComponent = (nodeId: string) => {
-  // Import icons dynamically to avoid a circular dependency
-  const { 
-    Zap, Mail, MessageSquare, Tag, User, 
-    DollarSign, Clock, Filter, GitBranch, Settings
-  } = require('lucide-react');
-  
   const actionType = nodeId.split('-')[0];
   
   switch (actionType) {
