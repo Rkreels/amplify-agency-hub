@@ -203,37 +203,16 @@ export const useSmoothConnection = ({
       const strokeColor = connection.sourceHandle === 'true' ? '#10b981' :
                          connection.sourceHandle === 'false' ? '#ef4444' : '#6b7280';
       
-      return (
-        <g key={connection.id}>
-          <path
-            d={path}
-            stroke={strokeColor}
-            strokeWidth="2"
-            fill="none"
-            className="transition-colors duration-200 hover:stroke-blue-500 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onConnectionDelete(connection.id);
-            }}
-            markerEnd="url(#arrowhead)"
-          />
-          
-          {/* Connection hover area for easier clicking */}
-          <path
-            d={path}
-            stroke="transparent"
-            strokeWidth="10"
-            fill="none"
-            className="cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onConnectionDelete(connection.id);
-            }}
-          />
-        </g>
-      );
-    });
-  }, [connections, getConnectionPoint, calculateSmoothPath, onConnectionDelete]);
+      return {
+        id: connection.id,
+        path,
+        strokeColor,
+        connection,
+        sourcePoint,
+        targetPoint
+      };
+    }).filter(Boolean);
+  }, [connections, getConnectionPoint, calculateSmoothPath]);
 
   return {
     isConnecting,
