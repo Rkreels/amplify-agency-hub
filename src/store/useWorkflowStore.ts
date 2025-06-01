@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { LucideIcon } from 'lucide-react';
 
@@ -117,6 +116,11 @@ interface WorkflowStore {
   deleteNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
   
+  // Advanced node operations
+  moveWorkflowNodes: (updates: Array<{ id: string; position: { x: number; y: number } }>) => void;
+  alignNodes: (nodeIds: string[], alignment: 'horizontal' | 'vertical') => void;
+  distributeNodes: (nodeIds: string[], direction: 'horizontal' | 'vertical') => void;
+  
   // Connection operations
   addConnection: (connection: WorkflowConnection) => void;
   updateConnection: (connectionId: string, updates: Partial<WorkflowConnection>) => void;
@@ -227,6 +231,126 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
   }),
   
+  moveWorkflowNodes: (updates) => set((state) => {
+    if (!state.currentWorkflow) return state;
+    
+    const updatedWorkflow = {
+      ...state.currentWorkflow,
+      nodes: state.currentWorkflow.nodes.map(node => {
+        const update = updates.find(u => u.id === node.id);
+        if (update) {
+          return {
+            ...node,
+            position: update.position
+          };
+        }
+        return node;
+      }),
+      updatedAt: new Date()
+    };
+    
+    return {
+      currentWorkflow: updatedWorkflow,
+      workflows: state.workflows.map(w => 
+        w.id === updatedWorkflow.id ? updatedWorkflow : w
+      )
+    };
+  }),
+  
+  alignNodes: (nodeIds, alignment) => set((state) => {
+    if (!state.currentWorkflow) return state;
+    
+    // Get positions of all selected nodes
+    const selectedNodes = state.currentWorkflow.nodes.filter(n => nodeIds.includes(n.id));
+    if (selectedNodes.length < 2) return state;
+    
+    // Calculate target position
+    let targetValue = 0;
+    if (alignment === 'horizontal') {
+      // Align to the average Y position
+      targetValue = selectedNodes.reduce((sum, node) => sum + node.position.y, 0) / selectedNodes.length;
+    } else {
+      // Align to the average X position
+      targetValue = selectedNodes.reduce((sum, node) => sum + node.position.x, 0) / selectedNodes.length;
+    }
+    
+    const updatedWorkflow = {
+      ...state.currentWorkflow,
+      nodes: state.currentWorkflow.nodes.map(node => {
+        if (nodeIds.includes(node.id)) {
+          return {
+            ...node,
+            position: {
+              ...node.position,
+              ...(alignment === 'horizontal' ? { y: targetValue } : { x: targetValue })
+            }
+          };
+        }
+        return node;
+      }),
+      updatedAt: new Date()
+    };
+    
+    return {
+      currentWorkflow: updatedWorkflow,
+      workflows: state.workflows.map(w => 
+        w.id === updatedWorkflow.id ? updatedWorkflow : w
+      )
+    };
+  }),
+  
+  distributeNodes: (nodeIds, direction) => set((state) => {
+    if (!state.currentWorkflow) return state;
+    
+    // Get positions of all selected nodes
+    const selectedNodes = state.currentWorkflow.nodes.filter(n => nodeIds.includes(n.id));
+    if (selectedNodes.length < 3) return state; // Need at least 3 nodes to distribute
+    
+    // Sort nodes by position
+    selectedNodes.sort((a, b) => {
+      return direction === 'horizontal' 
+        ? a.position.x - b.position.x 
+        : a.position.y - b.position.y;
+    });
+    
+    // Find start and end positions
+    const firstNode = selectedNodes[0];
+    const lastNode = selectedNodes[selectedNodes.length - 1];
+    
+    const startPos = direction === 'horizontal' ? firstNode.position.x : firstNode.position.y;
+    const endPos = direction === 'horizontal' ? lastNode.position.x : lastNode.position.y;
+    const totalSpace = endPos - startPos;
+    
+    // Calculate spacing
+    const spacing = totalSpace / (selectedNodes.length - 1);
+    
+    const updatedWorkflow = {
+      ...state.currentWorkflow,
+      nodes: state.currentWorkflow.nodes.map(node => {
+        const index = selectedNodes.findIndex(n => n.id === node.id);
+        if (index !== -1) {
+          const targetPos = startPos + (spacing * index);
+          return {
+            ...node,
+            position: {
+              ...node.position,
+              ...(direction === 'horizontal' ? { x: targetPos } : { y: targetPos })
+            }
+          };
+        }
+        return node;
+      }),
+      updatedAt: new Date()
+    };
+    
+    return {
+      currentWorkflow: updatedWorkflow,
+      workflows: state.workflows.map(w => 
+        w.id === updatedWorkflow.id ? updatedWorkflow : w
+      )
+    };
+  }),
+  
   deleteNode: (nodeId) => set((state) => {
     if (!state.currentWorkflow) return state;
     
@@ -256,7 +380,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     
     const duplicatedNode = {
       ...node,
-      id: `${node.id}-copy-${Date.now()}`,
+      id: `${node.id.split('-')[0]}-${Date.now()}`,
       position: {
         x: node.position.x + 50,
         y: node.position.y + 50
@@ -286,7 +410,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     
     // Check if connection already exists
     const exists = state.currentWorkflow.connections.some(
-      conn => conn.source === connection.source && conn.target === connection.target
+      conn => conn.source === connection.source && conn.target === connection.target && conn.sourceHandle === connection.sourceHandle
     );
     
     if (exists) return state;
@@ -339,7 +463,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       currentWorkflow: updatedWorkflow,
       workflows: state.workflows.map(w => 
         w.id === updatedWorkflow.id ? updatedWorkflow : w
-      )
+      ),
+      selectedConnection: state.selectedConnection === connectionId ? null : state.selectedConnection
     };
   }),
   
@@ -347,17 +472,32 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const state = get();
     if (!state.currentWorkflow) return false;
     
-    // Check for cycles
+    // Don't allow self-connections
+    if (sourceId === targetId) return false;
+    
+    // Check for cycles using DFS
     const visited = new Set<string>();
-    const checkCycle = (nodeId: string): boolean => {
-      if (visited.has(nodeId)) return true;
-      visited.add(nodeId);
+    const stack = new Set<string>();
+    
+    const hasCycle = (nodeId: string): boolean => {
+      if (nodeId === sourceId) return true; // Would create a cycle
+      if (stack.has(nodeId)) return true;
+      if (visited.has(nodeId)) return false;
       
-      const connections = state.currentWorkflow!.connections.filter(c => c.source === nodeId);
-      return connections.some(c => checkCycle(c.target));
+      visited.add(nodeId);
+      stack.add(nodeId);
+      
+      const outgoingConnections = state.currentWorkflow!.connections.filter(c => c.source === nodeId);
+      for (const conn of outgoingConnections) {
+        if (hasCycle(conn.target)) return true;
+      }
+      
+      stack.delete(nodeId);
+      return false;
     };
     
-    return !checkCycle(targetId);
+    // If adding this connection would create a cycle
+    return !hasCycle(targetId);
   },
   
   saveWorkflow: () => set((state) => {
@@ -452,11 +592,17 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       const execution: WorkflowExecution = {
         id: `test-${Date.now()}`,
         workflowId: state.currentWorkflow.id,
-        contactId: 'test-contact',
+        contactId: contactData.id || 'test-contact',
         status: 'running',
-        currentNode: state.currentWorkflow.nodes[0]?.id || '',
+        currentNode: state.currentWorkflow.nodes.find(n => n.type === 'trigger')?.id || '',
         startedAt: new Date(),
-        logs: []
+        logs: [{
+          nodeId: 'system',
+          action: 'start',
+          timestamp: new Date(),
+          result: 'success',
+          message: 'Workflow execution started with test data'
+        }]
       };
       
       // Add execution to logs
@@ -464,11 +610,132 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         executionLogs: [execution, ...state.executionLogs.slice(0, 99)]
       }));
       
-      // Simulate execution delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate execution of each node in sequence
+      const nodes = state.currentWorkflow.nodes;
+      const connections = state.currentWorkflow.connections;
       
+      // Find trigger node
+      const triggerNode = nodes.find(n => n.type === 'trigger');
+      if (!triggerNode) throw new Error('No trigger node found');
+      
+      // Simulate execution delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Add log for trigger execution
+      execution.logs.push({
+        nodeId: triggerNode.id,
+        action: 'execute',
+        timestamp: new Date(),
+        result: 'success',
+        message: 'Trigger conditions matched'
+      });
+      
+      // Update execution logs
+      set((state) => ({
+        executionLogs: state.executionLogs.map(log => 
+          log.id === execution.id ? execution : log
+        )
+      }));
+      
+      // Follow the connections to simulate execution flow
+      let currentNodeId = triggerNode.id;
+      let executionPath: string[] = [currentNodeId];
+      
+      // Simple BFS traversal of the workflow
+      while (executionPath.length > 0) {
+        const nodeId = executionPath.shift()!;
+        currentNodeId = nodeId;
+        execution.currentNode = nodeId;
+        
+        // Find node
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node) continue;
+        
+        // Simulate execution delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Add log for node execution
+        execution.logs.push({
+          nodeId: node.id,
+          action: 'execute',
+          timestamp: new Date(),
+          result: 'success',
+          message: `Executed ${node.data.label}`
+        });
+        
+        // Update execution logs
+        set((state) => ({
+          executionLogs: state.executionLogs.map(log => 
+            log.id === execution.id ? execution : log
+          )
+        }));
+        
+        // Find outgoing connections
+        const outgoing = connections.filter(c => c.source === nodeId);
+        
+        // Add target nodes to execution path
+        for (const conn of outgoing) {
+          const targetExists = nodes.some(n => n.id === conn.target);
+          if (targetExists) {
+            executionPath.push(conn.target);
+            
+            // Add log for following connection
+            execution.logs.push({
+              nodeId: conn.id,
+              action: 'follow',
+              timestamp: new Date(),
+              result: 'success',
+              message: `Following connection to ${conn.target}`
+            });
+            
+            // Update execution logs
+            set((state) => ({
+              executionLogs: state.executionLogs.map(log => 
+                log.id === execution.id ? execution : log
+              )
+            }));
+            
+            // Simulate execution delay
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+      }
+      
+      // Complete execution
       execution.status = 'completed';
       execution.completedAt = new Date();
+      
+      execution.logs.push({
+        nodeId: 'system',
+        action: 'complete',
+        timestamp: new Date(),
+        result: 'success',
+        message: 'Workflow execution completed successfully'
+      });
+      
+      // Update execution logs
+      set((state) => ({
+        executionLogs: state.executionLogs.map(log => 
+          log.id === execution.id ? execution : log
+        )
+      }));
+      
+      // Update workflow stats
+      const updatedWorkflow = {
+        ...state.currentWorkflow,
+        stats: {
+          ...state.currentWorkflow.stats,
+          triggered: state.currentWorkflow.stats.triggered + 1,
+          completed: state.currentWorkflow.stats.completed + 1
+        }
+      };
+      
+      set({
+        currentWorkflow: updatedWorkflow,
+        workflows: state.workflows.map(w => 
+          w.id === updatedWorkflow.id ? updatedWorkflow : w
+        )
+      });
       
       console.log('Workflow test completed');
     } catch (error) {
@@ -502,6 +769,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       errors.push('Workflow must have at least one trigger');
     }
     
+    if (triggers.length > 1) {
+      errors.push('Workflow cannot have multiple triggers');
+    }
+    
     // Check for orphaned nodes
     const connectedNodes = new Set<string>();
     state.currentWorkflow.connections.forEach(conn => {
@@ -526,6 +797,37 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       errors.push(`${unconfiguredNodes.length} nodes are not configured`);
     }
     
+    // Check for nodes without any outgoing connections
+    const nodesWithoutOutgoing = state.currentWorkflow.nodes.filter(
+      node => node.type !== 'end' && 
+        !state.currentWorkflow!.connections.some(conn => conn.source === node.id)
+    );
+    
+    if (nodesWithoutOutgoing.length > 0) {
+      errors.push(`${nodesWithoutOutgoing.length} nodes have no outgoing connections`);
+    }
+    
+    // Check for condition nodes with missing branches
+    const conditionNodes = state.currentWorkflow.nodes.filter(n => n.type === 'condition');
+    
+    conditionNodes.forEach(node => {
+      const outgoingTrue = state.currentWorkflow!.connections.some(
+        conn => conn.source === node.id && conn.sourceHandle === 'true'
+      );
+      
+      const outgoingFalse = state.currentWorkflow!.connections.some(
+        conn => conn.source === node.id && conn.sourceHandle === 'false'
+      );
+      
+      if (!outgoingTrue && !outgoingFalse) {
+        errors.push(`Condition '${node.data.label}' is missing both Yes and No branches`);
+      } else if (!outgoingTrue) {
+        errors.push(`Condition '${node.data.label}' is missing Yes branch`);
+      } else if (!outgoingFalse) {
+        errors.push(`Condition '${node.data.label}' is missing No branch`);
+      }
+    });
+    
     return { isValid: errors.length === 0, errors };
   },
   
@@ -540,6 +842,34 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     
     if (!node.data.isConfigured) {
       errors.push('Node is not configured');
+    }
+    
+    // Check for specific node type validation
+    if (node.type === 'condition') {
+      const outgoingTrue = state.currentWorkflow.connections.some(
+        conn => conn.source === node.id && conn.sourceHandle === 'true'
+      );
+      
+      const outgoingFalse = state.currentWorkflow.connections.some(
+        conn => conn.source === node.id && conn.sourceHandle === 'false'
+      );
+      
+      if (!outgoingTrue && !outgoingFalse) {
+        errors.push('Condition is missing both Yes and No branches');
+      } else if (!outgoingTrue) {
+        errors.push('Condition is missing Yes branch');
+      } else if (!outgoingFalse) {
+        errors.push('Condition is missing No branch');
+      }
+    } else if (node.type !== 'end' && node.type !== 'wait') {
+      // Other nodes except 'end' and 'wait' should have at least one outgoing connection
+      const hasOutgoing = state.currentWorkflow.connections.some(
+        conn => conn.source === node.id
+      );
+      
+      if (!hasOutgoing) {
+        errors.push('Node has no outgoing connections');
+      }
     }
     
     return { isValid: errors.length === 0, errors };

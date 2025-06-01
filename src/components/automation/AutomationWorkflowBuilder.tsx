@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,13 +37,23 @@ import {
   BarChart3,
   History,
   Pause,
-  Grip
+  Grip,
+  Grid,
+  MoveVertical,
+  MoveHorizontal,
+  CornerUpLeft,
+  SidebarRight,
+  SidebarLeft
 } from 'lucide-react';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import { TriggerConfigModal } from './TriggerConfigModal';
 import { ActionConfigModal } from './ActionConfigModal';
 import { EnhancedWorkflowBuilder } from './EnhancedWorkflowBuilder';
 import { WorkflowExecutionEngine } from './WorkflowExecutionEngine';
+import { ActionsPanel } from './workflow/ActionsPanel';
+import { WorkflowSettings } from './workflow/WorkflowSettings';
+import { WorkflowAnalytics } from './workflow/WorkflowAnalytics';
+import { WorkflowHistory } from './workflow/WorkflowHistory';
 
 interface ActionType {
   id: string;
@@ -289,32 +300,6 @@ export function AutomationWorkflowBuilder() {
     }
   };
 
-  const groupedActions = actionTypes.reduce((acc, action) => {
-    if (!acc[action.category]) {
-      acc[action.category] = [];
-    }
-    acc[action.category].push(action);
-    return acc;
-  }, {} as Record<string, ActionType[]>);
-
-  const categoryIcons = {
-    communication: Mail,
-    contact: User,
-    sales: Target,
-    automation: Workflow,
-    scheduling: Calendar,
-    flow: GitBranch
-  };
-
-  const categoryNames = {
-    communication: 'Communication',
-    contact: 'Contact Management',
-    sales: 'Sales & Opportunities',
-    automation: 'Workflow Management',
-    scheduling: 'Scheduling',
-    flow: 'Flow Control'
-  };
-
   return (
     <div className="h-screen flex bg-gray-50">
       {/* Main Canvas Area */}
@@ -384,24 +369,28 @@ export function AutomationWorkflowBuilder() {
                 value="builder" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
               >
+                <Grid className="h-4 w-4 mr-2" />
                 Builder
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
               >
+                <Settings2 className="h-4 w-4 mr-2" />
                 Settings
               </TabsTrigger>
               <TabsTrigger 
                 value="analytics" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
               >
+                <BarChart3 className="h-4 w-4 mr-2" />
                 Analytics
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
               >
+                <History className="h-4 w-4 mr-2" />
                 History
               </TabsTrigger>
             </TabsList>
@@ -432,133 +421,40 @@ export function AutomationWorkflowBuilder() {
       </div>
 
       {/* Enhanced Right Sidebar */}
-      <div className={`bg-white border-l transition-all duration-300 ${sidebarOpen ? 'w-80' : 'w-12'} flex flex-col`}>
+      <div className={`bg-white border-l transition-all duration-300 flex flex-col relative ${sidebarOpen ? 'w-80' : 'w-12'}`}>
+        {/* Collapse/Expand button that overlaps the border */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="absolute -left-3 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full border shadow-sm bg-white z-10"
+        >
+          {sidebarOpen ? (
+            <SidebarRight className="h-3 w-3" />
+          ) : (
+            <SidebarLeft className="h-3 w-3" />
+          )}
+        </Button>
+
         <div className="h-full flex flex-col">
-          {/* Collapse/Expand Button */}
+          {/* Sidebar Header */}
           <div className="p-3 border-b">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-full justify-start"
-            >
-              {sidebarOpen ? (
-                <>
-                  <ChevronRight className="h-4 w-4 mr-2" />
-                  Actions & Tools
-                </>
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
+            {sidebarOpen ? (
+              <h3 className="font-medium text-gray-700">Actions & Tools</h3>
+            ) : (
+              <div className="h-6" /> {/* Empty space to match height */}
+            )}
           </div>
           
           {sidebarOpen && (
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-6">
-                {/* Quick Actions */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Quick Actions</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={addTrigger}
-                      className="h-auto flex-col gap-1 p-3 hover:bg-orange-50 hover:border-orange-300"
-                    >
-                      <Zap className="h-4 w-4 text-orange-500" />
-                      <span className="text-xs">Add Trigger</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-auto flex-col gap-1 p-3 hover:bg-blue-50 hover:border-blue-300"
-                      onClick={() => toast.info('Drag an action from below to the canvas')}
-                    >
-                      <GitBranch className="h-4 w-4 text-blue-500" />
-                      <span className="text-xs">Add Action</span>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Workflow Stats */}
-                {currentWorkflow && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Workflow Stats</h4>
-                    <div className="grid grid-cols-2 gap-2 text-center">
-                      <div className="bg-blue-50 p-2 rounded border">
-                        <div className="text-lg font-bold text-blue-600">{currentWorkflow.nodes.length}</div>
-                        <div className="text-xs text-blue-600">Nodes</div>
-                      </div>
-                      <div className="bg-green-50 p-2 rounded border">
-                        <div className="text-lg font-bold text-green-600">{currentWorkflow.connections.length}</div>
-                        <div className="text-xs text-green-600">Connections</div>
-                      </div>
-                      <div className="bg-purple-50 p-2 rounded border">
-                        <div className="text-lg font-bold text-purple-600">{currentWorkflow.stats.triggered}</div>
-                        <div className="text-xs text-purple-600">Triggered</div>
-                      </div>
-                      <div className="bg-orange-50 p-2 rounded border">
-                        <div className="text-lg font-bold text-orange-600">{currentWorkflow.stats.completed}</div>
-                        <div className="text-xs text-orange-600">Completed</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Available Actions */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Available Actions</h3>
-                  <div className="text-xs text-gray-500 mb-2">
-                    Drag and drop actions to the canvas
-                  </div>
-                  
-                  {Object.entries(groupedActions).map(([category, actions]) => {
-                    const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons];
-                    const categoryName = categoryNames[category as keyof typeof categoryNames];
-                    
-                    return (
-                      <Collapsible key={category} defaultOpen={category === 'communication'}>
-                        <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded">
-                          <div className="flex items-center space-x-2">
-                            <CategoryIcon className="h-4 w-4" />
-                            <h4 className="font-medium text-sm">{categoryName}</h4>
-                          </div>
-                          <ChevronDown className="h-4 w-4" />
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="space-y-1 mt-2">
-                          {actions.map((action) => {
-                            const Icon = action.icon;
-                            return (
-                              <div
-                                key={action.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(action, e)}
-                                onDragEnd={handleDragEnd}
-                                className={`flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-grab active:cursor-grabbing transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm ${
-                                  draggedAction?.id === action.id ? 'opacity-50 scale-95' : ''
-                                }`}
-                              >
-                                <div className="flex items-center justify-center mr-3">
-                                  <Grip className="h-3 w-3 text-gray-400 mr-1" />
-                                  <div className="bg-gray-700 text-white p-2 rounded">
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm truncate">{action.label}</div>
-                                  <div className="text-xs text-gray-500 truncate">{action.description}</div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    );
-                  })}
-                </div>
-              </div>
-            </ScrollArea>
+            <ActionsPanel 
+              actionTypes={actionTypes} 
+              draggedAction={draggedAction}
+              handleDragStart={handleDragStart}
+              handleDragEnd={handleDragEnd}
+              addTrigger={addTrigger}
+              currentWorkflow={currentWorkflow}
+            />
           )}
         </div>
       </div>
@@ -582,112 +478,6 @@ export function AutomationWorkflowBuilder() {
 
       {/* Workflow Execution Engine */}
       <WorkflowExecutionEngine />
-    </div>
-  );
-}
-
-// Additional components for different tabs
-function WorkflowSettings() {
-  const { currentWorkflow, updateWorkflowSettings } = useWorkflowStore();
-  
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-4">Workflow Settings</h3>
-        <div className="grid grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Execution Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-sm text-gray-500">
-                Configure workflow execution parameters
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Error Handling</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-sm text-gray-500">
-                Set how errors should be handled during execution
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WorkflowAnalytics() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-4">Workflow Analytics</h3>
-        <div className="grid grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">98.5%</div>
-              <div className="text-sm text-gray-500">Success Rate</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Execution Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">2.3s</div>
-              <div className="text-sm text-gray-500">Avg Duration</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Total Runs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">1,234</div>
-              <div className="text-sm text-gray-500">Last 30 Days</div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WorkflowHistory() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-4">Execution History</h3>
-        <Card>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">Execution #{1000 + i}</div>
-                    <div className="text-sm text-gray-500">
-                      Started {new Date(Date.now() - i * 3600000).toLocaleString()}
-                    </div>
-                  </div>
-                  <Badge variant={i % 3 === 0 ? 'default' : 'secondary'}>
-                    {i % 3 === 0 ? 'Completed' : 'Running'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

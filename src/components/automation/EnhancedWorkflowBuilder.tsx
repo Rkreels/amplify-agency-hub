@@ -1,6 +1,6 @@
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,6 +34,13 @@ import {
   ZoomOut
 } from 'lucide-react';
 import { useWorkflowStore, WorkflowNode, WorkflowConnection } from '@/store/useWorkflowStore';
+import { NodeRenderer } from './workflow/NodeRenderer';
+import { ConnectionRenderer } from './workflow/ConnectionRenderer';
+import { CanvasControls } from './workflow/CanvasControls';
+import { WorkflowValidationStatus } from './workflow/WorkflowValidationStatus';
+import { EmptyWorkflowState } from './workflow/EmptyWorkflowState';
+import { MiniMap } from './workflow/MiniMap';
+import { useHotkeys } from '@/hooks/useHotkeys';
 
 interface ConnectionPath {
   d: string;
@@ -51,7 +58,7 @@ interface DragState {
   currentPosition: { x: number; y: number };
 }
 
-// Icon mapping for safe rendering
+// Get icon component for node types
 const getIconComponent = (nodeId: string) => {
   const actionType = nodeId.split('-')[0];
   
@@ -101,9 +108,11 @@ export function EnhancedWorkflowBuilder() {
     canConnect,
     openConfigModal,
     testWorkflow,
-    validateWorkflow
+    validateWorkflow,
+    moveWorkflowNodes
   } = useWorkflowStore();
 
+  // Enhanced canvas state management
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     dragType: null,
@@ -118,11 +127,62 @@ export function EnhancedWorkflowBuilder() {
   const [zoom, setZoom] = useState(1);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredHandle, setHoveredHandle] = useState<{ nodeId: string; type: 'input' | 'output'; handle?: string } | null>(null);
+  const [multiSelect, setMultiSelect] = useState<{ active: boolean; nodes: string[] }>({ active: false, nodes: [] });
+  const [selectionBox, setSelectionBox] = useState<{ active: boolean; start: { x: number, y: number }, end: { x: number, y: number } }>({
+    active: false,
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 0 }
+  });
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(20);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // Handle mouse move for all drag operations
+  // Get nodes within the current view
+  const visibleNodes = useMemo(() => {
+    if (!currentWorkflow || !canvasRef.current) return [];
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const viewportWidth = rect.width / zoom;
+    const viewportHeight = rect.height / zoom;
+    const viewportLeft = -canvasOffset.x / zoom;
+    const viewportTop = -canvasOffset.y / zoom;
+    
+    return currentWorkflow.nodes.filter(node => {
+      return (
+        node.position.x + 200 >= viewportLeft &&
+        node.position.x <= viewportLeft + viewportWidth &&
+        node.position.y + 100 >= viewportTop &&
+        node.position.y <= viewportTop + viewportHeight
+      );
+    });
+  }, [currentWorkflow, canvasOffset, zoom]);
+
+  // Calculate connection paths for better performance
+  const connectionPaths = useMemo(() => {
+    if (!currentWorkflow) return [];
+    
+    return currentWorkflow.connections.map(connection => {
+      const sourceNode = currentWorkflow.nodes.find(n => n.id === connection.source);
+      const targetNode = currentWorkflow.nodes.find(n => n.id === connection.target);
+      
+      if (!sourceNode || !targetNode) return null;
+      
+      const sourcePos = getNodeConnectionPoint(sourceNode, connection.sourceHandle || 'output');
+      const targetPos = getNodeConnectionPoint(targetNode, connection.targetHandle || 'input');
+      
+      return {
+        connection,
+        path: calculateConnectionPath(sourcePos.x, sourcePos.y, targetPos.x, targetPos.y, connection.sourceHandle),
+        sourcePos,
+        targetPos
+      };
+    }).filter(Boolean);
+  }, [currentWorkflow]);
+
+  // Handle mouse move for all drag operations with improved performance
   const handleMouseMove = useCallback((e: React.MouseEvent | MouseEvent) => {
     if (!canvasRef.current) return;
 
@@ -135,20 +195,60 @@ export function EnhancedWorkflowBuilder() {
     setMousePosition(newMousePosition);
 
     // Handle node dragging
-    if (dragState.isDragging && dragState.dragType === 'node' && dragState.draggedNodeId) {
+    if (dragState.isDragging && dragState.dragType === 'node') {
+      e.preventDefault();
+      
       const deltaX = newMousePosition.x - dragState.startPosition.x;
       const deltaY = newMousePosition.y - dragState.startPosition.y;
       
-      updateNode(dragState.draggedNodeId, {
-        position: {
-          x: dragState.currentPosition.x + deltaX,
-          y: dragState.currentPosition.y + deltaY
+      if (dragState.draggedNodeId) {
+        // Single node drag
+        let newX = dragState.currentPosition.x + deltaX;
+        let newY = dragState.currentPosition.y + deltaY;
+        
+        // Apply grid snapping if enabled
+        if (snapToGrid) {
+          newX = Math.round(newX / gridSize) * gridSize;
+          newY = Math.round(newY / gridSize) * gridSize;
         }
-      });
+        
+        updateNode(dragState.draggedNodeId, {
+          position: { x: newX, y: newY }
+        });
+      } else if (multiSelect.active && multiSelect.nodes.length > 0) {
+        // Multi-select drag
+        const nodesToUpdate = currentWorkflow?.nodes.filter(n => multiSelect.nodes.includes(n.id)) || [];
+        
+        const updates = nodesToUpdate.map(node => {
+          let newX = node.position.x + deltaX;
+          let newY = node.position.y + deltaY;
+          
+          // Apply grid snapping if enabled
+          if (snapToGrid) {
+            newX = Math.round(newX / gridSize) * gridSize;
+            newY = Math.round(newY / gridSize) * gridSize;
+          }
+          
+          return {
+            id: node.id,
+            position: { x: newX, y: newY }
+          };
+        });
+        
+        moveWorkflowNodes(updates);
+        
+        // Update drag start position for next frame
+        setDragState(prev => ({
+          ...prev,
+          startPosition: newMousePosition
+        }));
+      }
     }
 
-    // Handle canvas panning
+    // Handle canvas panning with improved performance
     if (dragState.isDragging && dragState.dragType === 'canvas') {
+      e.preventDefault();
+      
       const deltaX = e.clientX - dragState.startPosition.x;
       const deltaY = e.clientY - dragState.startPosition.y;
       
@@ -157,10 +257,63 @@ export function EnhancedWorkflowBuilder() {
         y: dragState.currentPosition.y + deltaY
       });
     }
-  }, [dragState, canvasOffset, zoom, updateNode]);
+
+    // Handle selection box
+    if (selectionBox.active) {
+      e.preventDefault();
+      
+      setSelectionBox(prev => ({
+        ...prev,
+        end: {
+          x: newMousePosition.x,
+          y: newMousePosition.y
+        }
+      }));
+      
+      // Select nodes within box
+      if (currentWorkflow) {
+        const minX = Math.min(selectionBox.start.x, newMousePosition.x);
+        const maxX = Math.max(selectionBox.start.x, newMousePosition.x);
+        const minY = Math.min(selectionBox.start.y, newMousePosition.y);
+        const maxY = Math.max(selectionBox.start.y, newMousePosition.y);
+        
+        const selectedNodes = currentWorkflow.nodes
+          .filter(node => {
+            const nodeRight = node.position.x + 200;
+            const nodeBottom = node.position.y + (node.type === 'trigger' ? 100 : 80);
+            
+            return (
+              node.position.x < maxX &&
+              nodeRight > minX &&
+              node.position.y < maxY &&
+              nodeBottom > minY
+            );
+          })
+          .map(node => node.id);
+        
+        if (selectedNodes.length > 0) {
+          setMultiSelect({
+            active: true,
+            nodes: selectedNodes
+          });
+        } else if (multiSelect.active) {
+          setMultiSelect({ active: false, nodes: [] });
+        }
+      }
+    }
+  }, [dragState, canvasOffset, zoom, updateNode, snapToGrid, gridSize, multiSelect, currentWorkflow, selectionBox, moveWorkflowNodes]);
 
   // Handle mouse up for all drag operations
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    // End the selection box
+    if (selectionBox.active) {
+      setSelectionBox({
+        active: false,
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: 0 }
+      });
+    }
+    
     setDragState({
       isDragging: false,
       dragType: null,
@@ -168,9 +321,10 @@ export function EnhancedWorkflowBuilder() {
       startPosition: { x: 0, y: 0 },
       currentPosition: { x: 0, y: 0 }
     });
+    
     setConnecting(null);
     setHoveredHandle(null);
-  }, []);
+  }, [selectionBox.active]);
 
   // Handle node mouse down
   const handleNodeMouseDown = useCallback((nodeId: string, e: React.MouseEvent) => {
@@ -182,6 +336,27 @@ export function EnhancedWorkflowBuilder() {
     if (!node) return;
 
     if (!canvasRef.current) return;
+    
+    // Check if we're in multi-select mode (Shift key)
+    if (e.shiftKey) {
+      setMultiSelect(prev => {
+        const isSelected = prev.nodes.includes(nodeId);
+        return {
+          active: true,
+          nodes: isSelected 
+            ? prev.nodes.filter(id => id !== nodeId) 
+            : [...prev.nodes, nodeId]
+        };
+      });
+      setSelectedNode(nodeId);
+      return;
+    }
+    
+    // If we click on a node that's not in the multi-select, clear multi-select
+    if (multiSelect.active && !multiSelect.nodes.includes(nodeId)) {
+      setMultiSelect({ active: false, nodes: [] });
+    }
+
     const rect = canvasRef.current.getBoundingClientRect();
     
     setDragState({
@@ -196,23 +371,56 @@ export function EnhancedWorkflowBuilder() {
     });
     
     setSelectedNode(nodeId);
-  }, [currentWorkflow, canvasOffset, zoom, setSelectedNode]);
+  }, [currentWorkflow, canvasOffset, zoom, setSelectedNode, multiSelect.active, multiSelect.nodes]);
 
-  // Handle canvas mouse down for panning
+  // Handle canvas mouse down for panning and selection box
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0 || e.target !== e.currentTarget) return;
     
-    setDragState({
-      isDragging: true,
-      dragType: 'canvas',
-      draggedNodeId: null,
-      startPosition: { x: e.clientX, y: e.clientY },
-      currentPosition: canvasOffset
-    });
+    // Handle selection box (if Alt key is pressed)
+    if (e.altKey) {
+      if (!canvasRef.current) return;
+      
+      const rect = canvasRef.current.getBoundingClientRect();
+      const position = {
+        x: (e.clientX - rect.left - canvasOffset.x) / zoom,
+        y: (e.clientY - rect.top - canvasOffset.y) / zoom
+      };
+      
+      setSelectionBox({
+        active: true,
+        start: position,
+        end: position
+      });
+      
+      // Clear selections
+      setSelectedNode(null);
+      setSelectedConnection(null);
+      setMultiSelect({ active: false, nodes: [] });
+      return;
+    }
     
-    setSelectedNode(null);
-    setSelectedConnection(null);
-  }, [canvasOffset, setSelectedNode, setSelectedConnection]);
+    // Middle click or space+click for panning
+    if (e.button === 1 || e.ctrlKey) {
+      e.preventDefault();
+      
+      setDragState({
+        isDragging: true,
+        dragType: 'canvas',
+        draggedNodeId: null,
+        startPosition: { x: e.clientX, y: e.clientY },
+        currentPosition: canvasOffset
+      });
+      return;
+    }
+    
+    // Normal click - just clear selections
+    if (!e.shiftKey) {
+      setSelectedNode(null);
+      setSelectedConnection(null);
+      setMultiSelect({ active: false, nodes: [] });
+    }
+  }, [canvasOffset, zoom, setSelectedNode, setSelectedConnection]);
 
   // Handle connection start
   const handleConnectionStart = useCallback((sourceId: string, sourceHandle?: string, e?: React.MouseEvent) => {
@@ -258,19 +466,35 @@ export function EnhancedWorkflowBuilder() {
     targetY: number,
     sourceHandle?: string
   ): ConnectionPath => {
-    const distance = Math.abs(targetX - sourceX);
-    const controlPointOffset = Math.min(distance / 2, 100);
+    // Calculate horizontal and vertical distance
+    const deltaX = targetX - sourceX;
+    const deltaY = targetY - sourceY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // Adjust control points based on distance
+    let controlPointOffset = Math.min(distance * 0.4, 150);
+    
+    // Special handling for close nodes
+    if (distance < 100) {
+      controlPointOffset = distance * 0.8;
+    }
     
     let cp1X, cp1Y, cp2X, cp2Y;
     
     if (sourceHandle === 'true' || sourceHandle === 'false') {
       // For condition branches, create angled paths
-      cp1X = sourceX + controlPointOffset;
+      cp1X = sourceX + (deltaX * 0.25);
+      cp1Y = sourceY + (controlPointOffset * 0.5);
+      cp2X = sourceX + (deltaX * 0.75);
+      cp2Y = targetY - (controlPointOffset * 0.5);
+    } else if (Math.abs(deltaY) < 50 && Math.abs(deltaX) > 200) {
+      // For nearly horizontal connections, make a straighter line
+      cp1X = sourceX + (deltaX * 0.3);
       cp1Y = sourceY;
-      cp2X = targetX - controlPointOffset;
+      cp2X = targetX - (deltaX * 0.3);
       cp2Y = targetY;
     } else {
-      // Standard vertical flow
+      // Standard vertical flow with improved curvature
       cp1X = sourceX;
       cp1Y = sourceY + controlPointOffset;
       cp2X = targetX;
@@ -317,350 +541,6 @@ export function EnhancedWorkflowBuilder() {
     }
   }, []);
 
-  // Render connection lines
-  const renderConnections = useCallback(() => {
-    if (!currentWorkflow) return null;
-
-    return (
-      <svg 
-        ref={svgRef}
-        className="absolute inset-0 pointer-events-none overflow-visible"
-        style={{ width: '100%', height: '100%', zIndex: 1 }}
-      >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-            fill="#6b7280"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" />
-          </marker>
-          <marker
-            id="arrowhead-selected"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-            fill="#3b82f6"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" />
-          </marker>
-          <marker
-            id="arrowhead-success"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-            fill="#10b981"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" />
-          </marker>
-          <marker
-            id="arrowhead-error"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-            fill="#ef4444"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" />
-          </marker>
-        </defs>
-        
-        {/* Existing connections */}
-        {currentWorkflow.connections.map((connection) => {
-          const sourceNode = currentWorkflow.nodes.find(n => n.id === connection.source);
-          const targetNode = currentWorkflow.nodes.find(n => n.id === connection.target);
-          
-          if (!sourceNode || !targetNode) return null;
-          
-          const sourcePos = getNodeConnectionPoint(sourceNode, connection.sourceHandle || 'output');
-          const targetPos = getNodeConnectionPoint(targetNode, connection.targetHandle || 'input');
-          const path = calculateConnectionPath(sourcePos.x, sourcePos.y, targetPos.x, targetPos.y, connection.sourceHandle);
-          
-          const isSelected = selectedConnection === connection.id;
-          const strokeColor = isSelected ? "#3b82f6" : 
-                            connection.sourceHandle === 'true' ? "#10b981" :
-                            connection.sourceHandle === 'false' ? "#ef4444" : "#6b7280";
-          const markerEnd = isSelected ? "url(#arrowhead-selected)" :
-                          connection.sourceHandle === 'true' ? "url(#arrowhead-success)" :
-                          connection.sourceHandle === 'false' ? "url(#arrowhead-error)" : "url(#arrowhead)";
-          
-          return (
-            <g key={connection.id}>
-              <path
-                d={path.d}
-                stroke={strokeColor}
-                strokeWidth={isSelected ? "3" : "2"}
-                fill="none"
-                markerEnd={markerEnd}
-                className="cursor-pointer hover:stroke-blue-500 transition-colors"
-                style={{ pointerEvents: 'stroke' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedConnection(connection.id);
-                }}
-              />
-              {connection.label && (
-                <text
-                  x={(sourcePos.x + targetPos.x) / 2}
-                  y={(sourcePos.y + targetPos.y) / 2 - 10}
-                  textAnchor="middle"
-                  className="text-xs fill-gray-600 pointer-events-none"
-                  style={{ fontSize: '12px' }}
-                >
-                  {connection.label}
-                </text>
-              )}
-              {/* Connection labels for condition branches */}
-              {connection.sourceHandle === 'true' && (
-                <text
-                  x={sourcePos.x + 20}
-                  y={sourcePos.y + 15}
-                  className="text-xs fill-green-600 font-medium pointer-events-none"
-                  style={{ fontSize: '11px' }}
-                >
-                  Yes
-                </text>
-              )}
-              {connection.sourceHandle === 'false' && (
-                <text
-                  x={sourcePos.x - 20}
-                  y={sourcePos.y + 15}
-                  className="text-xs fill-red-600 font-medium pointer-events-none"
-                  style={{ fontSize: '11px' }}
-                >
-                  No
-                </text>
-              )}
-            </g>
-          );
-        })}
-        
-        {/* Temporary connection line */}
-        {connecting && (
-          <path
-            d={calculateConnectionPath(
-              getNodeConnectionPoint(currentWorkflow.nodes.find(n => n.id === connecting.sourceId)!, connecting.sourceHandle || 'output').x,
-              getNodeConnectionPoint(currentWorkflow.nodes.find(n => n.id === connecting.sourceId)!, connecting.sourceHandle || 'output').y,
-              mousePosition.x,
-              mousePosition.y,
-              connecting.sourceHandle
-            ).d}
-            stroke="#3b82f6"
-            strokeWidth="2"
-            strokeDasharray="5,5"
-            fill="none"
-            className="pointer-events-none"
-          />
-        )}
-      </svg>
-    );
-  }, [currentWorkflow, selectedConnection, connecting, mousePosition, getNodeConnectionPoint, calculateConnectionPath, setSelectedConnection]);
-
-  // Render workflow node with proper handles
-  const renderNode = useCallback((node: WorkflowNode) => {
-    const IconComponent = getIconComponent(node.id);
-    const isSelected = selectedNode === node.id;
-    const isConfigured = node.data.isConfigured;
-    const isHovered = hoveredNode === node.id;
-    const isDragging = dragState.draggedNodeId === node.id;
-    const validation = useWorkflowStore.getState().validateNode(node.id);
-    
-    const nodeWidth = 200;
-    const nodeHeight = node.type === 'trigger' ? 100 : 80;
-    
-    return (
-      <div
-        key={node.id}
-        className={`absolute cursor-pointer transition-all duration-200 group ${
-          isSelected ? 'ring-2 ring-blue-500 z-20' : 'z-10'
-        } ${isDragging ? 'opacity-70 scale-105' : ''} ${isHovered ? 'shadow-lg' : ''}`}
-        style={{ 
-          left: node.position.x, 
-          top: node.position.y,
-          width: nodeWidth,
-          height: nodeHeight,
-          transform: `scale(${zoom})`
-        }}
-        onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
-        onMouseEnter={() => setHoveredNode(node.id)}
-        onMouseLeave={() => setHoveredNode(null)}
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedNode(node.id);
-        }}
-        onDoubleClick={() => openConfigModal(node)}
-      >
-        {node.type === 'trigger' ? (
-          <div className={`bg-white border-2 rounded-lg p-4 w-full h-full shadow-lg transition-all duration-200 ${
-            isConfigured ? 'border-green-400' : 'border-orange-400'
-          } ${isSelected ? 'ring-2 ring-blue-500' : ''} ${isHovered ? 'shadow-xl' : ''}`}>
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <div className={`p-2 rounded-full ${isConfigured ? 'bg-green-100' : 'bg-orange-100'}`}>
-                <IconComponent className={`h-5 w-5 ${isConfigured ? 'text-green-600' : 'text-orange-600'}`} />
-              </div>
-              {!validation.isValid && <AlertCircle className="h-4 w-4 text-red-500" />}
-            </div>
-            <div className="text-center">
-              <div className="font-medium text-sm">{node.data.label}</div>
-              {isConfigured ? (
-                <Badge variant="secondary" className="mt-2">Configured</Badge>
-              ) : (
-                <Badge variant="outline" className="mt-2 text-orange-600 border-orange-600">
-                  Click to Configure
-                </Badge>
-              )}
-            </div>
-            
-            {/* Output handle for trigger */}
-            <div 
-              className="absolute -bottom-2 left-1/2 transform -translate-x-1/2"
-              onMouseEnter={() => setHoveredHandle({ nodeId: node.id, type: 'output' })}
-              onMouseLeave={() => setHoveredHandle(null)}
-            >
-              <div
-                className={`w-4 h-4 bg-blue-500 rounded-full border-2 border-white cursor-pointer transition-all duration-200 ${
-                  hoveredHandle?.nodeId === node.id && hoveredHandle?.type === 'output' ? 'scale-125 bg-blue-600' : ''
-                } ${connecting ? 'hover:bg-green-500' : 'hover:bg-blue-600'}`}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  handleConnectionStart(node.id, 'output', e);
-                }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className={`bg-white border-2 rounded-lg p-3 w-full h-full shadow-lg transition-all duration-200 ${
-            isConfigured ? 'border-green-300' : 'border-gray-300'
-          } ${isSelected ? 'ring-2 ring-blue-500' : ''} ${isHovered ? 'shadow-xl' : ''}`}>
-            <div className="flex items-center space-x-2 mb-2">
-              <div className={`p-1 rounded ${isConfigured ? 'bg-green-100' : 'bg-gray-100'}`}>
-                <IconComponent className={`h-4 w-4 ${isConfigured ? 'text-green-600' : 'text-gray-500'}`} />
-              </div>
-              <span className="text-sm font-medium truncate flex-1">{node.data.label}</span>
-              {!validation.isValid && <AlertCircle className="h-3 w-3 text-red-500" />}
-              {isConfigured && <CheckCircle className="h-3 w-3 text-green-500" />}
-            </div>
-            
-            {/* Node actions */}
-            <div className="absolute -top-2 -right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 bg-white shadow-sm border hover:bg-gray-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  duplicateNode(node.id);
-                }}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 bg-white shadow-sm border hover:bg-red-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteNode(node.id);
-                }}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-            
-            {/* Input handle */}
-            <div 
-              className="absolute -top-2 left-1/2 transform -translate-x-1/2"
-              onMouseEnter={() => setHoveredHandle({ nodeId: node.id, type: 'input' })}
-              onMouseLeave={() => setHoveredHandle(null)}
-            >
-              <div
-                className={`w-3 h-3 bg-gray-400 rounded-full border-2 border-white cursor-pointer transition-all duration-200 ${
-                  hoveredHandle?.nodeId === node.id && hoveredHandle?.type === 'input' ? 'scale-125 bg-gray-600' : ''
-                } ${connecting ? 'hover:bg-green-500' : 'hover:bg-gray-600'}`}
-                onMouseUp={() => handleConnectionEnd(node.id, 'input')}
-                onMouseEnter={() => {
-                  if (connecting && connecting.sourceId !== node.id) {
-                    // Visual feedback for valid drop target
-                  }
-                }}
-              />
-            </div>
-            
-            {/* Output handle */}
-            <div 
-              className="absolute -bottom-2 left-1/2 transform -translate-x-1/2"
-              onMouseEnter={() => setHoveredHandle({ nodeId: node.id, type: 'output' })}
-              onMouseLeave={() => setHoveredHandle(null)}
-            >
-              <div
-                className={`w-3 h-3 bg-blue-500 rounded-full border-2 border-white cursor-pointer transition-all duration-200 ${
-                  hoveredHandle?.nodeId === node.id && hoveredHandle?.type === 'output' ? 'scale-125 bg-blue-600' : ''
-                } ${connecting ? 'hover:bg-green-500' : 'hover:bg-blue-600'}`}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  handleConnectionStart(node.id, 'output', e);
-                }}
-              />
-            </div>
-            
-            {/* Condition node additional handles */}
-            {node.type === 'condition' && (
-              <>
-                <div 
-                  className="absolute -bottom-2 left-1/4 transform -translate-x-1/2"
-                  onMouseEnter={() => setHoveredHandle({ nodeId: node.id, type: 'output', handle: 'true' })}
-                  onMouseLeave={() => setHoveredHandle(null)}
-                >
-                  <div
-                    className={`w-3 h-3 bg-green-500 rounded-full border-2 border-white cursor-pointer transition-all duration-200 ${
-                      hoveredHandle?.nodeId === node.id && hoveredHandle?.handle === 'true' ? 'scale-125 bg-green-600' : ''
-                    }`}
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      handleConnectionStart(node.id, 'true', e);
-                    }}
-                    title="True path"
-                  />
-                  <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-green-600 font-medium whitespace-nowrap">
-                    Yes
-                  </span>
-                </div>
-                <div 
-                  className="absolute -bottom-2 right-1/4 transform translate-x-1/2"
-                  onMouseEnter={() => setHoveredHandle({ nodeId: node.id, type: 'output', handle: 'false' })}
-                  onMouseLeave={() => setHoveredHandle(null)}
-                >
-                  <div
-                    className={`w-3 h-3 bg-red-500 rounded-full border-2 border-white cursor-pointer transition-all duration-200 ${
-                      hoveredHandle?.nodeId === node.id && hoveredHandle?.handle === 'false' ? 'scale-125 bg-red-600' : ''
-                    }`}
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      handleConnectionStart(node.id, 'false', e);
-                    }}
-                    title="False path"
-                  />
-                  <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-red-600 font-medium whitespace-nowrap">
-                    No
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }, [selectedNode, hoveredNode, hoveredHandle, dragState, zoom, connecting, handleNodeMouseDown, setSelectedNode, openConfigModal, duplicateNode, deleteNode, handleConnectionStart, handleConnectionEnd]);
-
   // Handle workflow testing
   const handleTestWorkflow = useCallback(async () => {
     const validation = validateWorkflow();
@@ -678,8 +558,89 @@ export function EnhancedWorkflowBuilder() {
     };
 
     await testWorkflow(mockContactData);
-    toast.success('Workflow test completed');
+    toast.success('Workflow test started');
   }, [validateWorkflow, testWorkflow]);
+
+  // Fit view to show all nodes
+  const fitView = useCallback(() => {
+    if (!currentWorkflow || !canvasRef.current || currentWorkflow.nodes.length === 0) return;
+    
+    const padding = 100;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    // Find bounds of all nodes
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    currentWorkflow.nodes.forEach(node => {
+      const nodeWidth = 200;
+      const nodeHeight = node.type === 'trigger' ? 100 : 80;
+      
+      minX = Math.min(minX, node.position.x);
+      minY = Math.min(minY, node.position.y);
+      maxX = Math.max(maxX, node.position.x + nodeWidth);
+      maxY = Math.max(maxY, node.position.y + nodeHeight);
+    });
+    
+    // Calculate zoom level and offset
+    const contentWidth = maxX - minX + (padding * 2);
+    const contentHeight = maxY - minY + (padding * 2);
+    
+    const zoomX = rect.width / contentWidth;
+    const zoomY = rect.height / contentHeight;
+    const newZoom = Math.min(Math.min(zoomX, zoomY), 1);
+    
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    const offsetX = (rect.width / 2 / newZoom) - centerX;
+    const offsetY = (rect.height / 2 / newZoom) - centerY;
+    
+    setZoom(newZoom);
+    setCanvasOffset({ x: offsetX * newZoom, y: offsetY * newZoom });
+  }, [currentWorkflow]);
+
+  // Register keyboard shortcuts
+  useHotkeys('delete', () => {
+    if (selectedNode) {
+      deleteNode(selectedNode);
+    } else if (selectedConnection) {
+      deleteConnection(selectedConnection);
+    }
+  }, [selectedNode, selectedConnection]);
+
+  useHotkeys('ctrl+d', (e) => {
+    e.preventDefault();
+    if (selectedNode) {
+      duplicateNode(selectedNode);
+    }
+  }, [selectedNode]);
+
+  useHotkeys('ctrl+c', (e) => {
+    e.preventDefault();
+    if (selectedNode) {
+      toast.info('Node copied to clipboard');
+    }
+  }, [selectedNode]);
+
+  useHotkeys('escape', () => {
+    setSelectedNode(null);
+    setSelectedConnection(null);
+    setConnecting(null);
+    setMultiSelect({ active: false, nodes: [] });
+  }, []);
+
+  useHotkeys('f', () => {
+    fitView();
+  }, [fitView]);
+
+  useHotkeys('g', () => {
+    setSnapToGrid(!snapToGrid);
+    toast.info(snapToGrid ? 'Grid snapping disabled' : 'Grid snapping enabled');
+  }, [snapToGrid]);
+
+  useHotkeys('m', () => {
+    setShowMiniMap(!showMiniMap);
+  }, [showMiniMap]);
 
   // Global event handlers
   useEffect(() => {
@@ -687,34 +648,48 @@ export function EnhancedWorkflowBuilder() {
       handleMouseMove(e);
     };
 
-    const handleGlobalMouseUp = () => {
-      handleMouseUp();
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      handleMouseUp(e);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' && selectedNode) {
-        deleteNode(selectedNode);
+      // Space key for panning (when held down)
+      if (e.code === 'Space' && !dragState.isDragging) {
+        document.body.style.cursor = 'grab';
       }
-      if (e.key === 'Delete' && selectedConnection) {
-        deleteConnection(selectedConnection);
+      
+      // Prevent browser zoom
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-')) {
+        e.preventDefault();
       }
-      if (e.key === 'Escape') {
-        setSelectedNode(null);
-        setSelectedConnection(null);
-        setConnecting(null);
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        document.body.style.cursor = '';
       }
     };
 
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 
     return () => {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+      document.body.style.cursor = '';
     };
-  }, [handleMouseMove, handleMouseUp, selectedNode, selectedConnection, deleteNode, deleteConnection, setSelectedNode, setSelectedConnection]);
+  }, [handleMouseMove, handleMouseUp, dragState.isDragging]);
+
+  // Auto-fit view when workflow changes or on first load
+  useEffect(() => {
+    if (currentWorkflow?.nodes.length && !canvasOffset.x && !canvasOffset.y) {
+      fitView();
+    }
+  }, [currentWorkflow?.id, fitView, canvasOffset.x, canvasOffset.y]);
 
   const hasTrigger = currentWorkflow?.nodes.some(node => node.type === 'trigger');
 
@@ -731,71 +706,101 @@ export function EnhancedWorkflowBuilder() {
       <div className="flex-1 relative overflow-hidden">
         <div
           ref={canvasRef}
-          className="w-full h-full relative bg-gray-50 cursor-move"
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleMouseMove}
+          className="w-full h-full relative bg-gray-50"
           style={{
+            cursor: dragState.dragType === 'canvas' ? 'grabbing' : 
+                  connecting ? 'crosshair' : 
+                  selectionBox.active ? 'crosshair' : 'default',
             backgroundImage: `radial-gradient(circle, #d1d5db 1px, transparent 1px)`,
             backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
             backgroundPosition: `${canvasOffset.x}px ${canvasOffset.y}px`
           }}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleMouseMove as any}
         >
-          {/* Render connections */}
-          {renderConnections()}
+          {/* Render connection lines */}
+          <ConnectionRenderer 
+            svgRef={svgRef}
+            connections={connectionPaths} 
+            selectedConnection={selectedConnection}
+            connecting={connecting}
+            mousePosition={mousePosition}
+            currentWorkflow={currentWorkflow}
+            getNodeConnectionPoint={getNodeConnectionPoint}
+            calculateConnectionPath={calculateConnectionPath}
+            setSelectedConnection={setSelectedConnection}
+          />
           
           {/* Render nodes */}
-          {currentWorkflow?.nodes.map(renderNode)}
+          {currentWorkflow?.nodes.map(node => (
+            <NodeRenderer
+              key={node.id}
+              node={node}
+              isSelected={selectedNode === node.id || (multiSelect.active && multiSelect.nodes.includes(node.id))}
+              isHovered={hoveredNode === node.id}
+              isDragging={dragState.draggedNodeId === node.id}
+              zoom={zoom}
+              hoveredHandle={hoveredHandle}
+              connecting={connecting}
+              handleNodeMouseDown={handleNodeMouseDown}
+              handleConnectionStart={handleConnectionStart}
+              handleConnectionEnd={handleConnectionEnd}
+              setHoveredNode={setHoveredNode}
+              setHoveredHandle={setHoveredHandle}
+              openConfigModal={openConfigModal}
+              duplicateNode={duplicateNode}
+              deleteNode={deleteNode}
+              setSelectedNode={setSelectedNode}
+            />
+          ))}
+          
+          {/* Selection box */}
+          {selectionBox.active && (
+            <div
+              className="absolute border-2 border-blue-500 bg-blue-500 bg-opacity-10 pointer-events-none z-10"
+              style={{
+                left: Math.min(selectionBox.start.x, selectionBox.end.x),
+                top: Math.min(selectionBox.start.y, selectionBox.end.y),
+                width: Math.abs(selectionBox.end.x - selectionBox.start.x),
+                height: Math.abs(selectionBox.end.y - selectionBox.start.y),
+                transform: `scale(${zoom})`
+              }}
+            />
+          )}
           
           {/* Empty state */}
           {!hasTrigger && <EmptyWorkflowState />}
           
           {/* Selection indicator */}
           {selectedConnection && (
-            <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+            <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm z-30">
               Connection selected - Press Delete to remove
+            </div>
+          )}
+
+          {/* Multi-select indicator */}
+          {multiSelect.active && multiSelect.nodes.length > 0 && (
+            <div className="absolute top-4 left-4 bg-indigo-500 text-white px-3 py-1 rounded-full text-sm z-30">
+              {multiSelect.nodes.length} nodes selected
             </div>
           )}
         </div>
         
-        {/* Zoom and pan controls */}
-        <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 w-8 p-0 bg-white"
-              onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="px-2 py-1 bg-white border rounded text-sm min-w-[60px] text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 w-8 p-0 bg-white"
-              onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white"
-            onClick={() => {
-              setZoom(1);
-              setCanvasOffset({ x: 0, y: 0 });
-            }}
-          >
-            <Move className="h-4 w-4 mr-2" />
-            Reset View
-          </Button>
-        </div>
+        {/* Canvas controls */}
+        <CanvasControls
+          zoom={zoom}
+          setZoom={setZoom}
+          canvasOffset={canvasOffset}
+          setCanvasOffset={setCanvasOffset}
+          fitView={fitView}
+          snapToGrid={snapToGrid}
+          setSnapToGrid={setSnapToGrid}
+          showMiniMap={showMiniMap}
+          setShowMiniMap={setShowMiniMap}
+        />
         
         {/* Quick actions */}
-        <div className="absolute top-4 right-4 flex space-x-2">
+        <div className="absolute top-4 right-4 flex space-x-2 z-30">
           <Button
             size="sm"
             variant="outline"
@@ -816,69 +821,18 @@ export function EnhancedWorkflowBuilder() {
             )}
           </Button>
         </div>
-      </div>
-    </div>
-  );
-}
 
-// Workflow validation status component
-function WorkflowValidationStatus() {
-  const { validateWorkflow } = useWorkflowStore();
-  const validation = validateWorkflow();
-  
-  if (validation.isValid) {
-    return (
-      <div className="flex items-center space-x-2 text-green-600">
-        <CheckCircle className="h-4 w-4" />
-        <span className="text-sm">Workflow is valid and ready to run</span>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="flex items-center space-x-2 text-red-600">
-      <AlertCircle className="h-4 w-4" />
-      <span className="text-sm">
-        {validation.errors.length} issue(s): {validation.errors.join(', ')}
-      </span>
-    </div>
-  );
-}
-
-// Empty workflow state component
-function EmptyWorkflowState() {
-  const { addNode } = useWorkflowStore();
-  
-  const addTrigger = () => {
-    const newNode: WorkflowNode = {
-      id: `trigger-${Date.now()}`,
-      type: 'trigger',
-      position: { x: 400, y: 200 },
-      data: {
-        label: 'New Trigger',
-        icon: Zap,
-        isConfigured: false
-      }
-    };
-    addNode(newNode);
-    setTimeout(() => useWorkflowStore.getState().openConfigModal(newNode), 100);
-  };
-  
-  return (
-    <div className="flex flex-col items-center justify-center h-full pointer-events-none">
-      <div 
-        className="bg-white border-2 border-dashed border-orange-400 rounded-lg p-8 cursor-pointer hover:border-orange-500 transition-colors hover:shadow-lg pointer-events-auto"
-        onClick={addTrigger}
-      >
-        <div className="text-center">
-          <Zap className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-          <div className="text-gray-600 text-xl font-medium">
-            Add Workflow Trigger
-          </div>
-          <div className="text-gray-400 text-sm mt-2">
-            Click to start building your automation
-          </div>
-        </div>
+        {/* Mini-map */}
+        {showMiniMap && currentWorkflow && currentWorkflow.nodes.length > 0 && (
+          <MiniMap
+            nodes={currentWorkflow.nodes}
+            connections={currentWorkflow.connections}
+            canvasRef={canvasRef}
+            zoom={zoom}
+            canvasOffset={canvasOffset}
+            setCanvasOffset={setCanvasOffset}
+          />
+        )}
       </div>
     </div>
   );
