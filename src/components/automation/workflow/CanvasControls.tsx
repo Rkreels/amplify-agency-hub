@@ -54,28 +54,38 @@ export function CanvasControls({
             <div className="flex flex-col space-y-2 bg-white p-2 rounded-lg shadow-lg border">
               {/* Zoom controls */}
               <div className="flex space-x-2">
-                <Tooltip content="Zoom out">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 bg-white"
-                    onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 bg-white"
+                      onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Zoom out</p>
+                  </TooltipContent>
                 </Tooltip>
                 <span className="px-2 py-1 bg-white border rounded text-sm min-w-[60px] text-center">
                   {Math.round(zoom * 100)}%
                 </span>
-                <Tooltip content="Zoom in">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 bg-white"
-                    onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 bg-white"
+                      onClick={() => setZoom(Math.min(3, zoom + 0.1))}
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Zoom in</p>
+                  </TooltipContent>
                 </Tooltip>
               </div>
               
@@ -163,18 +173,23 @@ export function CanvasControls({
             {expanded ? "Hide Controls" : "Show Controls"}
           </Button>
           
-          <Tooltip content="Reset view">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 w-8 p-0 bg-white"
-              onClick={() => {
-                setZoom(1);
-                setCanvasOffset({ x: 0, y: 0 });
-              }}
-            >
-              <Move className="h-4 w-4" />
-            </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-8 p-0 bg-white"
+                onClick={() => {
+                  setZoom(1);
+                  setCanvasOffset({ x: 0, y: 0 });
+                }}
+              >
+                <Move className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reset view</p>
+            </TooltipContent>
           </Tooltip>
         </div>
       </div>

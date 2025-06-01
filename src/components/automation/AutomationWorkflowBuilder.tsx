@@ -42,8 +42,8 @@ import {
   MoveVertical,
   MoveHorizontal,
   CornerUpLeft,
-  SidebarRight,
-  SidebarLeft
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import { TriggerConfigModal } from './TriggerConfigModal';
@@ -430,9 +430,9 @@ export function AutomationWorkflowBuilder() {
           className="absolute -left-3 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full border shadow-sm bg-white z-10"
         >
           {sidebarOpen ? (
-            <SidebarRight className="h-3 w-3" />
+            <ChevronRightIcon className="h-3 w-3" />
           ) : (
-            <SidebarLeft className="h-3 w-3" />
+            <ChevronLeft className="h-3 w-3" />
           )}
         </Button>
 
@@ -448,7 +448,7 @@ export function AutomationWorkflowBuilder() {
           
           {sidebarOpen && (
             <ActionsPanel 
-              actionTypes={actionTypes} 
+              actionTypes={actionTypes}
               draggedAction={draggedAction}
               handleDragStart={handleDragStart}
               handleDragEnd={handleDragEnd}
