@@ -327,8 +327,8 @@ export function EnhancedWorkflowBuilder() {
             onNodeMouseDown={handleNodeMouseDown}
             onConnectionStart={connectionSystem.handleConnectionStart}
             onConnectionEnd={connectionSystem.handleConnectionEnd}
-            onHoverHandle={connectionSystem.setHoveredHandle}
-            onHoverLeave={() => connectionSystem.setHoveredHandle(null)}
+            onHoverHandle={connectionSystem.handleHoverHandle}
+            onHoverLeave={connectionSystem.handleHoverLeave}
             openConfigModal={openConfigModal}
             duplicateNode={duplicateNode}
             deleteNode={deleteNode}

@@ -184,6 +184,20 @@ export const useSmoothConnection = ({
     }
   }, [isConnecting]);
 
+  // Create a helper function for setting hovered handle that matches the expected signature
+  const handleHoverHandle = useCallback((
+    nodeId: string,
+    handleId: string,
+    type: 'input' | 'output'
+  ) => {
+    const point = getConnectionPoint(nodeId, handleId, type);
+    setHoveredHandle(point);
+  }, [getConnectionPoint]);
+
+  const handleHoverLeave = useCallback(() => {
+    setHoveredHandle(null);
+  }, []);
+
   // Render existing connections
   const renderConnections = useCallback(() => {
     return connections.map(connection => {
@@ -224,7 +238,8 @@ export const useSmoothConnection = ({
     handleMouseMove,
     handleConnectionEnd,
     handleMouseUp,
-    setHoveredHandle,
+    handleHoverHandle,
+    handleHoverLeave,
     renderConnections,
     calculateSmoothPath
   };
