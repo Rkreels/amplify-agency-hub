@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { WorkflowNode, WorkflowConnection, useWorkflowStore } from '@/store/useWorkflowStore';
 import { Card } from '@/components/ui/card';
@@ -20,7 +19,7 @@ import {
 
 import { EnhancedNodeRenderer } from './workflow/EnhancedNodeRenderer';
 import { SmoothConnectionRenderer } from './workflow/SmoothConnectionRenderer';
-import { SmoothConnectionSystem } from './workflow/SmoothConnectionSystem';
+import { useSmoothConnection } from './workflow/useSmoothConnection';
 import { CanvasControls } from './workflow/CanvasControls';
 import { MiniMap } from './workflow/MiniMap';
 import { WorkflowValidationStatus } from './workflow/WorkflowValidationStatus';
@@ -61,7 +60,7 @@ export function EnhancedWorkflowBuilder() {
   const GRID_SIZE = 20;
 
   // Initialize smooth connection system
-  const connectionSystem = SmoothConnectionSystem({
+  const connectionSystem = useSmoothConnection({
     nodes: currentWorkflow?.nodes || [],
     connections: currentWorkflow?.connections || [],
     onConnectionCreate: addConnection,
