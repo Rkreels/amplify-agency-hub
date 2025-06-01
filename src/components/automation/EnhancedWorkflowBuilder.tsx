@@ -17,7 +17,14 @@ import {
   CheckCircle,
   Clock,
   GitBranch,
-  Target
+  Target,
+  Mail,
+  MessageSquare,
+  Tag,
+  User,
+  DollarSign,
+  Users,
+  Filter
 } from 'lucide-react';
 import { useWorkflowStore, WorkflowNode, WorkflowConnection } from '@/store/useWorkflowStore';
 
@@ -28,6 +35,39 @@ interface ConnectionPath {
   targetX: number;
   targetY: number;
 }
+
+// Icon mapping for safe rendering
+const getIconComponent = (nodeId: string) => {
+  const actionType = nodeId.split('-')[0];
+  
+  switch (actionType) {
+    case 'trigger':
+      return Zap;
+    case 'send_email':
+    case 'send-email':
+      return Mail;
+    case 'send_sms':
+    case 'send-sms':
+      return MessageSquare;
+    case 'add_contact_tag':
+    case 'add-contact-tag':
+      return Tag;
+    case 'assign_user':
+    case 'assign-user':
+      return User;
+    case 'create_opportunity':
+    case 'create-opportunity':
+      return DollarSign;
+    case 'wait':
+      return Clock;
+    case 'condition':
+      return Filter;
+    case 'decision':
+      return GitBranch;
+    default:
+      return Settings;
+  }
+};
 
 export function EnhancedWorkflowBuilder() {
   const {
@@ -221,7 +261,7 @@ export function EnhancedWorkflowBuilder() {
 
   // Render workflow node
   const renderNode = useCallback((node: WorkflowNode) => {
-    const Icon = node.data.icon;
+    const IconComponent = getIconComponent(node.id);
     const isSelected = selectedNode === node.id;
     const isConfigured = node.data.isConfigured;
     const validation = useWorkflowStore.getState().validateNode(node.id);
@@ -247,7 +287,7 @@ export function EnhancedWorkflowBuilder() {
           }`}>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <div className={`p-2 rounded-full ${isConfigured ? 'bg-green-100' : 'bg-orange-100'}`}>
-                <Icon className={`h-5 w-5 ${isConfigured ? 'text-green-600' : 'text-orange-600'}`} />
+                <IconComponent className={`h-5 w-5 ${isConfigured ? 'text-green-600' : 'text-orange-600'}`} />
               </div>
               {!validation.isValid && <AlertCircle className="h-4 w-4 text-red-500" />}
             </div>
@@ -279,7 +319,7 @@ export function EnhancedWorkflowBuilder() {
           }`}>
             <div className="flex items-center space-x-2 mb-2">
               <div className={`p-1 rounded ${isConfigured ? 'bg-green-100' : 'bg-gray-100'}`}>
-                <Icon className={`h-4 w-4 ${isConfigured ? 'text-green-600' : 'text-gray-500'}`} />
+                <IconComponent className={`h-4 w-4 ${isConfigured ? 'text-green-600' : 'text-gray-500'}`} />
               </div>
               <span className="text-sm font-medium truncate flex-1">{node.data.label}</span>
               {!validation.isValid && <AlertCircle className="h-3 w-3 text-red-500" />}
