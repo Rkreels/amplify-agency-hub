@@ -8,27 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWorkflowStore, WorkflowNode, ActionConfig } from '@/store/useWorkflowStore';
 import { toast } from 'sonner';
-import { 
-  Mail, 
-  MessageSquare, 
-  Bell, 
-  Eye, 
-  Tag, 
-  User, 
-  UserMinus, 
-  FileText, 
-  Phone, 
-  Target, 
-  DollarSign, 
-  Workflow, 
-  Users, 
-  Calendar, 
-  Clock, 
-  GitBranch 
-} from 'lucide-react';
 
 interface ActionConfigModalProps {
   isOpen: boolean;
@@ -40,7 +21,10 @@ export function ActionConfigModal({ isOpen, onClose, node }: ActionConfigModalPr
   const { updateNode } = useWorkflowStore();
   const [actionName, setActionName] = useState('');
   const [settings, setSettings] = useState<Record<string, any>>({});
-  const [delay, setDelay] = useState({ amount: 0, unit: 'minutes' as const });
+  const [delay, setDelay] = useState<{ amount: number; unit: 'minutes' | 'hours' | 'days' }>({ 
+    amount: 0, 
+    unit: 'minutes' 
+  });
 
   useEffect(() => {
     if (node) {
