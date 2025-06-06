@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,9 @@ import {
   MoveHorizontal,
   CornerUpLeft,
   ChevronLeft,
-  ChevronRight as ChevronRightIcon
+  ChevronRight as ChevronRightIcon,
+  Webhook,
+  Layout
 } from 'lucide-react';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import { TriggerConfigModal } from './TriggerConfigModal';
@@ -54,6 +55,12 @@ import { ActionsPanel } from './workflow/ActionsPanel';
 import { WorkflowSettings } from './workflow/WorkflowSettings';
 import { WorkflowAnalytics } from './workflow/WorkflowAnalytics';
 import { WorkflowHistory } from './workflow/WorkflowHistory';
+import { IntegrationSystem } from './workflow/IntegrationSystem';
+import { AnalyticsDashboard } from './workflow/AnalyticsDashboard';
+import { EmailSequenceBuilder } from './workflow/EmailSequenceBuilder';
+import { LeadScoringEngine } from './workflow/LeadScoringEngine';
+import { GoalTrackingSystem } from './workflow/GoalTrackingSystem';
+import { FunnelPageBuilder } from './workflow/FunnelPageBuilder';
 
 interface ActionType {
   id: string;
@@ -361,10 +368,10 @@ export function AutomationWorkflowBuilder() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Enhanced Tab Navigation */}
         <div className="bg-white border-b">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-transparent border-b-0 h-12">
+            <TabsList className="grid w-full grid-cols-8 bg-transparent border-b-0 h-12">
               <TabsTrigger 
                 value="builder" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
@@ -373,11 +380,11 @@ export function AutomationWorkflowBuilder() {
                 Builder
               </TabsTrigger>
               <TabsTrigger 
-                value="settings" 
+                value="integrations" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
               >
-                <Settings2 className="h-4 w-4 mr-2" />
-                Settings
+                <Webhook className="h-4 w-4 mr-2" />
+                Integrations
               </TabsTrigger>
               <TabsTrigger 
                 value="analytics" 
@@ -387,11 +394,39 @@ export function AutomationWorkflowBuilder() {
                 Analytics
               </TabsTrigger>
               <TabsTrigger 
-                value="history" 
+                value="email-sequences" 
                 className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
               >
-                <History className="h-4 w-4 mr-2" />
-                History
+                <Mail className="h-4 w-4 mr-2" />
+                Email Sequences
+              </TabsTrigger>
+              <TabsTrigger 
+                value="lead-scoring" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
+                <Target className="h-4 w-4 mr-2" />
+                Lead Scoring
+              </TabsTrigger>
+              <TabsTrigger 
+                value="goals" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
+                <Target className="h-4 w-4 mr-2" />
+                Goals
+              </TabsTrigger>
+              <TabsTrigger 
+                value="funnel-builder" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
+                <Layout className="h-4 w-4 mr-2" />
+                Funnel Builder
+              </TabsTrigger>
+              <TabsTrigger 
+                value="settings" 
+                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
+              >
+                <Settings2 className="h-4 w-4 mr-2" />
+                Settings
               </TabsTrigger>
             </TabsList>
             
@@ -404,17 +439,33 @@ export function AutomationWorkflowBuilder() {
                 <EnhancedWorkflowBuilder />
               </div>
             </TabsContent>
+
+            <TabsContent value="integrations" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
+              <IntegrationSystem />
+            </TabsContent>
+            
+            <TabsContent value="analytics" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
+              <AnalyticsDashboard />
+            </TabsContent>
+
+            <TabsContent value="email-sequences" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
+              <EmailSequenceBuilder />
+            </TabsContent>
+
+            <TabsContent value="lead-scoring" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
+              <LeadScoringEngine />
+            </TabsContent>
+
+            <TabsContent value="goals" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
+              <GoalTrackingSystem />
+            </TabsContent>
+
+            <TabsContent value="funnel-builder" className="mt-0 h-[calc(100vh-140px)]">
+              <FunnelPageBuilder />
+            </TabsContent>
             
             <TabsContent value="settings" className="mt-0 p-6">
               <WorkflowSettings />
-            </TabsContent>
-            
-            <TabsContent value="analytics" className="mt-0 p-6">
-              <WorkflowAnalytics />
-            </TabsContent>
-            
-            <TabsContent value="history" className="mt-0 p-6">
-              <WorkflowHistory />
             </TabsContent>
           </Tabs>
         </div>
