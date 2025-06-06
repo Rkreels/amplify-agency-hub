@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -37,6 +36,12 @@ const navigation = [
   { name: "App Marketplace", href: "/app-marketplace", icon: Store },
   { name: "Mobile App", href: "/mobile-app", icon: Smartphone },
   { name: "Settings", href: "/settings", icon: Settings },
+  {
+    name: "Messaging",
+    href: "/messaging",
+    icon: MessageSquare,
+    current: location.pathname === "/messaging",
+  },
 ];
 
 export function Sidebar() {
