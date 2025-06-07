@@ -1,191 +1,390 @@
 
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Globe, Plus, ExternalLink, Code, Settings, Edit, Eye, Zap } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VisualPageBuilder } from "@/components/sites/VisualPageBuilder";
 import { useSitesStore } from "@/store/useSitesStore";
-import { SiteForm } from "@/components/sites/SiteForm";
-import { SiteDetails } from "@/components/sites/SiteDetails";
-import { ConditionalVisibilitySystem } from "@/components/sites/ConditionalVisibilitySystem";
-import { format } from "date-fns";
-import { Input } from "@/components/ui/input";
+import { 
+  Plus, 
+  Globe, 
+  Edit, 
+  Eye, 
+  Copy, 
+  Trash2, 
+  BarChart3,
+  Settings,
+  Layout,
+  Palette,
+  Code
+} from "lucide-react";
+import { toast } from "sonner";
 
 export default function Sites() {
-  const { sites, setSelectedSite } = useSitesStore();
-  const [showNewSiteDialog, setShowNewSiteDialog] = useState(false);
-  const [showSiteDetails, setShowSiteDetails] = useState(false);
-  const [showConditionalVisibility, setShowConditionalVisibility] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("sites");
-  
-  const filteredSites = searchQuery
-    ? sites.filter(site => 
-        site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        site.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        site.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : sites;
-  
-  const handleViewSite = (siteId: string) => {
-    const site = sites.find(s => s.id === siteId);
-    if (site) {
-      setSelectedSite(site);
-      setShowSiteDetails(true);
+  const { sites, addSite, deleteSite, publishSite, unpublishSite } = useSitesStore();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedSite, setSelectedSite] = useState<string | null>(null);
+  const [showPageBuilder, setShowPageBuilder] = useState(false);
+
+  const handleCreateSite = () => {
+    const newSite = {
+      name: `New Site ${sites.length + 1}`,
+      url: `site-${Date.now()}.yourdomain.com`,
+      status: 'draft' as const,
+      type: 'landing' as const,
+      pages: [{
+        id: `page-${Date.now()}`,
+        title: "Home",
+        slug: "/",
+        isPublished: false
+      }],
+      description: "New landing page"
+    };
+
+    addSite(newSite);
+    toast.success("New site created");
+  };
+
+  const handleEditSite = (siteId: string) => {
+    setSelectedSite(siteId);
+    setShowPageBuilder(true);
+  };
+
+  const handleDeleteSite = (siteId: string) => {
+    deleteSite(siteId);
+    toast.success("Site deleted");
+  };
+
+  const handleTogglePublish = (siteId: string, isPublished: boolean) => {
+    if (isPublished) {
+      unpublishSite(siteId);
+      toast.success("Site unpublished");
+    } else {
+      publishSite(siteId);
+      toast.success("Site published");
     }
   };
 
+  if (showPageBuilder) {
+    return (
+      <div className="h-screen flex flex-col">
+        <div className="bg-white border-b p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPageBuilder(false)}
+            >
+              ← Back to Sites
+            </Button>
+            <h1 className="text-xl font-semibold">Visual Page Builder</h1>
+          </div>
+        </div>
+        <div className="flex-1">
+          <VisualPageBuilder />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AppLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Sites & Funnels</h1>
-          <p className="text-muted-foreground">
-            Manage your websites, landing pages, funnels, and dynamic interactions
-          </p>
-        </div>
-        <Dialog open={showNewSiteDialog} onOpenChange={setShowNewSiteDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Site
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Create New Site</DialogTitle>
-            </DialogHeader>
-            <SiteForm onComplete={() => setShowNewSiteDialog(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="sites">
-            <Globe className="h-4 w-4 mr-2" />
-            Sites & Pages
-          </TabsTrigger>
-          <TabsTrigger value="interactions">
-            <Zap className="h-4 w-4 mr-2" />
-            Dynamic Interactions
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="sites" className="space-y-6">
-          <div className="mb-6">
-            <Input 
-              placeholder="Search sites..." 
-              className="max-w-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Sites & Funnels</h1>
+            <p className="text-gray-600">Create and manage your websites, landing pages, and sales funnels</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSites.map((site) => (
-              <Card key={site.id}>
-                <CardHeader>
+          <Button onClick={handleCreateSite}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Site
+          </Button>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="domains">Domains</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <Badge
-                      variant={site.status === "published" ? "default" : "outline"}
-                      className="mb-2"
-                    >
-                      {site.status === "published" ? "Published" : "Draft"}
-                    </Badge>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <CardTitle>{site.name}</CardTitle>
-                  <CardDescription className="flex items-center">
-                    <Globe className="h-3.5 w-3.5 mr-1" />
-                    {site.url}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-muted/50 rounded-md p-3">
-                      <div className="text-2xl font-medium">{site.visitors}</div>
-                      <div className="text-xs text-muted-foreground">Visitors</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Sites</p>
+                      <p className="text-2xl font-bold">{sites.length}</p>
                     </div>
-                    <div className="bg-muted/50 rounded-md p-3">
-                      <div className="text-2xl font-medium">{site.pages.length}</div>
-                      <div className="text-xs text-muted-foreground">Pages</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <span>Last updated {format(new Date(site.lastUpdated), 'MMM d')}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={() => handleViewSite(site.id)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Visit
-                    </Button>
-                  </div>
-                  <div className="mt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => setShowConditionalVisibility(true)}
-                    >
-                      <Zap className="h-4 w-4 mr-2" />
-                      Setup Interactions
-                    </Button>
+                    <Globe className="h-8 w-8 text-blue-600" />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-            
-            <Card className="border-dashed flex flex-col items-center justify-center p-6">
-              <div className="rounded-full bg-primary/10 p-3 mb-4">
-                <Plus className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium text-lg mb-2">Create New Site</h3>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                Create a website, landing page, or funnel
-              </p>
-              <div className="flex gap-2">
-                <Button onClick={() => setShowNewSiteDialog(true)}>Get Started</Button>
-                <Button variant="outline">
-                  <Code className="h-4 w-4 mr-2" />
-                  Import
-                </Button>
-              </div>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Published</p>
+                      <p className="text-2xl font-bold">
+                        {sites.filter(s => s.status === 'published').length}
+                      </p>
+                    </div>
+                    <Eye className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Visitors</p>
+                      <p className="text-2xl font-bold">
+                        {sites.reduce((sum, site) => sum + site.visitors, 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <BarChart3 className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                      <p className="text-2xl font-bold">12.5%</p>
+                    </div>
+                    <Palette className="h-8 w-8 text-orange-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sites Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sites.map((site) => (
+                <Card key={site.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{site.name}</CardTitle>
+                      <Badge
+                        variant={site.status === 'published' ? 'default' : 'secondary'}
+                      >
+                        {site.status}
+                      </Badge>
+                    </div>
+                    <CardDescription>{site.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Visitors:</span>
+                        <span className="font-medium">{site.visitors.toLocaleString()}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Pages:</span>
+                        <span className="font-medium">{site.pages.length}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Type:</span>
+                        <Badge variant="outline" className="text-xs">
+                          {site.type}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">URL:</span>
+                        <span className="font-mono text-xs truncate max-w-[120px]">
+                          {site.url}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditSite(site.id)}
+                          className="flex-1"
+                        >
+                          <Layout className="h-4 w-4 mr-1" />
+                          Builder
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(`https://${site.url}`, '_blank')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleTogglePublish(site.id, site.status === 'published')}
+                        >
+                          {site.status === 'published' ? <Palette className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteSite(site.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Create New Site Card */}
+              <Card 
+                className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2"
+                onClick={handleCreateSite}
+              >
+                <CardContent className="flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
+                  <Plus className="h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">Create New Site</h3>
+                  <p className="text-sm text-gray-500">
+                    Start with a template or build from scratch
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="templates" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Site Templates</CardTitle>
+                <CardDescription>Choose from professionally designed templates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[
+                    { name: 'Lead Generation', category: 'Landing Page', preview: '/api/placeholder/300/200' },
+                    { name: 'Product Launch', category: 'Sales Funnel', preview: '/api/placeholder/300/200' },
+                    { name: 'Service Business', category: 'Website', preview: '/api/placeholder/300/200' },
+                    { name: 'E-commerce', category: 'Online Store', preview: '/api/placeholder/300/200' },
+                    { name: 'Portfolio', category: 'Personal', preview: '/api/placeholder/300/200' },
+                    { name: 'Event Registration', category: 'Landing Page', preview: '/api/placeholder/300/200' }
+                  ].map((template, index) => (
+                    <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="aspect-video bg-gray-200 rounded-lg mb-3"></div>
+                        <h3 className="font-medium">{template.name}</h3>
+                        <p className="text-sm text-gray-600">{template.category}</p>
+                        <Button size="sm" className="w-full mt-3">
+                          Use Template
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
             </Card>
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="interactions" className="space-y-6">
-          <ConditionalVisibilitySystem />
-        </TabsContent>
-      </Tabs>
-      
-      <Dialog open={showSiteDetails} onOpenChange={setShowSiteDetails}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Site Details</DialogTitle>
-          </DialogHeader>
-          <SiteDetails onClose={() => setShowSiteDetails(false)} />
-        </DialogContent>
-      </Dialog>
+          <TabsContent value="analytics" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Site Analytics</CardTitle>
+                <CardDescription>Track performance across all your sites</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">24.5K</div>
+                      <div className="text-sm text-gray-600">Total Page Views</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">1,247</div>
+                      <div className="text-sm text-gray-600">Conversions</div>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">12.5%</div>
+                      <div className="text-sm text-gray-600">Conversion Rate</div>
+                    </div>
+                  </div>
 
-      <Dialog open={showConditionalVisibility} onOpenChange={setShowConditionalVisibility}>
-        <DialogContent className="sm:max-w-[1200px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Dynamic Interactions</DialogTitle>
-          </DialogHeader>
-          <ConditionalVisibilitySystem />
-        </DialogContent>
-      </Dialog>
+                  <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500">Analytics chart would go here</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="domains" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Domain Management</CardTitle>
+                <CardDescription>Manage custom domains for your sites</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Custom Domain
+                  </Button>
+                  
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">yourdomain.com</h4>
+                        <p className="text-sm text-gray-600">Connected to Main Site</p>
+                      </div>
+                      <Badge>Active</Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Site Settings</CardTitle>
+                <CardDescription>Configure global settings for all sites</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">SEO Settings</h4>
+                    <p className="text-sm text-gray-600">Configure default SEO settings for new sites</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Analytics Integration</h4>
+                    <p className="text-sm text-gray-600">Connect Google Analytics and other tracking tools</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Custom Code</h4>
+                    <p className="text-sm text-gray-600">Add custom CSS/JS to all sites</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </AppLayout>
   );
 }
