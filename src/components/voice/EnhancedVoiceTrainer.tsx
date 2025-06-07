@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,11 +20,37 @@ import {
   Zap
 } from 'lucide-react';
 
+// Declare Speech Recognition interfaces for TypeScript
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+}
+
+interface SpeechRecognitionStatic {
+  new (): SpeechRecognition;
+}
+
 // Extend the Window interface to include Speech Recognition
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: SpeechRecognitionStatic;
+    webkitSpeechRecognition: SpeechRecognitionStatic;
   }
 }
 
@@ -58,45 +83,6 @@ export function EnhancedVoiceTrainer() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
 
-  const trainingModules: TrainingModule[] = [
-    {
-      id: 'dashboard-basics',
-      title: 'Dashboard Navigation',
-      description: 'Learn to navigate the main dashboard using voice commands',
-      status: 'active',
-      progress: 65,
-      duration: 300,
-      voice_guide: 'Welcome to dashboard navigation training. Say "show dashboard" to begin.'
-    },
-    {
-      id: 'contacts-management',
-      title: 'Contact Management',
-      description: 'Master contact creation, editing, and organization with voice',
-      status: 'pending',
-      progress: 0,
-      duration: 450,
-      voice_guide: 'Learn to manage contacts efficiently. Say "create contact" to start adding new contacts.'
-    },
-    {
-      id: 'workflow-automation',
-      title: 'Workflow Builder',
-      description: 'Build automation workflows using voice commands',
-      status: 'pending',
-      progress: 0,
-      duration: 600,
-      voice_guide: 'Master workflow automation. Say "create workflow" to begin building your first automation.'
-    },
-    {
-      id: 'marketing-campaigns',
-      title: 'Marketing Campaigns',
-      description: 'Create and manage marketing campaigns with voice control',
-      status: 'pending',
-      progress: 0,
-      duration: 420,
-      voice_guide: 'Learn campaign management. Say "new campaign" to create your first marketing campaign.'
-    }
-  ];
-
   // Initialize speech recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -108,7 +94,7 @@ export function EnhancedVoiceTrainer() {
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         let final_transcript = '';
         let interim_transcript = '';
 
@@ -126,7 +112,7 @@ export function EnhancedVoiceTrainer() {
         setTranscript(final_transcript + interim_transcript);
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
         toast.error('Voice recognition error. Please try again.');
         setIsListening(false);
@@ -290,6 +276,46 @@ export function EnhancedVoiceTrainer() {
     `;
     speak(helpText);
   };
+
+  // Training Modules
+  const trainingModules: TrainingModule[] = [
+    {
+      id: 'dashboard-basics',
+      title: 'Dashboard Navigation',
+      description: 'Learn to navigate the main dashboard using voice commands',
+      status: 'active',
+      progress: 65,
+      duration: 300,
+      voice_guide: 'Welcome to dashboard navigation training. Say "show dashboard" to begin.'
+    },
+    {
+      id: 'contacts-management',
+      title: 'Contact Management',
+      description: 'Master contact creation, editing, and organization with voice',
+      status: 'pending',
+      progress: 0,
+      duration: 450,
+      voice_guide: 'Learn to manage contacts efficiently. Say "create contact" to start adding new contacts.'
+    },
+    {
+      id: 'workflow-automation',
+      title: 'Workflow Builder',
+      description: 'Build automation workflows using voice commands',
+      status: 'pending',
+      progress: 0,
+      duration: 600,
+      voice_guide: 'Master workflow automation. Say "create workflow" to begin building your first automation.'
+    },
+    {
+      id: 'marketing-campaigns',
+      title: 'Marketing Campaigns',
+      description: 'Create and manage marketing campaigns with voice control',
+      status: 'pending',
+      progress: 0,
+      duration: 420,
+      voice_guide: 'Learn campaign management. Say "new campaign" to create your first marketing campaign.'
+    }
+  ];
 
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
