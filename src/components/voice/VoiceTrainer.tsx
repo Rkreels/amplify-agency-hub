@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { EnhancedVoiceTrainer } from './EnhancedVoiceTrainer';
+import { ComprehensiveVoiceTraining } from './ComprehensiveVoiceTraining';
 
 export function VoiceTrainer() {
-  return <EnhancedVoiceTrainer />;
+  return <ComprehensiveVoiceTraining />;
 }

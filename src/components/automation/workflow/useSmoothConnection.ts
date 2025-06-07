@@ -1,26 +1,17 @@
 
-import { useCallback, useState } from 'react';
-import { WorkflowNode, WorkflowConnection } from '@/store/useWorkflowStore';
-
-interface ConnectionPoint {
-  x: number;
-  y: number;
-  nodeId: string;
-  handleId: string;
-  type: 'input' | 'output';
-}
+import { useState, useCallback, useRef } from 'react';
 
 interface UseSmoothConnectionProps {
-  nodes: WorkflowNode[];
-  connections: WorkflowConnection[];
-  onConnectionCreate: (connection: WorkflowConnection) => void;
+  nodes: any[];
+  connections: any[];
+  onConnectionCreate: (connection: any) => void;
   onConnectionDelete: (connectionId: string) => void;
   canvasRef: React.RefObject<HTMLDivElement>;
   zoom: number;
   canvasOffset: { x: number; y: number };
 }
 
-export const useSmoothConnection = ({
+export function useSmoothConnection({
   nodes,
   connections,
   onConnectionCreate,
@@ -28,219 +19,123 @@ export const useSmoothConnection = ({
   canvasRef,
   zoom,
   canvasOffset
-}: UseSmoothConnectionProps) => {
+}: UseSmoothConnectionProps) {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionStart, setConnectionStart] = useState<ConnectionPoint | null>(null);
-  const [connectionEnd, setConnectionEnd] = useState<{ x: number; y: number } | null>(null);
-  const [hoveredHandle, setHoveredHandle] = useState<ConnectionPoint | null>(null);
-  const [previewPath, setPreviewPath] = useState<string>('');
+  const [connectionStart, setConnectionStart] = useState<{
+    nodeId: string;
+    handleId: string;
+    type: 'input' | 'output';
+  } | null>(null);
+  const [hoveredHandle, setHoveredHandle] = useState<{
+    nodeId: string;
+    handleId: string;
+    type: 'input' | 'output';
+  } | null>(null);
+  const [previewPath, setPreviewPath] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  // Calculate smooth bezier curve
   const calculateSmoothPath = useCallback((
-    startX: number, 
-    startY: number, 
-    endX: number, 
-    endY: number,
-    startType: 'input' | 'output' = 'output'
-  ): string => {
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
+    x1: number, 
+    y1: number, 
+    x2: number, 
+    y2: number, 
+    type: 'input' | 'output'
+  ) => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const offsetY = Math.abs(dy) * 0.3;
     
-    // Control points for smooth S-curve
-    const controlOffset = Math.min(Math.max(Math.abs(deltaY) * 0.5, 50), 200);
+    const cp1x = x1;
+    const cp1y = y1 + offsetY;
+    const cp2x = x2;
+    const cp2y = y2 - offsetY;
     
-    let cp1X, cp1Y, cp2X, cp2Y;
-    
-    if (startType === 'output') {
-      // Output handle - curve downward
-      cp1X = startX;
-      cp1Y = startY + controlOffset;
-      cp2X = endX;
-      cp2Y = endY - controlOffset;
-    } else {
-      // Input handle - curve upward
-      cp1X = startX;
-      cp1Y = startY - controlOffset;
-      cp2X = endX;
-      cp2Y = endY + controlOffset;
-    }
-    
-    return `M ${startX},${startY} C ${cp1X},${cp1Y} ${cp2X},${cp2Y} ${endX},${endY}`;
+    return `M ${x1} ${y1} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${x2} ${y2}`;
   }, []);
 
-  // Get connection point for a node handle
-  const getConnectionPoint = useCallback((
-    nodeId: string, 
-    handleId: string, 
-    type: 'input' | 'output'
-  ): ConnectionPoint | null => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return null;
-
-    const nodeWidth = 200;
-    const nodeHeight = node.type === 'trigger' ? 100 : 80;
-    
-    let x = node.position.x + nodeWidth / 2;
-    let y: number;
-    
-    if (type === 'output') {
-      y = node.position.y + nodeHeight + 2;
-      
-      // Adjust for condition node handles
-      if (node.type === 'condition') {
-        if (handleId === 'true') {
-          x = node.position.x + nodeWidth / 4;
-        } else if (handleId === 'false') {
-          x = node.position.x + (3 * nodeWidth) / 4;
-        }
-      }
-    } else {
-      y = node.position.y - 2;
-    }
-    
-    return { x, y, nodeId, handleId, type };
-  }, [nodes]);
-
-  // Handle connection start
   const handleConnectionStart = useCallback((
     nodeId: string, 
     handleId: string, 
-    type: 'input' | 'output',
-    event: React.MouseEvent
+    type: 'input' | 'output', 
+    e: React.MouseEvent
   ) => {
-    event.stopPropagation();
-    
-    const point = getConnectionPoint(nodeId, handleId, type);
-    if (!point) return;
-    
+    e.stopPropagation();
     setIsConnecting(true);
-    setConnectionStart(point);
-    setConnectionEnd({ x: point.x, y: point.y });
-  }, [getConnectionPoint]);
+    setConnectionStart({ nodeId, handleId, type });
+  }, []);
 
-  // Handle mouse move during connection
-  const handleMouseMove = useCallback((event: React.MouseEvent) => {
-    if (!isConnecting || !connectionStart || !canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (event.clientX - rect.left - canvasOffset.x) / zoom;
-    const y = (event.clientY - rect.top - canvasOffset.y) / zoom;
-    
-    setConnectionEnd({ x, y });
-    
-    // Calculate preview path
-    const path = calculateSmoothPath(
-      connectionStart.x,
-      connectionStart.y,
-      x,
-      y,
-      connectionStart.type
-    );
-    setPreviewPath(path);
-  }, [isConnecting, connectionStart, canvasRef, canvasOffset, zoom, calculateSmoothPath]);
-
-  // Handle connection end
   const handleConnectionEnd = useCallback((
-    nodeId: string,
-    handleId: string,
+    nodeId: string, 
+    handleId: string, 
     type: 'input' | 'output'
   ) => {
-    if (!isConnecting || !connectionStart) return;
-    
-    // Prevent self-connection
-    if (connectionStart.nodeId === nodeId) {
-      setIsConnecting(false);
-      setConnectionStart(null);
-      setConnectionEnd(null);
-      setPreviewPath('');
-      return;
+    if (connectionStart && connectionStart.nodeId !== nodeId) {
+      const newConnection = {
+        id: `connection-${Date.now()}`,
+        source: connectionStart.type === 'output' ? connectionStart.nodeId : nodeId,
+        target: connectionStart.type === 'output' ? nodeId : connectionStart.nodeId,
+        sourceHandle: connectionStart.type === 'output' ? connectionStart.handleId : handleId,
+        targetHandle: connectionStart.type === 'output' ? handleId : connectionStart.handleId
+      };
+      
+      onConnectionCreate(newConnection);
     }
     
-    // Create connection
-    const newConnection: WorkflowConnection = {
-      id: `${connectionStart.nodeId}-${nodeId}-${Date.now()}`,
-      source: connectionStart.nodeId,
-      target: nodeId,
-      sourceHandle: connectionStart.handleId,
-      targetHandle: handleId
-    };
-    
-    onConnectionCreate(newConnection);
-    
-    // Reset state
     setIsConnecting(false);
     setConnectionStart(null);
-    setConnectionEnd(null);
-    setPreviewPath('');
-  }, [isConnecting, connectionStart, onConnectionCreate]);
+    setPreviewPath(null);
+  }, [connectionStart, onConnectionCreate]);
 
-  // Handle mouse up to cancel connection
-  const handleMouseUp = useCallback(() => {
-    if (isConnecting) {
-      setIsConnecting(false);
-      setConnectionStart(null);
-      setConnectionEnd(null);
-      setPreviewPath('');
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = (e.clientX - rect.left - canvasOffset.x) / zoom;
+    const mouseY = (e.clientY - rect.top - canvasOffset.y) / zoom;
+    setMousePosition({ x: mouseX, y: mouseY });
+
+    if (isConnecting && connectionStart) {
+      const sourceNode = nodes.find(n => n.id === connectionStart.nodeId);
+      if (sourceNode) {
+        const sourceX = sourceNode.position.x + 100;
+        const sourceY = sourceNode.position.y + (connectionStart.type === 'output' ? 80 : 0);
+        
+        const path = calculateSmoothPath(sourceX, sourceY, mouseX, mouseY, 'output');
+        setPreviewPath(path);
+      }
     }
-  }, [isConnecting]);
+  }, [isConnecting, connectionStart, nodes, canvasRef, zoom, canvasOffset, calculateSmoothPath]);
 
-  // Create a helper function for setting hovered handle that matches the expected signature
+  const handleMouseUp = useCallback(() => {
+    setIsConnecting(false);
+    setConnectionStart(null);
+    setPreviewPath(null);
+  }, []);
+
   const handleHoverHandle = useCallback((
-    nodeId: string,
-    handleId: string,
+    nodeId: string, 
+    handleId: string, 
     type: 'input' | 'output'
   ) => {
-    const point = getConnectionPoint(nodeId, handleId, type);
-    setHoveredHandle(point);
-  }, [getConnectionPoint]);
+    setHoveredHandle({ nodeId, handleId, type });
+  }, []);
 
   const handleHoverLeave = useCallback(() => {
     setHoveredHandle(null);
   }, []);
 
-  // Render existing connections
-  const renderConnections = useCallback(() => {
-    return connections.map(connection => {
-      const sourcePoint = getConnectionPoint(connection.source, connection.sourceHandle || 'output', 'output');
-      const targetPoint = getConnectionPoint(connection.target, connection.targetHandle || 'input', 'input');
-      
-      if (!sourcePoint || !targetPoint) return null;
-      
-      const path = calculateSmoothPath(
-        sourcePoint.x,
-        sourcePoint.y,
-        targetPoint.x,
-        targetPoint.y,
-        'output'
-      );
-      
-      const strokeColor = connection.sourceHandle === 'true' ? '#10b981' :
-                         connection.sourceHandle === 'false' ? '#ef4444' : '#6b7280';
-      
-      return {
-        id: connection.id,
-        path,
-        strokeColor,
-        connection,
-        sourcePoint,
-        targetPoint
-      };
-    }).filter(Boolean);
-  }, [connections, getConnectionPoint, calculateSmoothPath]);
-
   return {
     isConnecting,
     connectionStart,
-    connectionEnd,
     hoveredHandle,
     previewPath,
+    mousePosition,
+    calculateSmoothPath,
     handleConnectionStart,
-    handleMouseMove,
     handleConnectionEnd,
+    handleMouseMove,
     handleMouseUp,
     handleHoverHandle,
-    handleHoverLeave,
-    renderConnections,
-    calculateSmoothPath
+    handleHoverLeave
   };
-};
+}

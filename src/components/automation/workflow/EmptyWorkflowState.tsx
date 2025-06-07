@@ -1,47 +1,54 @@
 
-import { Zap } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Zap, PlayCircle, FileText } from 'lucide-react';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
-import { toast } from 'sonner';
 
 export function EmptyWorkflowState() {
-  const { addNode, openConfigModal } = useWorkflowStore();
-  
-  const addTrigger = () => {
-    const newNode = {
-      id: `trigger-${Date.now()}`,
-      type: 'trigger' as const,
-      position: { x: 400, y: 200 },
-      data: {
-        label: 'New Trigger',
-        icon: Zap,
-        isConfigured: false,
-        handles: {
-          source: ['default'],
-          target: []
-        }
-      }
-    };
-    addNode(newNode);
-    setTimeout(() => openConfigModal(newNode), 100);
-    toast.success('Trigger added to workflow');
+  const { createNewWorkflow } = useWorkflowStore();
+
+  const handleCreateWorkflow = () => {
+    createNewWorkflow({
+      name: 'New Workflow',
+      description: 'A new automation workflow',
+      isActive: false
+    });
   };
-  
+
   return (
-    <div className="flex flex-col items-center justify-center h-full pointer-events-none">
-      <div 
-        className="bg-white border-2 border-dashed border-orange-400 rounded-lg p-8 cursor-pointer hover:border-orange-500 transition-colors hover:shadow-lg pointer-events-auto"
-        onClick={addTrigger}
-      >
-        <div className="text-center">
-          <Zap className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-          <div className="text-gray-600 text-xl font-medium">
-            Add Workflow Trigger
+    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
+      <Card className="max-w-md mx-auto">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Zap className="h-8 w-8 text-blue-600" />
           </div>
-          <div className="text-gray-400 text-sm mt-2">
-            Every workflow starts with a trigger that determines when it will run
+          
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Create Your First Workflow
+          </h3>
+          
+          <p className="text-gray-600 mb-6">
+            Build powerful automation workflows to streamline your business processes.
+          </p>
+          
+          <div className="space-y-3">
+            <Button onClick={handleCreateWorkflow} className="w-full">
+              <PlayCircle className="h-4 w-4 mr-2" />
+              Create New Workflow
+            </Button>
+            
+            <Button variant="outline" className="w-full">
+              <FileText className="h-4 w-4 mr-2" />
+              View Templates
+            </Button>
           </div>
-        </div>
-      </div>
+          
+          <div className="mt-6 text-xs text-gray-500">
+            Start with triggers, add actions, and connect them to create powerful automations.
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
