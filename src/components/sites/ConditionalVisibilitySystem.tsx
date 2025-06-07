@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,7 +96,7 @@ export function ConditionalVisibilitySystem() {
 
   const [newRule, setNewRule] = useState<Partial<ConditionalRule>>({
     trigger: { type: 'click' },
-    action: { type: 'show', animation: 'fade', duration: 300 },
+    action: { type: 'show', targetElementId: '', animation: 'fade', duration: 300 },
     isActive: true
   });
 
@@ -141,7 +142,7 @@ export function ConditionalVisibilitySystem() {
     setRules([...rules, rule]);
     setNewRule({
       trigger: { type: 'click' },
-      action: { type: 'show', animation: 'fade', duration: 300 },
+      action: { type: 'show', targetElementId: '', animation: 'fade', duration: 300 },
       isActive: true
     });
     toast.success('Conditional rule created successfully');
@@ -304,7 +305,7 @@ export function ConditionalVisibilitySystem() {
                   value={newRule.action?.type}
                   onValueChange={(value) => setNewRule({
                     ...newRule,
-                    action: { ...newRule.action, type: value as any }
+                    action: { ...newRule.action, type: value as any, targetElementId: newRule.action?.targetElementId || '' }
                   })}
                 >
                   <SelectTrigger>
@@ -326,7 +327,7 @@ export function ConditionalVisibilitySystem() {
                   value={newRule.action?.targetElementId}
                   onValueChange={(value) => setNewRule({
                     ...newRule,
-                    action: { ...newRule.action, targetElementId: value }
+                    action: { ...newRule.action, targetElementId: value, type: newRule.action?.type || 'show' }
                   })}
                 >
                   <SelectTrigger>
@@ -350,7 +351,7 @@ export function ConditionalVisibilitySystem() {
                   value={newRule.action?.animation}
                   onValueChange={(value) => setNewRule({
                     ...newRule,
-                    action: { ...newRule.action, animation: value as any }
+                    action: { ...newRule.action, animation: value as any, type: newRule.action?.type || 'show', targetElementId: newRule.action?.targetElementId || '' }
                   })}
                 >
                   <SelectTrigger>
@@ -373,7 +374,7 @@ export function ConditionalVisibilitySystem() {
                   value={newRule.action?.duration || ''}
                   onChange={(e) => setNewRule({
                     ...newRule,
-                    action: { ...newRule.action, duration: parseInt(e.target.value) }
+                    action: { ...newRule.action, duration: parseInt(e.target.value), type: newRule.action?.type || 'show', targetElementId: newRule.action?.targetElementId || '' }
                   })}
                   placeholder="300"
                 />
