@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,14 @@ import {
   Headphones,
   Brain,
   BookOpen,
-  Navigation
+  Navigation,
+  Phone,
+  Star,
+  Mail,
+  Users,
+  BarChart3,
+  Settings,
+  Building
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,7 +33,7 @@ interface TrainingModule {
   description: string;
   duration: number;
   steps: TrainingStep[];
-  category: 'navigation' | 'contacts' | 'automation' | 'marketing' | 'calendars' | 'messaging' | 'sites' | 'crm';
+  category: 'navigation' | 'contacts' | 'automation' | 'marketing' | 'calendars' | 'messaging' | 'sites' | 'crm' | 'phone' | 'reputation' | 'email' | 'social' | 'reporting' | 'memberships' | 'agency' | 'integrations';
 }
 
 interface TrainingStep {
@@ -80,57 +86,214 @@ export function VoiceTrainer() {
       ]
     },
     {
-      id: 'contacts',
-      title: 'Contact Management',
-      description: 'Master contact creation, management, and advanced custom fields',
-      duration: 600,
-      category: 'contacts',
+      id: 'phone-system',
+      title: 'Phone System & Call Management',
+      description: 'Master inbound/outbound calls, voicemail, call routing, and IVR systems',
+      duration: 900,
+      category: 'phone',
       steps: [
         {
-          id: 'contact-1',
-          instruction: 'Navigate to Contacts section to manage your leads and customers.',
-          audioText: 'Now let us explore the Contacts section. This is where you manage all your leads, prospects, and customers. Click on Contacts in the sidebar to begin.',
-          duration: 8,
-          target: '[href="/contacts"]'
+          id: 'phone-1',
+          instruction: 'Access the Phone System for complete call management.',
+          audioText: 'The Phone System is your communication headquarters. Here you can make calls, manage voicemails, set up call routing, and track all call analytics. This system handles both inbound and outbound calls with advanced features like call recording and transcription.',
+          duration: 12,
+          target: '[href="/phone"]'
         },
         {
-          id: 'contact-2',
-          instruction: 'Click Add Contact to create a new contact with custom fields.',
-          audioText: 'To add a new contact, click the Add Contact button. You can capture detailed information including custom fields specific to your business needs.',
+          id: 'phone-2',
+          instruction: 'Use the Quick Dialer to make outbound calls.',
+          audioText: 'The Quick Dialer allows you to make calls instantly. Select your business phone number, enter the contact number, and click Call Now. All calls are automatically recorded and logged for future reference.',
           duration: 10,
-          target: 'button:contains("Add Contact")'
-        }
-      ]
-    },
-    {
-      id: 'automation',
-      title: 'Automation Workflows',
-      description: 'Build powerful automation workflows with triggers and actions',
-      duration: 900,
-      category: 'automation',
-      steps: [
+          target: '.quick-dialer'
+        },
         {
-          id: 'auto-1',
-          instruction: 'Access the Automation section to create powerful workflows.',
-          audioText: 'Automation is the heart of GoHighLevel. Here you can create sophisticated workflows that automatically handle lead nurturing, follow-ups, and customer communications.',
+          id: 'phone-3',
+          instruction: 'Manage voicemails and voicemail drops.',
+          audioText: 'Voicemail management includes both received voicemails and voicemail drops. Voicemail drops are pre-recorded messages you can leave instantly without waiting for voicemail prompts.',
           duration: 12,
-          target: '[href="/automation"]'
+          target: '.voicemail-section'
         }
       ]
     },
     {
-      id: 'messaging',
-      title: 'SMS & A2P Compliance',
-      description: 'Learn SMS campaigns and A2P 10DLC compliance setup',
-      duration: 450,
-      category: 'messaging',
+      id: 'reputation',
+      title: 'Review & Reputation Management',
+      description: 'Monitor reviews, respond to customers, and manage your online reputation',
+      duration: 720,
+      category: 'reputation',
       steps: [
         {
-          id: 'msg-1',
-          instruction: 'Navigate to Messaging for SMS campaigns and compliance.',
-          audioText: 'The Messaging section handles all your SMS communications. This includes campaign creation, automation, and importantly, A2P 10DLC compliance to ensure your messages are delivered.',
+          id: 'rep-1',
+          instruction: 'Navigate to Reputation Management to monitor your online reviews.',
+          audioText: 'Reputation Management helps you monitor and respond to reviews across Google, Facebook, Yelp, and other platforms. Maintaining a good online reputation is crucial for business success.',
+          duration: 10,
+          target: '[href="/reputation"]'
+        },
+        {
+          id: 'rep-2',
+          instruction: 'Respond to customer reviews professionally.',
+          audioText: 'When responding to reviews, always be professional and grateful. For positive reviews, thank the customer. For negative reviews, apologize, address concerns, and offer to resolve issues offline.',
           duration: 15,
-          target: '[href="/messaging"]'
+          target: '.review-response'
+        },
+        {
+          id: 'rep-3',
+          instruction: 'Set up automated review request campaigns.',
+          audioText: 'Automated review requests help you consistently gather feedback from satisfied customers. Set up triggers based on completed services or positive interactions.',
+          duration: 12,
+          target: '.review-campaigns'
+        }
+      ]
+    },
+    {
+      id: 'email-marketing',
+      title: 'Advanced Email Marketing',
+      description: 'Create email campaigns, build templates, and track performance with A/B testing',
+      duration: 1200,
+      category: 'email',
+      steps: [
+        {
+          id: 'email-1',
+          instruction: 'Access Email Marketing for advanced campaign management.',
+          audioText: 'Email Marketing provides comprehensive tools for creating, sending, and analyzing email campaigns. You can build custom templates, set up automated sequences, and track detailed analytics.',
+          duration: 10,
+          target: '[href="/email-marketing"]'
+        },
+        {
+          id: 'email-2',
+          instruction: 'Use the drag-and-drop email builder.',
+          audioText: 'The email builder offers drag-and-drop functionality to create professional emails. Add headers, text blocks, images, and buttons. Customize colors, fonts, and spacing to match your brand.',
+          duration: 15,
+          target: '.email-builder'
+        },
+        {
+          id: 'email-3',
+          instruction: 'Set up A/B testing for optimization.',
+          audioText: 'A/B testing allows you to test different subject lines, content, and send times. Split your audience and compare performance metrics to optimize your campaigns.',
+          duration: 12,
+          target: '.ab-testing'
+        }
+      ]
+    },
+    {
+      id: 'social-media',
+      title: 'Social Media Management',
+      description: 'Schedule posts, monitor engagement, and manage multiple social platforms',
+      duration: 840,
+      category: 'social',
+      steps: [
+        {
+          id: 'social-1',
+          instruction: 'Navigate to Social Media Management.',
+          audioText: 'Social Media Management lets you schedule posts across Facebook, Instagram, Twitter, and LinkedIn from one dashboard. Monitor engagement, track analytics, and respond to comments.',
+          duration: 12,
+          target: '[href="/social-media"]'
+        },
+        {
+          id: 'social-2',
+          instruction: 'Create and schedule multi-platform posts.',
+          audioText: 'The post composer allows you to create content for multiple platforms simultaneously. Customize content for each platform, add images or videos, and schedule for optimal posting times.',
+          duration: 15,
+          target: '.post-composer'
+        },
+        {
+          id: 'social-3',
+          instruction: 'Monitor brand mentions and engagement.',
+          audioText: 'Brand monitoring tracks mentions of your business across social platforms. Respond promptly to comments and messages to maintain good customer relationships.',
+          duration: 10,
+          target: '.social-monitoring'
+        }
+      ]
+    },
+    {
+      id: 'advanced-reporting',
+      title: 'Advanced Reporting & Analytics',
+      description: 'Build custom reports, track ROI, and analyze business performance',
+      duration: 960,
+      category: 'reporting',
+      steps: [
+        {
+          id: 'report-1',
+          instruction: 'Access Advanced Reporting for detailed analytics.',
+          audioText: 'Advanced Reporting provides comprehensive analytics across all business activities. Create custom reports, track ROI, monitor conversion funnels, and analyze customer behavior.',
+          duration: 12,
+          target: '[href="/advanced-reporting"]'
+        },
+        {
+          id: 'report-2',
+          instruction: 'Build custom reports with drag-and-drop builder.',
+          audioText: 'The custom report builder lets you select specific metrics, date ranges, and visualization types. Drag and drop elements to create reports tailored to your business needs.',
+          duration: 15,
+          target: '.report-builder'
+        }
+      ]
+    },
+    {
+      id: 'memberships',
+      title: 'Membership & Course Management',
+      description: 'Create courses, manage memberships, and track student progress',
+      duration: 1080,
+      category: 'memberships',
+      steps: [
+        {
+          id: 'member-1',
+          instruction: 'Navigate to Membership Management.',
+          audioText: 'Membership Management allows you to create online courses, manage member access, set up content dripping, and track student progress through your educational content.',
+          duration: 12,
+          target: '[href="/memberships"]'
+        },
+        {
+          id: 'member-2',
+          instruction: 'Create course content with dripping.',
+          audioText: 'Content dripping releases course materials gradually over time. This keeps students engaged and prevents them from rushing through content. Set up lessons, modules, and assignments.',
+          duration: 15,
+          target: '.course-builder'
+        }
+      ]
+    },
+    {
+      id: 'agency',
+      title: 'Agency Management',
+      description: 'Manage sub-accounts, white-label features, and client billing',
+      duration: 1200,
+      category: 'agency',
+      steps: [
+        {
+          id: 'agency-1',
+          instruction: 'Access Agency Management for multi-client operations.',
+          audioText: 'Agency Management provides tools for managing multiple client accounts. Create sub-accounts, customize white-label branding, manage client billing, and provide client access to their data.',
+          duration: 15,
+          target: '[href="/agency"]'
+        },
+        {
+          id: 'agency-2',
+          instruction: 'Set up white-label branding.',
+          audioText: 'White-label branding allows you to customize the platform with your agency branding. Upload your logo, set brand colors, and customize the domain to match your agency identity.',
+          duration: 12,
+          target: '.white-label'
+        }
+      ]
+    },
+    {
+      id: 'integrations',
+      title: 'Advanced Integrations',
+      description: 'Set up webhooks, API connections, and third-party integrations',
+      duration: 900,
+      category: 'integrations',
+      steps: [
+        {
+          id: 'int-1',
+          instruction: 'Navigate to Advanced Integrations.',
+          audioText: 'Advanced Integrations connect your business with external tools and services. Set up webhooks, manage API connections, configure Zapier automations, and create custom integrations.',
+          duration: 12,
+          target: '[href="/integrations"]'
+        },
+        {
+          id: 'int-2',
+          instruction: 'Configure webhook endpoints.',
+          audioText: 'Webhooks send real-time data to external systems when specific events occur. Configure endpoints for form submissions, contact updates, payment processing, and other triggers.',
+          duration: 15,
+          target: '.webhook-config'
         }
       ]
     }
@@ -270,6 +433,21 @@ export function VoiceTrainer() {
     }
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'navigation': return <Navigation className="h-5 w-5" />;
+      case 'phone': return <Phone className="h-5 w-5" />;
+      case 'reputation': return <Star className="h-5 w-5" />;
+      case 'email': return <Mail className="h-5 w-5" />;
+      case 'social': return <Users className="h-5 w-5" />;
+      case 'reporting': return <BarChart3 className="h-5 w-5" />;
+      case 'memberships': return <BookOpen className="h-5 w-5" />;
+      case 'agency': return <Building className="h-5 w-5" />;
+      case 'integrations': return <Settings className="h-5 w-5" />;
+      default: return <Brain className="h-5 w-5" />;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -399,10 +577,7 @@ export function VoiceTrainer() {
           <Card key={module.id} className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {module.category === 'navigation' && <Navigation className="h-5 w-5" />}
-                {module.category === 'contacts' && <Brain className="h-5 w-5" />}
-                {module.category === 'automation' && <BookOpen className="h-5 w-5" />}
-                {module.category === 'messaging' && <Mic className="h-5 w-5" />}
+                {getCategoryIcon(module.category)}
                 {module.title}
               </CardTitle>
             </CardHeader>

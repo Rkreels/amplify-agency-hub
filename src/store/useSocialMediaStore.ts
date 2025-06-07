@@ -4,192 +4,165 @@ import { create } from 'zustand';
 export interface SocialPost {
   id: string;
   content: string;
-  media: {
-    type: 'image' | 'video' | 'carousel';
-    urls: string[];
-    alt?: string;
-  }[];
-  platforms: ('facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube' | 'tiktok')[];
+  platforms: string[];
   status: 'draft' | 'scheduled' | 'published' | 'failed';
-  scheduledAt?: Date;
-  publishedAt?: Date;
-  engagement: {
+  scheduledDate: Date;
+  publishedDate?: Date;
+  mediaUrls?: string[];
+  analytics?: {
     likes: number;
     comments: number;
     shares: number;
-    views: number;
+    reach: number;
     clicks: number;
   };
-  hashtags: string[];
-  mentions: string[];
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface SocialAccount {
   id: string;
-  platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube' | 'tiktok';
+  platform: string;
   username: string;
   displayName: string;
-  avatar: string;
-  followers: number;
   isConnected: boolean;
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: Date;
-}
-
-export interface SocialCalendar {
-  date: string;
-  posts: SocialPost[];
+  followers: number;
+  avatar?: string;
 }
 
 export interface SocialAnalytics {
   platform: string;
-  period: 'week' | 'month' | 'quarter' | 'year';
+  period: string;
   metrics: {
-    followers: { current: number; change: number };
-    engagement: { current: number; change: number };
-    reach: { current: number; change: number };
-    impressions: { current: number; change: number };
-    clicks: { current: number; change: number };
-  };
-  topPosts: SocialPost[];
-  demographics: {
-    age: Record<string, number>;
-    gender: Record<string, number>;
-    location: Record<string, number>;
+    followers: number;
+    engagement: number;
+    reach: number;
+    impressions: number;
   };
 }
 
 interface SocialMediaStore {
   posts: SocialPost[];
   accounts: SocialAccount[];
-  calendar: SocialCalendar[];
   analytics: SocialAnalytics[];
   selectedPost: SocialPost | null;
-  contentQueue: SocialPost[];
   setSelectedPost: (post: SocialPost | null) => void;
-  addPost: (post: Omit<SocialPost, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  schedulePost: (post: Omit<SocialPost, 'id' | 'createdAt'>) => void;
+  publishPost: (postId: string) => void;
   updatePost: (id: string, updates: Partial<SocialPost>) => void;
   deletePost: (id: string) => void;
-  schedulePost: (id: string, scheduledAt: Date) => void;
-  publishPost: (id: string) => void;
-  duplicatePost: (id: string) => void;
-  addAccount: (account: Omit<SocialAccount, 'id'>) => void;
-  updateAccount: (id: string, updates: Partial<SocialAccount>) => void;
-  disconnectAccount: (id: string) => void;
-  bulkSchedule: (postIds: string[], dates: Date[]) => void;
-  getPostsByPlatform: (platform: string) => SocialPost[];
-  getScheduledPosts: () => SocialPost[];
+  connectAccount: (account: Omit<SocialAccount, 'id'>) => void;
+  disconnectAccount: (accountId: string) => void;
 }
+
+const mockPosts: SocialPost[] = [
+  {
+    id: '1',
+    content: 'Exciting news! We just launched our new feature that will help you boost your productivity by 50%. Check it out! #productivity #newfeature',
+    platforms: ['facebook', 'twitter', 'linkedin'],
+    status: 'published',
+    scheduledDate: new Date('2025-01-05T10:00:00'),
+    publishedDate: new Date('2025-01-05T10:00:00'),
+    analytics: {
+      likes: 142,
+      comments: 23,
+      shares: 18,
+      reach: 3240,
+      clicks: 156
+    },
+    createdAt: new Date('2025-01-05T09:30:00')
+  },
+  {
+    id: '2',
+    content: 'Behind the scenes: Our team working hard to bring you the best customer experience. We appreciate your feedback! 💪',
+    platforms: ['instagram', 'facebook'],
+    status: 'scheduled',
+    scheduledDate: new Date('2025-01-08T14:00:00'),
+    createdAt: new Date('2025-01-06T11:00:00')
+  },
+  {
+    id: '3',
+    content: 'Monday motivation: Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill',
+    platforms: ['linkedin', 'twitter'],
+    status: 'draft',
+    scheduledDate: new Date('2025-01-09T09:00:00'),
+    createdAt: new Date('2025-01-06T16:00:00')
+  }
+];
 
 const mockAccounts: SocialAccount[] = [
   {
     id: '1',
     platform: 'facebook',
     username: 'company.page',
-    displayName: 'Company Page',
-    avatar: '/placeholder.svg',
-    followers: 12450,
+    displayName: 'Company Name',
     isConnected: true,
+    followers: 12540
   },
   {
     id: '2',
     platform: 'instagram',
     username: 'company_official',
     displayName: 'Company Official',
-    avatar: '/placeholder.svg',
-    followers: 8932,
     isConnected: true,
+    followers: 8932
   },
   {
     id: '3',
     platform: 'twitter',
-    username: 'company',
-    displayName: 'Company',
-    avatar: '/placeholder.svg',
-    followers: 5621,
+    username: 'company_inc',
+    displayName: 'Company Inc',
     isConnected: true,
+    followers: 5421
   },
   {
     id: '4',
     platform: 'linkedin',
-    username: 'company',
-    displayName: 'Company',
-    avatar: '/placeholder.svg',
-    followers: 3487,
-    isConnected: false,
-  }
-];
-
-const mockPosts: SocialPost[] = [
-  {
-    id: '1',
-    content: 'Excited to announce our new product launch! 🚀 #innovation #tech',
-    media: [
-      {
-        type: 'image',
-        urls: ['/placeholder.svg']
-      }
-    ],
-    platforms: ['facebook', 'instagram', 'twitter'],
-    status: 'published',
-    publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    engagement: {
-      likes: 234,
-      comments: 45,
-      shares: 67,
-      views: 2890,
-      clicks: 123
-    },
-    hashtags: ['innovation', 'tech'],
-    mentions: [],
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '2',
-    content: 'Behind the scenes at our office! Check out our amazing team working on the next big thing.',
-    media: [
-      {
-        type: 'video',
-        urls: ['/placeholder.svg']
-      }
-    ],
-    platforms: ['instagram', 'facebook'],
-    status: 'scheduled',
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    engagement: {
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      views: 0,
-      clicks: 0
-    },
-    hashtags: ['behindthescenes', 'team'],
-    mentions: [],
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    username: 'company-name',
+    displayName: 'Company Name',
+    isConnected: true,
+    followers: 3876
   }
 ];
 
 const mockAnalytics: SocialAnalytics[] = [
   {
     platform: 'facebook',
-    period: 'month',
+    period: 'last_30_days',
     metrics: {
-      followers: { current: 12450, change: 234 },
-      engagement: { current: 4.2, change: 0.3 },
-      reach: { current: 45678, change: 2341 },
-      impressions: { current: 123456, change: 5678 },
-      clicks: { current: 2345, change: 123 }
-    },
-    topPosts: [mockPosts[0]],
-    demographics: {
-      age: { '18-24': 25, '25-34': 35, '35-44': 22, '45+': 18 },
-      gender: { 'male': 52, 'female': 48 },
-      location: { 'US': 60, 'UK': 15, 'Canada': 10, 'Other': 15 }
+      followers: 12540,
+      engagement: 8.2,
+      reach: 45000,
+      impressions: 67000
+    }
+  },
+  {
+    platform: 'instagram',
+    period: 'last_30_days',
+    metrics: {
+      followers: 8932,
+      engagement: 12.5,
+      reach: 32000,
+      impressions: 48000
+    }
+  },
+  {
+    platform: 'twitter',
+    period: 'last_30_days',
+    metrics: {
+      followers: 5421,
+      engagement: 6.8,
+      reach: 18000,
+      impressions: 25000
+    }
+  },
+  {
+    platform: 'linkedin',
+    period: 'last_30_days',
+    metrics: {
+      followers: 3876,
+      engagement: 15.2,
+      reach: 12000,
+      impressions: 18000
     }
   }
 ];
@@ -197,25 +170,30 @@ const mockAnalytics: SocialAnalytics[] = [
 export const useSocialMediaStore = create<SocialMediaStore>((set, get) => ({
   posts: mockPosts,
   accounts: mockAccounts,
-  calendar: [],
   analytics: mockAnalytics,
   selectedPost: null,
-  contentQueue: [],
 
   setSelectedPost: (post) => set({ selectedPost: post }),
 
-  addPost: (post) => set((state) => ({
+  schedulePost: (post) => set((state) => ({
     posts: [...state.posts, {
       ...post,
       id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date()
     }]
+  })),
+
+  publishPost: (postId) => set((state) => ({
+    posts: state.posts.map(post =>
+      post.id === postId 
+        ? { ...post, status: 'published', publishedDate: new Date() }
+        : post
+    )
   })),
 
   updatePost: (id, updates) => set((state) => ({
     posts: state.posts.map(post =>
-      post.id === id ? { ...post, ...updates, updatedAt: new Date() } : post
+      post.id === id ? { ...post, ...updates } : post
     )
   })),
 
@@ -223,85 +201,18 @@ export const useSocialMediaStore = create<SocialMediaStore>((set, get) => ({
     posts: state.posts.filter(post => post.id !== id)
   })),
 
-  schedulePost: (id, scheduledAt) => set((state) => ({
-    posts: state.posts.map(post =>
-      post.id === id 
-        ? { ...post, status: 'scheduled', scheduledAt, updatedAt: new Date() }
-        : post
-    )
+  connectAccount: (account) => set((state) => ({
+    accounts: [...state.accounts, {
+      ...account,
+      id: Date.now().toString()
+    }]
   })),
 
-  publishPost: (id) => set((state) => ({
-    posts: state.posts.map(post =>
-      post.id === id 
-        ? { ...post, status: 'published', publishedAt: new Date(), updatedAt: new Date() }
-        : post
-    )
-  })),
-
-  duplicatePost: (id) => set((state) => {
-    const post = state.posts.find(p => p.id === id);
-    if (!post) return state;
-
-    const duplicated = {
-      ...post,
-      id: Date.now().toString(),
-      content: `${post.content} (Copy)`,
-      status: 'draft' as const,
-      engagement: {
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        views: 0,
-        clicks: 0
-      },
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    return {
-      posts: [...state.posts, duplicated]
-    };
-  }),
-
-  addAccount: (account) => set((state) => ({
-    accounts: [...state.accounts, { ...account, id: Date.now().toString() }]
-  })),
-
-  updateAccount: (id, updates) => set((state) => ({
+  disconnectAccount: (accountId) => set((state) => ({
     accounts: state.accounts.map(account =>
-      account.id === id ? { ...account, ...updates } : account
+      account.id === accountId 
+        ? { ...account, isConnected: false }
+        : account
     )
-  })),
-
-  disconnectAccount: (id) => set((state) => ({
-    accounts: state.accounts.map(account =>
-      account.id === id ? { ...account, isConnected: false } : account
-    )
-  })),
-
-  bulkSchedule: (postIds, dates) => set((state) => ({
-    posts: state.posts.map(post => {
-      const index = postIds.indexOf(post.id);
-      if (index !== -1 && dates[index]) {
-        return {
-          ...post,
-          status: 'scheduled',
-          scheduledAt: dates[index],
-          updatedAt: new Date()
-        };
-      }
-      return post;
-    })
-  })),
-
-  getPostsByPlatform: (platform) => {
-    const { posts } = get();
-    return posts.filter(post => post.platforms.includes(platform as any));
-  },
-
-  getScheduledPosts: () => {
-    const { posts } = get();
-    return posts.filter(post => post.status === 'scheduled');
-  }
+  }))
 }));

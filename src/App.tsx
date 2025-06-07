@@ -31,6 +31,10 @@ import Settings from "./pages/Settings";
 import AIFeatures from "./pages/AIFeatures";
 import Messaging from "@/pages/Messaging";
 import Integrations from "@/pages/Integrations";
+import PhoneSystem from "@/pages/PhoneSystem";
+import ReputationManagement from "@/pages/ReputationManagement";
+import EmailMarketing from "@/pages/EmailMarketing";
+import SocialMedia from "@/pages/SocialMedia";
 
 function App() {
   return (
@@ -54,10 +58,14 @@ function App() {
             <Route path="/payments" element={<Payments />} />
             <Route path="/marketing" element={<Marketing />} />
             <Route path="/marketing/sms-campaigns" element={<SmsCampaigns />} />
+            <Route path="/email-marketing" element={<EmailMarketing />} />
             <Route path="/automation" element={<Automation />} />
             <Route path="/automation/sms" element={<SmsAutomations />} />
             <Route path="/automation/builder" element={<AutomationBuilder />} />
             <Route path="/sites" element={<Sites />} />
+            <Route path="/phone-system" element={<PhoneSystem />} />
+            <Route path="/reputation-management" element={<ReputationManagement />} />
+            <Route path="/social-media" element={<SocialMedia />} />
             <Route path="/memberships" element={<Memberships />} />
             <Route path="/reputation" element={<Reputation />} />
             <Route path="/reporting" element={<Reporting />} />
