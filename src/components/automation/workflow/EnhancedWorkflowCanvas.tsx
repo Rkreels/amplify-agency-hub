@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ interface WorkflowNode {
   position: { x: number; y: number };
   data: {
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: string; // Store icon name as string instead of component
     config: Record<string, any>;
     isConfigured: boolean;
   };
@@ -44,32 +43,50 @@ interface WorkflowConnection {
   targetHandle?: string;
 }
 
+// Icon mapping
+const iconMap = {
+  FileText,
+  Tag,
+  Calendar,
+  Zap,
+  Mail,
+  MessageSquare,
+  Users,
+  GitBranch,
+  Clock,
+  Target,
+  Phone,
+  DollarSign,
+  BarChart3,
+  Settings
+};
+
 const nodeTypes = [
   {
     category: 'Triggers',
     items: [
-      { type: 'form_submit', label: 'Form Submitted', icon: FileText, color: 'bg-green-100 border-green-300' },
-      { type: 'tag_added', label: 'Tag Added', icon: Tag, color: 'bg-blue-100 border-blue-300' },
-      { type: 'date_time', label: 'Date/Time', icon: Calendar, color: 'bg-purple-100 border-purple-300' },
-      { type: 'webhook', label: 'Webhook', icon: Zap, color: 'bg-yellow-100 border-yellow-300' }
+      { type: 'form_submit', label: 'Form Submitted', icon: 'FileText', color: 'bg-green-100 border-green-300' },
+      { type: 'tag_added', label: 'Tag Added', icon: 'Tag', color: 'bg-blue-100 border-blue-300' },
+      { type: 'date_time', label: 'Date/Time', icon: 'Calendar', color: 'bg-purple-100 border-purple-300' },
+      { type: 'webhook', label: 'Webhook', icon: 'Zap', color: 'bg-yellow-100 border-yellow-300' }
     ]
   },
   {
     category: 'Actions',
     items: [
-      { type: 'send_email', label: 'Send Email', icon: Mail, color: 'bg-red-100 border-red-300' },
-      { type: 'send_sms', label: 'Send SMS', icon: MessageSquare, color: 'bg-green-100 border-green-300' },
-      { type: 'add_tag', label: 'Add Tag', icon: Tag, color: 'bg-blue-100 border-blue-300' },
-      { type: 'create_task', label: 'Create Task', icon: FileText, color: 'bg-orange-100 border-orange-300' },
-      { type: 'update_contact', label: 'Update Contact', icon: Users, color: 'bg-teal-100 border-teal-300' }
+      { type: 'send_email', label: 'Send Email', icon: 'Mail', color: 'bg-red-100 border-red-300' },
+      { type: 'send_sms', label: 'Send SMS', icon: 'MessageSquare', color: 'bg-green-100 border-green-300' },
+      { type: 'add_tag', label: 'Add Tag', icon: 'Tag', color: 'bg-blue-100 border-blue-300' },
+      { type: 'create_task', label: 'Create Task', icon: 'FileText', color: 'bg-orange-100 border-orange-300' },
+      { type: 'update_contact', label: 'Update Contact', icon: 'Users', color: 'bg-teal-100 border-teal-300' }
     ]
   },
   {
     category: 'Logic',
     items: [
-      { type: 'if_else', label: 'If/Else', icon: GitBranch, color: 'bg-purple-100 border-purple-300' },
-      { type: 'delay', label: 'Wait/Delay', icon: Clock, color: 'bg-gray-100 border-gray-300' },
-      { type: 'goal', label: 'Goal', icon: Target, color: 'bg-green-100 border-green-300' }
+      { type: 'if_else', label: 'If/Else', icon: 'GitBranch', color: 'bg-purple-100 border-purple-300' },
+      { type: 'delay', label: 'Wait/Delay', icon: 'Clock', color: 'bg-gray-100 border-gray-300' },
+      { type: 'goal', label: 'Goal', icon: 'Target', color: 'bg-green-100 border-green-300' }
     ]
   }
 ];
@@ -93,7 +110,7 @@ export function EnhancedWorkflowCanvas() {
       position,
       data: {
         label: nodeType.label,
-        icon: nodeType.icon,
+        icon: nodeType.icon, // Store icon name as string
         config: {},
         isConfigured: false
       }
@@ -199,7 +216,7 @@ export function EnhancedWorkflowCanvas() {
               <h4 className="text-sm font-medium text-gray-600 mb-3">{category.category}</h4>
               <div className="space-y-2">
                 {category.items.map((item) => {
-                  const IconComponent = item.icon;
+                  const IconComponent = iconMap[item.icon as keyof typeof iconMap];
                   return (
                     <div
                       key={item.type}
@@ -283,7 +300,7 @@ export function EnhancedWorkflowCanvas() {
 
           {/* Render Nodes */}
           {nodes.map((node) => {
-            const IconComponent = node.data.icon;
+            const IconComponent = iconMap[node.data.icon as keyof typeof iconMap];
             return (
               <div
                 key={node.id}
