@@ -143,14 +143,14 @@ export function VoiceTrainer() {
       const availableVoices = synthRef.current?.getVoices() || [];
       setVoices(availableVoices);
       
-      // Prefer female voices
+      // Prefer female voices by name patterns
       const femaleVoice = availableVoices.find(voice => 
         voice.name.toLowerCase().includes('female') || 
         voice.name.toLowerCase().includes('woman') ||
         voice.name.toLowerCase().includes('sarah') ||
         voice.name.toLowerCase().includes('samantha') ||
         voice.name.toLowerCase().includes('karen')
-      ) || availableVoices.find(voice => voice.gender === 'female') || availableVoices[0];
+      ) || availableVoices[0];
       
       setSelectedVoice(femaleVoice);
     };
