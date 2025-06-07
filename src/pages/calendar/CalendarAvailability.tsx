@@ -42,13 +42,24 @@ export default function CalendarAvailability() {
   };
   
   const timeOptions = [
-    { value: "", label: "Closed" },
     { value: "08:00 AM", label: "8:00 AM" },
     { value: "08:30 AM", label: "8:30 AM" },
     { value: "09:00 AM", label: "9:00 AM" },
     { value: "09:30 AM", label: "9:30 AM" },
     { value: "10:00 AM", label: "10:00 AM" },
-    // ... more time options
+    { value: "10:30 AM", label: "10:30 AM" },
+    { value: "11:00 AM", label: "11:00 AM" },
+    { value: "11:30 AM", label: "11:30 AM" },
+    { value: "12:00 PM", label: "12:00 PM" },
+    { value: "12:30 PM", label: "12:30 PM" },
+    { value: "01:00 PM", label: "1:00 PM" },
+    { value: "01:30 PM", label: "1:30 PM" },
+    { value: "02:00 PM", label: "2:00 PM" },
+    { value: "02:30 PM", label: "2:30 PM" },
+    { value: "03:00 PM", label: "3:00 PM" },
+    { value: "03:30 PM", label: "3:30 PM" },
+    { value: "04:00 PM", label: "4:00 PM" },
+    { value: "04:30 PM", label: "4:30 PM" },
     { value: "05:00 PM", label: "5:00 PM" },
     { value: "05:30 PM", label: "5:30 PM" },
     { value: "06:00 PM", label: "6:00 PM" },
@@ -111,7 +122,7 @@ export default function CalendarAvailability() {
                               <SelectValue placeholder="Start time" />
                             </SelectTrigger>
                             <SelectContent>
-                              {timeOptions.slice(0, -1).map((option) => (
+                              {timeOptions.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -126,7 +137,7 @@ export default function CalendarAvailability() {
                               <SelectValue placeholder="End time" />
                             </SelectTrigger>
                             <SelectContent>
-                              {timeOptions.slice(1).map((option) => (
+                              {timeOptions.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                               ))}
                             </SelectContent>
