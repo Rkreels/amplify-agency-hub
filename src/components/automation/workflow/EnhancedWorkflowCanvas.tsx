@@ -30,7 +30,7 @@ interface WorkflowNode {
   position: { x: number; y: number };
   data: {
     label: string;
-    icon: React.ComponentType;
+    icon: React.ComponentType<{ className?: string }>;
     config: Record<string, any>;
     isConfigured: boolean;
   };
@@ -199,7 +199,7 @@ export function EnhancedWorkflowCanvas() {
               <h4 className="text-sm font-medium text-gray-600 mb-3">{category.category}</h4>
               <div className="space-y-2">
                 {category.items.map((item) => {
-                  const Icon = item.icon;
+                  const IconComponent = item.icon;
                   return (
                     <div
                       key={item.type}
@@ -210,7 +210,7 @@ export function EnhancedWorkflowCanvas() {
                       }}
                     >
                       <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
+                        <IconComponent className="h-4 w-4" />
                         <span className="text-sm font-medium">{item.label}</span>
                       </div>
                     </div>
@@ -283,7 +283,7 @@ export function EnhancedWorkflowCanvas() {
 
           {/* Render Nodes */}
           {nodes.map((node) => {
-            const Icon = node.data.icon;
+            const IconComponent = node.data.icon;
             return (
               <div
                 key={node.id}
@@ -326,7 +326,7 @@ export function EnhancedWorkflowCanvas() {
                 <Card className="border-0 shadow-none">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Icon className="h-4 w-4" />
+                      <IconComponent className="h-4 w-4" />
                       <span className="font-medium text-sm">{node.data.label}</span>
                       {!node.data.isConfigured && (
                         <Badge variant="outline" className="text-xs">
