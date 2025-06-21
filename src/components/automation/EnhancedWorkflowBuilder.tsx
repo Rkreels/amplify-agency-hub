@@ -36,7 +36,8 @@ export function EnhancedWorkflowBuilder() {
     deleteNode,
     duplicateNode,
     openConfigModal,
-    saveWorkflow
+    saveWorkflow,
+    validateWorkflow
   } = useWorkflowStore();
 
   // Canvas state
@@ -46,6 +47,7 @@ export function EnhancedWorkflowBuilder() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [showMiniMap, setShowMiniMap] = useState(true);
+  const [showValidation, setShowValidation] = useState(false);
 
   // Node interaction state
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
@@ -276,6 +278,10 @@ export function EnhancedWorkflowBuilder() {
     }
   }, []);
 
+  const handleValidateWorkflow = () => {
+    setShowValidation(true);
+  };
+
   // Render empty state if no workflow
   if (!currentWorkflow) {
     return <EmptyWorkflowState />;
@@ -350,8 +356,13 @@ export function EnhancedWorkflowBuilder() {
         zoom={zoom}
       />
 
-      {/* Workflow Status */}
-      <WorkflowValidationStatus />
+      {/* Workflow Validation Status */}
+      {showValidation && (
+        <WorkflowValidationStatus
+          validation={validateWorkflow()}
+          onClose={() => setShowValidation(false)}
+        />
+      )}
 
       {/* Canvas Controls */}
       <CanvasControls
@@ -388,6 +399,15 @@ export function EnhancedWorkflowBuilder() {
         >
           <Save className="h-4 w-4 mr-1" />
           Save
+        </Button>
+        
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleValidateWorkflow}
+          className="bg-white/90 backdrop-blur shadow-lg hover:bg-white"
+        >
+          Validate
         </Button>
       </div>
 
