@@ -50,7 +50,10 @@ import {
   RotateCw,
   ZoomIn,
   ZoomOut,
-  Maximize
+  Maximize,
+  Share,
+  Mail,
+  Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -685,7 +688,7 @@ export function VisualPageBuilder() {
       </div>
 
       {/* Right Sidebar - Controls */}
-      <div className="w-80 bg-white border-l flex flex-col overflow-hidden">
+      <div className="w-80 bg-white border-r flex flex-col overflow-hidden">
         <div className="p-4 border-b">
           <h3 className="font-semibold">Page Builder</h3>
         </div>
