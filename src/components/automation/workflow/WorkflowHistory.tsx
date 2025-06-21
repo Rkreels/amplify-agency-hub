@@ -11,6 +11,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, ChevronDown, Clock, Search, X } from 'lucide-react';
 import { useWorkflowStore, WorkflowExecution } from '@/store/useWorkflowStore';
 
+// Helper function to format date
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(date);
+};
+
+// Helper function to get status badge
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return <Badge className="bg-green-600"><Check className="h-3 w-3 mr-1" /> Completed</Badge>;
+    case 'running':
+      return <Badge className="bg-blue-600"><Clock className="h-3 w-3 mr-1 animate-spin" /> Running</Badge>;
+    case 'failed':
+      return <Badge className="bg-red-600"><X className="h-3 w-3 mr-1" /> Failed</Badge>;
+    case 'paused':
+      return <Badge variant="outline" className="border-amber-600 text-amber-600">Paused</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
+
 export function WorkflowHistory() {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,30 +72,6 @@ export function WorkflowHistory() {
   }));
 
   const displayedExecutions = filteredExecutions.length > 0 ? filteredExecutions : sampleExecutions;
-
-  // Helper function to format date
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(date);
-  };
-
-  // Helper function to get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-600"><Check className="h-3 w-3 mr-1" /> Completed</Badge>;
-      case 'running':
-        return <Badge className="bg-blue-600"><Clock className="h-3 w-3 mr-1 animate-spin" /> Running</Badge>;
-      case 'failed':
-        return <Badge className="bg-red-600"><X className="h-3 w-3 mr-1" /> Failed</Badge>;
-      case 'paused':
-        return <Badge variant="outline" className="border-amber-600 text-amber-600">Paused</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -249,28 +249,4 @@ export function WorkflowHistory() {
       </Tabs>
     </div>
   );
-
-  // Helper function to format date
-  function formatDate(date: Date) {
-    return new Intl.DateTimeFormat('en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(date);
-  }
-
-  // Helper function to get status badge
-  function getStatusBadge(status: string) {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-600"><Check className="h-3 w-3 mr-1" /> Completed</Badge>;
-      case 'running':
-        return <Badge className="bg-blue-600"><Clock className="h-3 w-3 mr-1 animate-spin" /> Running</Badge>;
-      case 'failed':
-        return <Badge className="bg-red-600"><X className="h-3 w-3 mr-1" /> Failed</Badge>;
-      case 'paused':
-        return <Badge variant="outline" className="border-amber-600 text-amber-600">Paused</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  }
 }
