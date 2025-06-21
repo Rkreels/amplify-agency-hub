@@ -1,161 +1,242 @@
 
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 import { 
-  Save,
-  Play,
-  Pause,
-  Settings2,
-  BarChart3,
-  History,
-  Grid,
-  Webhook,
-  Layout,
-  Mail,
+  Play, 
+  Pause, 
+  Save, 
+  Settings, 
+  Plus, 
+  Zap, 
+  Mail, 
+  MessageSquare, 
+  Clock, 
   Target,
-  Edit
+  Users,
+  Calendar,
+  Phone,
+  CheckCircle,
+  AlertCircle,
+  Edit,
+  Trash2,
+  Copy
 } from 'lucide-react';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
-import { TriggerConfigModal } from './TriggerConfigModal';
-import { ActionConfigModal } from './ActionConfigModal';
 import { EnhancedWorkflowCanvas } from './workflow/EnhancedWorkflowCanvas';
-import { WorkflowExecutionEngine } from './WorkflowExecutionEngine';
+import { ActionsPanel } from './workflow/ActionsPanel';
 import { WorkflowSettings } from './workflow/WorkflowSettings';
-import { WorkflowAnalytics } from './workflow/WorkflowAnalytics';
-import { WorkflowHistory } from './workflow/WorkflowHistory';
-import { IntegrationSystem } from './workflow/IntegrationSystem';
-import { AnalyticsDashboard } from './workflow/AnalyticsDashboard';
-import { EmailSequenceBuilder } from './workflow/EmailSequenceBuilder';
-import { LeadScoringEngine } from './workflow/LeadScoringEngine';
-import { GoalTrackingSystem } from './workflow/GoalTrackingSystem';
-import { FunnelPageBuilder } from './workflow/FunnelPageBuilder';
+import { WorkflowValidationStatus } from './workflow/WorkflowValidationStatus';
+import { toast } from 'sonner';
+
+const nodeTypes = [
+  { type: 'trigger', label: 'Trigger', icon: Zap, color: 'bg-green-500' },
+  { type: 'action', label: 'Action', icon: Play, color: 'bg-blue-500' },
+  { type: 'condition', label: 'Condition', icon: Target, color: 'bg-yellow-500' },
+  { type: 'delay', label: 'Delay', icon: Clock, color: 'bg-purple-500' },
+  { type: 'goal', label: 'Goal', icon: CheckCircle, color: 'bg-red-500' }
+];
 
 export function AutomationWorkflowBuilder() {
   const {
     currentWorkflow,
+    selectedNode,
     isConfigModalOpen,
     configModalNode,
-    isExecuting,
-    closeConfigModal,
-    updateWorkflowName,
+    createNewWorkflow,
     saveWorkflow,
+    updateWorkflowName,
     activateWorkflow,
     deactivateWorkflow,
     testWorkflow,
-    validateWorkflow
+    validateWorkflow,
+    addNode,
+    setSelectedNode,
+    openConfigModal,
+    closeConfigModal
   } = useWorkflowStore();
 
-  const [activeTab, setActiveTab] = useState('builder');
+  const [workflowName, setWorkflowName] = useState(currentWorkflow?.name || 'New Workflow');
+  const [showSettings, setShowSettings] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
-  const handleActivateWorkflow = () => {
-    try {
-      if (!currentWorkflow) {
-        toast.error('No workflow selected');
-        return;
-      }
+  const handleCreateNew = () => {
+    createNewWorkflow({
+      name: 'New Workflow',
+      description: 'Created from workflow builder'
+    });
+    setWorkflowName('New Workflow');
+  };
 
+  const handleSave = () => {
+    if (currentWorkflow) {
+      updateWorkflowName(workflowName);
+      saveWorkflow();
+    }
+  };
+
+  const handleTest = async () => {
+    if (!currentWorkflow) return;
+    
+    const validation = validateWorkflow();
+    if (!validation.isValid) {
+      toast.error(`Cannot test workflow: ${validation.errors.join(', ')}`);
+      return;
+    }
+
+    await testWorkflow({ id: 'test-contact', name: 'Test Contact', email: 'test@example.com' });
+  };
+
+  const handleToggleActive = () => {
+    if (!currentWorkflow) return;
+    
+    if (currentWorkflow.isActive) {
+      deactivateWorkflow(currentWorkflow.id);
+      toast.success('Workflow deactivated');
+    } else {
       const validation = validateWorkflow();
       if (!validation.isValid) {
         toast.error(`Cannot activate workflow: ${validation.errors.join(', ')}`);
+        setShowValidation(true);
         return;
       }
-
-      if (currentWorkflow.isActive) {
-        deactivateWorkflow(currentWorkflow.id);
-        toast.success('Workflow deactivated');
-      } else {
-        activateWorkflow(currentWorkflow.id);
-        toast.success('Workflow activated');
-      }
-    } catch (error) {
-      console.error('Error toggling workflow activation:', error);
-      toast.error('Failed to toggle workflow activation');
+      
+      activateWorkflow(currentWorkflow.id);
+      toast.success('Workflow activated');
     }
   };
 
-  const handleTestWorkflow = async () => {
-    try {
-      const validation = validateWorkflow();
-      if (!validation.isValid) {
-        toast.error(`Cannot test workflow: ${validation.errors.join(', ')}`);
-        return;
+  const handleAddNode = useCallback((nodeType: string, position: { x: number; y: number }) => {
+    const nodeConfig = nodeTypes.find(n => n.type === nodeType);
+    if (!nodeConfig) return;
+
+    const newNode = {
+      type: nodeType as any,
+      position,
+      data: {
+        label: nodeConfig.label,
+        icon: nodeConfig.type,
+        config: {},
+        isConfigured: false
       }
+    };
 
-      const mockContactData = {
-        id: 'test-contact-123',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '+1234567890',
-        company: 'Test Company',
-        tags: ['test', 'prospect']
-      };
+    addNode(newNode);
+  }, [addNode]);
 
-      await testWorkflow(mockContactData);
-    } catch (error) {
-      console.error('Error testing workflow:', error);
-      toast.error('Failed to test workflow');
-    }
-  };
+  if (!currentWorkflow) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Zap className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-lg font-medium mb-2">No Workflow Selected</h3>
+          <p className="text-gray-600 mb-4">Create a new workflow to get started</p>
+          <Button onClick={handleCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Workflow
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="flex h-screen bg-gray-50">
+      {/* Left Sidebar - Node Types */}
+      <div className="w-64 bg-white border-r p-4 space-y-4">
+        <div>
+          <h3 className="font-medium text-gray-900 mb-3">Workflow Elements</h3>
+          <div className="space-y-2">
+            {nodeTypes.map((nodeType) => (
+              <div
+                key={nodeType.type}
+                className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/reactflow', nodeType.type);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+              >
+                <div className={`p-2 rounded-full ${nodeType.color} text-white`}>
+                  <nodeType.icon className="h-4 w-4" />
+                </div>
+                <span className="font-medium">{nodeType.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="font-medium text-gray-900 mb-3">Actions</h3>
+          <div className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <Mail className="h-4 w-4 mr-2" />
+              Send Email
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send SMS
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <Users className="h-4 w-4 mr-2" />
+              Add to List
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <Calendar className="h-4 w-4 mr-2" />
+              Create Task
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Canvas Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-slate-700 text-white p-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        {/* Top Toolbar */}
+        <div className="bg-white border-b p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Input
-              value={currentWorkflow?.name || ''}
-              onChange={(e) => updateWorkflowName(e.target.value)}
-              className="bg-transparent border-none text-white text-lg font-medium focus-visible:ring-0 focus-visible:ring-offset-0 min-w-[300px]"
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="font-medium text-lg border-none shadow-none p-0 h-auto"
               placeholder="Workflow Name"
             />
-            <Button variant="ghost" size="sm" className="text-white hover:bg-slate-600">
-              <Edit className="h-4 w-4" />
-            </Button>
-            {currentWorkflow?.isActive && (
-              <Badge className="bg-green-600 hover:bg-green-600">Active</Badge>
-            )}
+            <Badge variant={currentWorkflow.isActive ? 'default' : 'secondary'}>
+              {currentWorkflow.isActive ? 'Active' : 'Inactive'}
+            </Badge>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-transparent border-white text-white hover:bg-slate-600"
-              onClick={handleTestWorkflow}
-              disabled={isExecuting}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              {isExecuting ? 'Testing...' : 'Test'}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowValidation(true)}>
+              <AlertCircle className="h-4 w-4 mr-1" />
+              Validate
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-transparent border-white text-white hover:bg-slate-600"
-              onClick={saveWorkflow}
-            >
-              <Save className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={handleTest}>
+              <Play className="h-4 w-4 mr-1" />
+              Test
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
+              <Settings className="h-4 w-4 mr-1" />
+              Settings
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4 mr-1" />
               Save
             </Button>
             <Button 
               size="sm" 
-              className={currentWorkflow?.isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
-              onClick={handleActivateWorkflow}
+              onClick={handleToggleActive}
+              variant={currentWorkflow.isActive ? 'destructive' : 'default'}
             >
-              {currentWorkflow?.isActive ? (
+              {currentWorkflow.isActive ? (
                 <>
-                  <Pause className="h-4 w-4 mr-2" />
+                  <Pause className="h-4 w-4 mr-1" />
                   Deactivate
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 mr-1" />
                   Activate
                 </>
               )}
@@ -163,122 +244,55 @@ export function AutomationWorkflowBuilder() {
           </div>
         </div>
 
-        {/* Enhanced Tab Navigation */}
-        <div className="bg-white border-b">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-8 bg-transparent border-b-0 h-12">
-              <TabsTrigger 
-                value="builder" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Grid className="h-4 w-4 mr-2" />
-                Builder
-              </TabsTrigger>
-              <TabsTrigger 
-                value="integrations" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Webhook className="h-4 w-4 mr-2" />
-                Integrations
-              </TabsTrigger>
-              <TabsTrigger 
-                value="analytics" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Analytics
-              </TabsTrigger>
-              <TabsTrigger 
-                value="email-sequences" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email Sequences
-              </TabsTrigger>
-              <TabsTrigger 
-                value="lead-scoring" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Target className="h-4 w-4 mr-2" />
-                Lead Scoring
-              </TabsTrigger>
-              <TabsTrigger 
-                value="goals" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Target className="h-4 w-4 mr-2" />
-                Goals
-              </TabsTrigger>
-              <TabsTrigger 
-                value="funnel-builder" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Layout className="h-4 w-4 mr-2" />
-                Funnel Builder
-              </TabsTrigger>
-              <TabsTrigger 
-                value="settings" 
-                className="border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none"
-              >
-                <Settings2 className="h-4 w-4 mr-2" />
-                Settings
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="builder" className="mt-0 h-[calc(100vh-140px)]">
-              <EnhancedWorkflowCanvas />
-            </TabsContent>
+        {/* Canvas */}
+        <div className="flex-1 relative">
+          <EnhancedWorkflowCanvas
+            workflow={currentWorkflow}
+            onAddNode={handleAddNode}
+            selectedNode={selectedNode}
+            onSelectNode={setSelectedNode}
+            onConfigureNode={openConfigModal}
+          />
+        </div>
 
-            <TabsContent value="integrations" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
-              <IntegrationSystem />
-            </TabsContent>
-            
-            <TabsContent value="analytics" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
-              <AnalyticsDashboard />
-            </TabsContent>
-
-            <TabsContent value="email-sequences" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
-              <EmailSequenceBuilder />
-            </TabsContent>
-
-            <TabsContent value="lead-scoring" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
-              <LeadScoringEngine />
-            </TabsContent>
-
-            <TabsContent value="goals" className="mt-0 p-6 h-[calc(100vh-140px)] overflow-y-auto">
-              <GoalTrackingSystem />
-            </TabsContent>
-
-            <TabsContent value="funnel-builder" className="mt-0 h-[calc(100vh-140px)]">
-              <FunnelPageBuilder />
-            </TabsContent>
-            
-            <TabsContent value="settings" className="mt-0 p-6">
-              <WorkflowSettings />
-            </TabsContent>
-          </Tabs>
+        {/* Bottom Status Bar */}
+        <div className="bg-white border-t p-2 flex items-center justify-between text-sm text-gray-600">
+          <div className="flex items-center gap-4">
+            <span>Nodes: {currentWorkflow.nodes.length}</span>
+            <span>Connections: {currentWorkflow.connections.length}</span>
+            <span>Status: {currentWorkflow.isActive ? 'Active' : 'Inactive'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Last saved: {currentWorkflow.updatedAt.toLocaleTimeString()}</span>
+          </div>
         </div>
       </div>
 
-      {/* Configuration Modals */}
-      {configModalNode?.type === 'trigger' && (
-        <TriggerConfigModal
-          isOpen={isConfigModalOpen}
-          onClose={closeConfigModal}
-          node={configModalNode}
-        />
+      {/* Right Sidebar - Properties */}
+      {selectedNode && (
+        <div className="w-80 bg-white border-l">
+          <ActionsPanel
+            node={currentWorkflow.nodes.find(n => n.id === selectedNode)}
+            onClose={() => setSelectedNode(null)}
+          />
+        </div>
       )}
-      
-      {(configModalNode?.type === 'action' || configModalNode?.type === 'condition' || configModalNode?.type === 'delay' || configModalNode?.type === 'wait' || configModalNode?.type === 'end' || configModalNode?.type === 'goal') && (
-        <ActionConfigModal
-          isOpen={isConfigModalOpen}
-          onClose={closeConfigModal}
-          node={configModalNode}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <WorkflowSettings
+          workflow={currentWorkflow}
+          onClose={() => setShowSettings(false)}
         />
       )}
 
-      {/* Workflow Execution Engine */}
-      <WorkflowExecutionEngine />
+      {/* Validation Modal */}
+      {showValidation && (
+        <WorkflowValidationStatus
+          validation={validateWorkflow()}
+          onClose={() => setShowValidation(false)}
+        />
+      )}
     </div>
   );
 }

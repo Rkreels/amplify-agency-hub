@@ -18,16 +18,71 @@ import { SalesMetricsWidget, ContactMetricsWidget, ActivityMetricsWidget } from 
 import { QuickActionsWidget } from './QuickActionsWidget';
 import { RecentActivityWidget } from './RecentActivityWidget';
 import { PipelineWidget } from './PipelineWidget';
+import { DashboardCustomizer, type DashboardWidget } from './DashboardCustomizer';
 import { useVoiceTraining } from '@/components/voice/VoiceTrainingProvider';
 
 export function WidgetManager() {
-  const [selectedWidgets, setSelectedWidgets] = useState([
-    'metrics-sales',
-    'quick-actions',
-    'pipeline',
-    'recent-activity',
-    'metrics-contacts',
-    'metrics-activity'
+  const [widgets, setWidgets] = useState<DashboardWidget[]>([
+    {
+      id: 'metrics-sales',
+      name: 'Sales Metrics',
+      description: 'Revenue, opportunities, and conversion rates',
+      icon: <DollarSign className="h-4 w-4" />,
+      enabled: true,
+      position: { x: 0, y: 0 },
+      size: { width: 1, height: 1 },
+      category: 'metrics'
+    },
+    {
+      id: 'metrics-contacts',
+      name: 'Contact Metrics',
+      description: 'Total contacts, leads, and response rates',
+      icon: <Users className="h-4 w-4" />,
+      enabled: true,
+      position: { x: 1, y: 0 },
+      size: { width: 1, height: 1 },
+      category: 'metrics'
+    },
+    {
+      id: 'metrics-activity',
+      name: 'Activity Metrics',
+      description: 'Appointments, emails, and calls',
+      icon: <Activity className="h-4 w-4" />,
+      enabled: true,
+      position: { x: 2, y: 0 },
+      size: { width: 1, height: 1 },
+      category: 'metrics'
+    },
+    {
+      id: 'quick-actions',
+      name: 'Quick Actions',
+      description: 'Fast access to common tasks',
+      icon: <Plus className="h-4 w-4" />,
+      enabled: true,
+      position: { x: 0, y: 1 },
+      size: { width: 3, height: 1 },
+      category: 'actions'
+    },
+    {
+      id: 'pipeline',
+      name: 'Sales Pipeline',
+      description: 'Opportunity stages and conversion funnel',
+      icon: <Target className="h-4 w-4" />,
+      enabled: true,
+      position: { x: 0, y: 2 },
+      size: { width: 2, height: 1 },
+      category: 'data'
+    },
+    {
+      id: 'recent-activity',
+      name: 'Recent Activity',
+      description: 'Latest actions and system events',
+      icon: <Activity className="h-4 w-4" />,
+      enabled: true,
+      position: { x: 2, y: 2 },
+      size: { width: 1, height: 1 },
+      category: 'data'
+    }
   ]);
 
   const { announceFeature } = useVoiceTraining();
@@ -35,23 +90,23 @@ export function WidgetManager() {
   React.useEffect(() => {
     announceFeature(
       'Dashboard Overview',
-      'Welcome to your dashboard. Here you can see sales metrics, pipeline status, recent activities, and quick actions to manage your business efficiently.'
+      'Welcome to your dashboard. Here you can see sales metrics, pipeline status, recent activities, and quick actions to manage your business efficiently. Use the customize button to personalize your dashboard widgets.'
     );
   }, [announceFeature]);
 
-  const availableWidgets = [
-    { id: 'metrics-sales', name: 'Sales Metrics', icon: <DollarSign className="h-4 w-4" />, component: <SalesMetricsWidget /> },
-    { id: 'metrics-contacts', name: 'Contact Metrics', icon: <Users className="h-4 w-4" />, component: <ContactMetricsWidget /> },
-    { id: 'metrics-activity', name: 'Activity Metrics', icon: <Activity className="h-4 w-4" />, component: <ActivityMetricsWidget /> },
-    { id: 'quick-actions', name: 'Quick Actions', icon: <Plus className="h-4 w-4" />, component: <QuickActionsWidget /> },
-    { id: 'pipeline', name: 'Sales Pipeline', icon: <Target className="h-4 w-4" />, component: <PipelineWidget /> },
-    { id: 'recent-activity', name: 'Recent Activity', icon: <Activity className="h-4 w-4" />, component: <RecentActivityWidget /> }
-  ];
-
   const renderWidget = (widgetId: string) => {
-    const widget = availableWidgets.find(w => w.id === widgetId);
-    return widget ? widget.component : null;
+    switch (widgetId) {
+      case 'metrics-sales': return <SalesMetricsWidget />;
+      case 'metrics-contacts': return <ContactMetricsWidget />;
+      case 'metrics-activity': return <ActivityMetricsWidget />;
+      case 'quick-actions': return <QuickActionsWidget />;
+      case 'pipeline': return <PipelineWidget />;
+      case 'recent-activity': return <RecentActivityWidget />;
+      default: return null;
+    }
   };
+
+  const enabledWidgets = widgets.filter(widget => widget.enabled);
 
   return (
     <div className="space-y-6">
@@ -67,10 +122,7 @@ export function WidgetManager() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-1" />
-            Customize
-          </Button>
+          <DashboardCustomizer widgets={widgets} onWidgetsChange={setWidgets} />
           <Button variant="outline" size="sm">
             <BarChart3 className="h-4 w-4 mr-1" />
             Export
@@ -133,33 +185,33 @@ export function WidgetManager() {
         </Card>
       </div>
 
-      {/* Widget Grid */}
+      {/* Dynamic Widget Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Quick Actions - Always First */}
-        {selectedWidgets.includes('quick-actions') && (
+        {/* Quick Actions - Always First and Full Width if enabled */}
+        {enabledWidgets.find(w => w.id === 'quick-actions') && (
           <div className="xl:col-span-3">
             {renderWidget('quick-actions')}
           </div>
         )}
 
-        {/* Sales Pipeline - Take 2 columns */}
-        {selectedWidgets.includes('pipeline') && (
+        {/* Sales Pipeline - Take 2 columns if enabled */}
+        {enabledWidgets.find(w => w.id === 'pipeline') && (
           <div className="lg:col-span-2">
             {renderWidget('pipeline')}
           </div>
         )}
 
         {/* Recent Activity */}
-        {selectedWidgets.includes('recent-activity') && (
+        {enabledWidgets.find(w => w.id === 'recent-activity') && (
           <div>
             {renderWidget('recent-activity')}
           </div>
         )}
 
         {/* Metrics Widgets */}
-        {selectedWidgets.includes('metrics-sales') && renderWidget('metrics-sales')}
-        {selectedWidgets.includes('metrics-contacts') && renderWidget('metrics-contacts')}
-        {selectedWidgets.includes('metrics-activity') && renderWidget('metrics-activity')}
+        {enabledWidgets.find(w => w.id === 'metrics-sales') && renderWidget('metrics-sales')}
+        {enabledWidgets.find(w => w.id === 'metrics-contacts') && renderWidget('metrics-contacts')}
+        {enabledWidgets.find(w => w.id === 'metrics-activity') && renderWidget('metrics-activity')}
       </div>
 
       {/* Additional Dashboard Features */}
