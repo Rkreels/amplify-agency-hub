@@ -9,81 +9,139 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 import { 
-  Type, 
-  Image, 
-  Square, 
-  Circle, 
-  MousePointer, 
-  Palette, 
-  Save, 
-  Eye, 
-  Smartphone, 
-  Tablet, 
-  Monitor,
-  Undo,
-  Redo,
-  Copy,
-  Trash2,
-  Settings,
-  Grid,
-  Layout,
-  Video,
-  Calendar,
-  ShoppingCart,
-  MapPin,
-  Star,
-  Play,
-  Download,
-  Upload,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Bold,
-  Italic,
-  Underline,
-  List,
-  Link,
-  Code,
-  Layers,
-  Move,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  Share,
-  Mail,
-  Plus
+  Type, Image, Square, Circle, MousePointer, Palette, Save, Eye, 
+  Smartphone, Tablet, Monitor, Undo, Redo, Copy, Trash2, Settings,
+  Grid, Layout, Video, Calendar, ShoppingCart, MapPin, Star, Play,
+  Download, Upload, AlignLeft, AlignCenter, AlignRight, Bold, Italic,
+  Underline, List, Link, Code, Layers, Move, RotateCw, ZoomIn, ZoomOut,
+  Maximize, Share, Mail, Plus, Globe, Zap, Target, Users, TrendingUp,
+  FileText, Phone, MessageSquare, CreditCard, BarChart3, Megaphone,
+  Clock, Award, Shield, CheckCircle, XCircle, AlertCircle, Info,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Menu, X, Home,
+  ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Search, Filter, SortAsc,
+  SortDesc, RefreshCw, Edit, ExternalLink, LinkIcon, ImageIcon,
+  PlusCircle, MinusCircle, MoreHorizontal, MoreVertical, Dots
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSitesStore } from '@/store/useSitesStore';
 
 interface PageElement {
   id: string;
-  type: 'heading' | 'text' | 'button' | 'image' | 'form' | 'video' | 'divider' | 'spacer' | 'testimonial' | 'pricing' | 'countdown' | 'map' | 'social' | 'newsletter' | 'gallery' | 'accordion' | 'tabs' | 'progress' | 'contact';
+  type: 'heading' | 'text' | 'button' | 'image' | 'form' | 'video' | 'divider' | 'spacer' | 'testimonial' | 'pricing' | 'countdown' | 'map' | 'social' | 'newsletter' | 'gallery' | 'accordion' | 'tabs' | 'progress' | 'contact' | 'hero' | 'features' | 'cta' | 'team' | 'stats' | 'faq' | 'blog' | 'carousel' | 'timeline' | 'icon' | 'badge' | 'card' | 'list' | 'quote' | 'embed';
   content: string;
   styles: {
     fontSize?: string;
     fontWeight?: string;
+    fontFamily?: string;
     color?: string;
     backgroundColor?: string;
+    backgroundImage?: string;
+    backgroundGradient?: string;
     padding?: string;
     margin?: string;
-    textAlign?: 'left' | 'center' | 'right';
+    textAlign?: 'left' | 'center' | 'right' | 'justify';
     borderRadius?: string;
     border?: string;
+    borderColor?: string;
+    borderWidth?: string;
+    borderStyle?: string;
     width?: string;
     height?: string;
+    maxWidth?: string;
+    minHeight?: string;
     boxShadow?: string;
     transform?: string;
     opacity?: string;
+    zIndex?: string;
+    display?: string;
+    flexDirection?: string;
+    justifyContent?: string;
+    alignItems?: string;
+    gap?: string;
+    gridTemplateColumns?: string;
+    gridGap?: string;
+    position?: string;
+    top?: string;
+    left?: string;
+    right?: string;
+    bottom?: string;
+    overflow?: string;
+    textDecoration?: string;
+    lineHeight?: string;
+    letterSpacing?: string;
+    textTransform?: string;
+    cursor?: string;
+    transition?: string;
+    hoverColor?: string;
+    hoverBackgroundColor?: string;
+    hoverTransform?: string;
+    activeColor?: string;
+    activeBackgroundColor?: string;
+    focusColor?: string;
+    focusBackgroundColor?: string;
+    focusOutline?: string;
+    animation?: string;
+    animationDuration?: string;
+    animationDelay?: string;
+    animationIterationCount?: string;
+    animationDirection?: string;
+    animationFillMode?: string;
+    animationPlayState?: string;
+    animationTimingFunction?: string;
   };
   position: { x: number; y: number };
   size: { width: number; height: number };
-  settings: Record<string, any>;
+  settings: {
+    link?: string;
+    linkTarget?: '_blank' | '_self';
+    alt?: string;
+    title?: string;
+    placeholder?: string;
+    required?: boolean;
+    validation?: string;
+    autoplay?: boolean;
+    loop?: boolean;
+    controls?: boolean;
+    muted?: boolean;
+    responsive?: boolean;
+    lazy?: boolean;
+    seo?: {
+      title?: string;
+      description?: string;
+      keywords?: string;
+    };
+    accessibility?: {
+      ariaLabel?: string;
+      ariaDescribedBy?: string;
+      role?: string;
+      tabIndex?: string;
+    };
+    interactions?: {
+      onClick?: string;
+      onHover?: string;
+      onFocus?: string;
+      onScroll?: string;
+    };
+    conditions?: {
+      showIf?: string;
+      hideIf?: string;
+      device?: 'all' | 'desktop' | 'tablet' | 'mobile';
+    };
+  };
   animation?: {
-    type: 'fadeIn' | 'slideIn' | 'zoomIn' | 'bounceIn';
+    type: 'fadeIn' | 'slideIn' | 'zoomIn' | 'bounceIn' | 'rotateIn' | 'flipIn' | 'slideUp' | 'slideDown' | 'slideLeft' | 'slideRight';
     duration: number;
     delay: number;
+    easing?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
+    trigger?: 'onLoad' | 'onScroll' | 'onHover' | 'onClick';
+    repeat?: boolean;
+  };
+  responsive?: {
+    desktop?: Partial<PageElement['styles']>;
+    tablet?: Partial<PageElement['styles']>;
+    mobile?: Partial<PageElement['styles']>;
   };
 }
 
@@ -92,289 +150,471 @@ interface PageSection {
   name: string;
   elements: PageElement[];
   background: {
-    type: 'color' | 'gradient' | 'image' | 'video';
+    type: 'color' | 'gradient' | 'image' | 'video' | 'pattern';
     value: string;
-    overlay?: string;
+    gradient?: {
+      type: 'linear' | 'radial';
+      direction?: string;
+      stops: { color: string; position: number }[];
+    };
+    image?: {
+      url: string;
+      position: string;
+      size: string;
+      repeat: string;
+      attachment: string;
+    };
+    video?: {
+      url: string;
+      autoplay: boolean;
+      loop: boolean;
+      muted: boolean;
+    };
+    overlay?: {
+      color: string;
+      opacity: number;
+    };
   };
   padding: { top: number; bottom: number; left: number; right: number };
+  margin: { top: number; bottom: number };
   maxWidth: string;
   isFullWidth: boolean;
+  isSticky: boolean;
+  isParallax: boolean;
+  animation?: {
+    type: string;
+    duration: number;
+    delay: number;
+  };
+  responsive?: {
+    desktop?: Partial<PageSection>;
+    tablet?: Partial<PageSection>;
+    mobile?: Partial<PageSection>;
+  };
+  seo?: {
+    id?: string;
+    className?: string;
+    schema?: Record<string, any>;
+  };
 }
 
-const elementTypes = [
-  {
-    category: 'Basic Elements',
-    items: [
-      { type: 'heading', label: 'Heading', icon: Type, description: 'Add titles and headings' },
-      { type: 'text', label: 'Text', icon: Type, description: 'Add paragraphs and content' },
-      { type: 'button', label: 'Button', icon: MousePointer, description: 'Call-to-action buttons' },
-      { type: 'image', label: 'Image', icon: Image, description: 'Add photos and graphics' },
-      { type: 'divider', label: 'Divider', icon: Square, description: 'Section dividers' },
-      { type: 'spacer', label: 'Spacer', icon: Circle, description: 'Add white space' }
-    ]
-  },
-  {
-    category: 'Advanced Elements',
-    items: [
-      { type: 'form', label: 'Form', icon: Square, description: 'Lead capture forms' },
-      { type: 'video', label: 'Video', icon: Video, description: 'Embed videos' },
-      { type: 'testimonial', label: 'Testimonial', icon: Star, description: 'Customer reviews' },
-      { type: 'pricing', label: 'Pricing Table', icon: ShoppingCart, description: 'Pricing plans' },
-      { type: 'countdown', label: 'Countdown', icon: Calendar, description: 'Urgency timers' },
-      { type: 'map', label: 'Map', icon: MapPin, description: 'Google Maps embed' }
-    ]
-  },
-  {
-    category: 'Interactive Elements',
-    items: [
-      { type: 'gallery', label: 'Gallery', icon: Grid, description: 'Image galleries' },
-      { type: 'accordion', label: 'Accordion', icon: List, description: 'Collapsible content' },
-      { type: 'tabs', label: 'Tabs', icon: Layers, description: 'Tabbed content' },
-      { type: 'progress', label: 'Progress Bar', icon: RotateCw, description: 'Progress indicators' },
-      { type: 'social', label: 'Social Media', icon: Share, description: 'Social media feeds' },
-      { type: 'newsletter', label: 'Newsletter', icon: Mail, description: 'Email signup forms' }
-    ]
-  }
-];
+interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  sections: PageSection[];
+  seo: {
+    title: string;
+    description: string;
+    keywords: string;
+    ogImage?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    twitterCard?: string;
+    twitterTitle?: string;
+    twitterDescription?: string;
+    twitterImage?: string;
+    canonicalUrl?: string;
+    robots?: string;
+    schema?: Record<string, any>;
+  };
+  settings: {
+    layout: 'default' | 'fullwidth' | 'centered';
+    header: boolean;
+    footer: boolean;
+    sidebar: boolean;
+    customCSS: string;
+    customJS: string;
+    customHead: string;
+    favicon?: string;
+    language: string;
+    direction: 'ltr' | 'rtl';
+    theme: 'light' | 'dark' | 'auto';
+  };
+  isPublished: boolean;
+  publishedAt?: Date;
+  lastModified: Date;
+  version: number;
+  status: 'draft' | 'published' | 'archived';
+  analytics?: {
+    views: number;
+    uniqueViews: number;
+    bounceRate: number;
+    avgTimeOnPage: number;
+    conversions: number;
+    conversionRate: number;
+  };
+}
 
-const prebuiltSections = [
-  {
-    id: 'hero-modern',
-    name: 'Modern Hero Section',
-    preview: '/api/placeholder/300/200',
-    elements: ['heading', 'text', 'button', 'image'],
-    description: 'Clean, modern hero with image'
-  },
-  {
-    id: 'hero-video',
-    name: 'Video Hero Section',
-    preview: '/api/placeholder/300/200',
-    elements: ['heading', 'text', 'button', 'video'],
-    description: 'Hero section with background video'
-  },
-  {
-    id: 'features-grid',
-    name: 'Features Grid',
-    preview: '/api/placeholder/300/200',
-    elements: ['heading', 'text', 'image'],
-    description: '3-column features grid'
-  },
-  {
-    id: 'testimonials-carousel',
-    name: 'Testimonials Carousel',
-    preview: '/api/placeholder/300/200',
-    elements: ['testimonial'],
-    description: 'Sliding testimonials'
-  },
-  {
-    id: 'pricing-comparison',
-    name: 'Pricing Comparison',
-    preview: '/api/placeholder/300/200',
-    elements: ['pricing'],
-    description: 'Side-by-side pricing tables'
-  },
-  {
-    id: 'contact-form',
-    name: 'Contact Section',
-    preview: '/api/placeholder/300/200',
-    elements: ['heading', 'text', 'form', 'map'],
-    description: 'Contact form with map'
-  }
-];
+export function AdvancedPageBuilder({ siteId }: { siteId: string }) {
+  const { sites, updateSite } = useSitesStore();
+  const site = sites.find(s => s.id === siteId);
+  
+  const [pages, setPages] = useState<Page[]>(site?.pages?.map(p => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    sections: [],
+    seo: {
+      title: p.title,
+      description: '',
+      keywords: '',
+    },
+    settings: {
+      layout: 'default',
+      header: true,
+      footer: true,
+      sidebar: false,
+      customCSS: '',
+      customJS: '',
+      customHead: '',
+      language: 'en',
+      direction: 'ltr',
+      theme: 'light',
+    },
+    isPublished: p.isPublished,
+    lastModified: new Date(),
+    version: 1,
+    status: p.isPublished ? 'published' : 'draft',
+  })) || []);
 
-export function VisualPageBuilder() {
-  const [sections, setSections] = useState<PageSection[]>([]);
+  const [currentPage, setCurrentPage] = useState<Page | null>(pages[0] || null);
   const [selectedElement, setSelectedElement] = useState<PageElement | null>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeTab, setActiveTab] = useState('elements');
-  const [draggedElement, setDraggedElement] = useState<any>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(true);
-  const [pageSettings, setPageSettings] = useState({
-    title: 'Untitled Page',
-    description: '',
-    favicon: '',
-    customCSS: '',
-    customJS: '',
-    seo: {
-      metaTitle: '',
-      metaDescription: '',
-      keywords: '',
-      ogImage: ''
-    }
-  });
-  
+  const [showRulers, setShowRulers] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // Enhanced element types with more categories
+  const elementTypes = [
+    {
+      category: 'Basic Elements',
+      items: [
+        { type: 'heading', label: 'Heading', icon: Type, description: 'Add titles and headings' },
+        { type: 'text', label: 'Text', icon: FileText, description: 'Add paragraphs and content' },
+        { type: 'button', label: 'Button', icon: MousePointer, description: 'Call-to-action buttons' },
+        { type: 'image', label: 'Image', icon: ImageIcon, description: 'Add photos and graphics' },
+        { type: 'icon', label: 'Icon', icon: Star, description: 'Add icons and symbols' },
+        { type: 'divider', label: 'Divider', icon: Square, description: 'Section dividers' },
+        { type: 'spacer', label: 'Spacer', icon: Circle, description: 'Add white space' }
+      ]
+    },
+    {
+      category: 'Layout Elements',
+      items: [
+        { type: 'hero', label: 'Hero Section', icon: Layout, description: 'Hero banners' },
+        { type: 'features', label: 'Features', icon: Grid, description: 'Feature grids' },
+        { type: 'cta', label: 'Call to Action', icon: Megaphone, description: 'CTA sections' },
+        { type: 'card', label: 'Card', icon: Square, description: 'Content cards' },
+        { type: 'list', label: 'List', icon: List, description: 'Ordered/unordered lists' }
+      ]
+    },
+    {
+      category: 'Media Elements',
+      items: [
+        { type: 'video', label: 'Video', icon: Video, description: 'Embed videos' },
+        { type: 'gallery', label: 'Gallery', icon: Grid, description: 'Image galleries' },
+        { type: 'carousel', label: 'Carousel', icon: ArrowRight, description: 'Image carousels' },
+        { type: 'embed', label: 'Embed', icon: Code, description: 'Embed code' }
+      ]
+    },
+    {
+      category: 'Interactive Elements',
+      items: [
+        { type: 'form', label: 'Form', icon: Square, description: 'Lead capture forms' },
+        { type: 'accordion', label: 'Accordion', icon: ChevronDown, description: 'Collapsible content' },
+        { type: 'tabs', label: 'Tabs', icon: Layers, description: 'Tabbed content' },
+        { type: 'progress', label: 'Progress Bar', icon: RotateCw, description: 'Progress indicators' },
+        { type: 'countdown', label: 'Countdown', icon: Clock, description: 'Countdown timers' }
+      ]
+    },
+    {
+      category: 'Business Elements',
+      items: [
+        { type: 'testimonial', label: 'Testimonial', icon: Star, description: 'Customer reviews' },
+        { type: 'pricing', label: 'Pricing Table', icon: CreditCard, description: 'Pricing plans' },
+        { type: 'team', label: 'Team', icon: Users, description: 'Team member cards' },
+        { type: 'stats', label: 'Stats', icon: BarChart3, description: 'Statistics display' },
+        { type: 'contact', label: 'Contact', icon: Phone, description: 'Contact information' }
+      ]
+    },
+    {
+      category: 'Social Elements',
+      items: [
+        { type: 'social', label: 'Social Media', icon: Share, description: 'Social media feeds' },
+        { type: 'newsletter', label: 'Newsletter', icon: Mail, description: 'Email signup forms' },
+        { type: 'blog', label: 'Blog', icon: FileText, description: 'Blog post previews' },
+        { type: 'timeline', label: 'Timeline', icon: Clock, description: 'Event timelines' }
+      ]
+    },
+    {
+      category: 'Advanced Elements',
+      items: [
+        { type: 'map', label: 'Map', icon: MapPin, description: 'Google Maps embed' },
+        { type: 'faq', label: 'FAQ', icon: Info, description: 'Frequently asked questions' },
+        { type: 'quote', label: 'Quote', icon: Quote, description: 'Blockquotes' },
+        { type: 'badge', label: 'Badge', icon: Award, description: 'Status badges' }
+      ]
+    }
+  ];
+
+  const prebuiltSections = [
+    {
+      id: 'hero-modern',
+      name: 'Modern Hero Section',
+      category: 'Hero',
+      elements: ['heading', 'text', 'button', 'image'],
+      description: 'Clean, modern hero with image'
+    },
+    {
+      id: 'hero-video',
+      name: 'Video Hero Section',
+      category: 'Hero',
+      elements: ['heading', 'text', 'button', 'video'],
+      description: 'Hero section with background video'
+    },
+    {
+      id: 'features-grid',
+      name: 'Features Grid',
+      category: 'Features',
+      elements: ['heading', 'text', 'icon'],
+      description: '3-column features grid'
+    },
+    {
+      id: 'testimonials-carousel',
+      name: 'Testimonials Carousel',
+      category: 'Social Proof',
+      elements: ['testimonial'],
+      description: 'Sliding testimonials'
+    },
+    {
+      id: 'pricing-comparison',
+      name: 'Pricing Comparison',
+      category: 'Pricing',
+      elements: ['pricing'],
+      description: 'Side-by-side pricing tables'
+    },
+    {
+      id: 'contact-form',
+      name: 'Contact Section',
+      category: 'Contact',
+      elements: ['heading', 'text', 'form', 'map'],
+      description: 'Contact form with map'
+    },
+    {
+      id: 'team-grid',
+      name: 'Team Grid',
+      category: 'About',
+      elements: ['heading', 'team'],
+      description: 'Team member showcase'
+    },
+    {
+      id: 'stats-counter',
+      name: 'Stats Counter',
+      category: 'Stats',
+      elements: ['stats'],
+      description: 'Animated statistics'
+    },
+    {
+      id: 'faq-accordion',
+      name: 'FAQ Accordion',
+      category: 'FAQ',
+      elements: ['heading', 'accordion'],
+      description: 'Expandable FAQ section'
+    },
+    {
+      id: 'newsletter-signup',
+      name: 'Newsletter Signup',
+      category: 'Lead Generation',
+      elements: ['heading', 'text', 'newsletter'],
+      description: 'Email capture form'
+    }
+  ];
+
+  const templates = [
+    {
+      id: 'business-landing',
+      name: 'Business Landing Page',
+      category: 'Business',
+      description: 'Professional business landing page',
+      preview: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
+      sections: ['hero-modern', 'features-grid', 'testimonials-carousel', 'contact-form']
+    },
+    {
+      id: 'saas-product',
+      name: 'SaaS Product Page',
+      category: 'SaaS',
+      description: 'Software product showcase',
+      preview: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
+      sections: ['hero-video', 'features-grid', 'pricing-comparison', 'faq-accordion']
+    },
+    {
+      id: 'agency-portfolio',
+      name: 'Agency Portfolio',
+      category: 'Agency',
+      description: 'Creative agency portfolio',
+      preview: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=400&h=300&fit=crop',
+      sections: ['hero-modern', 'team-grid', 'testimonials-carousel', 'contact-form']
+    },
+    {
+      id: 'ecommerce-store',
+      name: 'E-commerce Store',
+      category: 'E-commerce',
+      description: 'Complete online store',
+      preview: 'https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=400&h=300&fit=crop',
+      sections: ['hero-modern', 'features-grid', 'testimonials-carousel', 'newsletter-signup']
+    },
+    {
+      id: 'event-landing',
+      name: 'Event Landing Page',
+      category: 'Events',
+      description: 'Event registration page',
+      preview: 'https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=400&h=300&fit=crop',
+      sections: ['hero-modern', 'stats-counter', 'contact-form', 'faq-accordion']
+    },
+    {
+      id: 'nonprofit-donation',
+      name: 'Nonprofit Donation',
+      category: 'Nonprofit',
+      description: 'Nonprofit donation page',
+      preview: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&h=300&fit=crop',
+      sections: ['hero-modern', 'stats-counter', 'testimonials-carousel', 'contact-form']
+    }
+  ];
+
+  const addPage = useCallback(() => {
+    const newPage: Page = {
+      id: `page-${Date.now()}`,
+      title: `Page ${pages.length + 1}`,
+      slug: `/page-${pages.length + 1}`,
+      sections: [],
+      seo: {
+        title: `Page ${pages.length + 1}`,
+        description: '',
+        keywords: '',
+      },
+      settings: {
+        layout: 'default',
+        header: true,
+        footer: true,
+        sidebar: false,
+        customCSS: '',
+        customJS: '',
+        customHead: '',
+        language: 'en',
+        direction: 'ltr',
+        theme: 'light',
+      },
+      isPublished: false,
+      lastModified: new Date(),
+      version: 1,
+      status: 'draft',
+    };
+    
+    setPages(prev => [...prev, newPage]);
+    setCurrentPage(newPage);
+    toast.success('New page created');
+  }, [pages.length]);
+
+  const duplicatePage = useCallback((pageId: string) => {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+
+    const duplicatedPage: Page = {
+      ...page,
+      id: `page-${Date.now()}`,
+      title: `${page.title} (Copy)`,
+      slug: `${page.slug}-copy`,
+      version: 1,
+      lastModified: new Date(),
+      status: 'draft',
+      isPublished: false,
+    };
+
+    setPages(prev => [...prev, duplicatedPage]);
+    toast.success('Page duplicated');
+  }, [pages]);
+
+  const deletePage = useCallback((pageId: string) => {
+    if (pages.length <= 1) {
+      toast.error('Cannot delete the last page');
+      return;
+    }
+
+    setPages(prev => prev.filter(p => p.id !== pageId));
+    if (currentPage?.id === pageId) {
+      setCurrentPage(pages.find(p => p.id !== pageId) || null);
+    }
+    toast.success('Page deleted');
+  }, [pages, currentPage]);
+
   const addSection = useCallback(() => {
+    if (!currentPage) return;
+
     const newSection: PageSection = {
       id: `section-${Date.now()}`,
-      name: `Section ${sections.length + 1}`,
+      name: `Section ${currentPage.sections.length + 1}`,
       elements: [],
       background: { type: 'color', value: '#ffffff' },
       padding: { top: 80, bottom: 80, left: 20, right: 20 },
+      margin: { top: 0, bottom: 0 },
       maxWidth: '1200px',
-      isFullWidth: false
+      isFullWidth: false,
+      isSticky: false,
+      isParallax: false,
     };
     
-    setSections(prev => [...prev, newSection]);
+    const updatedPage = {
+      ...currentPage,
+      sections: [...currentPage.sections, newSection],
+      lastModified: new Date(),
+      version: currentPage.version + 1,
+    };
+    
+    setCurrentPage(updatedPage);
+    setPages(prev => prev.map(p => p.id === currentPage.id ? updatedPage : p));
     setSelectedSection(newSection.id);
-  }, [sections.length]);
+    toast.success('Section added');
+  }, [currentPage]);
 
-  const addElement = useCallback((elementType: string, sectionId?: string) => {
-    if (!sectionId && sections.length === 0) {
-      addSection();
-      sectionId = `section-${Date.now()}`;
-    }
+  const publishPage = useCallback(() => {
+    if (!currentPage) return;
+
+    const publishedPage = {
+      ...currentPage,
+      isPublished: true,
+      status: 'published' as const,
+      publishedAt: new Date(),
+      lastModified: new Date(),
+      version: currentPage.version + 1,
+    };
+
+    setCurrentPage(publishedPage);
+    setPages(prev => prev.map(p => p.id === currentPage.id ? publishedPage : p));
     
-    const targetSectionId = sectionId || sections[sections.length - 1]?.id;
-    if (!targetSectionId) return;
-
-    const newElement: PageElement = {
-      id: `element-${Date.now()}`,
-      type: elementType as any,
-      content: getDefaultContent(elementType),
-      position: { x: 20, y: 20 },
-      size: { width: 100, height: 60 },
-      styles: getDefaultStyles(elementType),
-      settings: {},
-      animation: {
-        type: 'fadeIn',
-        duration: 0.5,
-        delay: 0
-      }
-    };
-
-    setSections(prev => prev.map(section => 
-      section.id === targetSectionId 
-        ? { ...section, elements: [...section.elements, newElement] }
-        : section
-    ));
-    
-    setSelectedElement(newElement);
-    toast.success(`${elementType} element added`);
-  }, [sections, addSection]);
-
-  const getDefaultContent = (type: string) => {
-    const defaults: Record<string, string> = {
-      heading: 'Your Headline Here',
-      text: 'Add your content here. This is a great place to tell your story and let your users know a little more about your service.',
-      button: 'Click Here',
-      image: 'https://via.placeholder.com/400x300/e5e7eb/6b7280?text=Image',
-      form: 'Contact Form',
-      video: 'https://youtube.com/embed/dQw4w9WgXcQ',
-      testimonial: '"This service changed my life!" - Happy Customer',
-      pricing: 'Premium Plan - $99/month',
-      countdown: '30 Days Left!',
-      map: 'Google Maps Location',
-      gallery: 'Image Gallery',
-      accordion: 'Accordion Content',
-      tabs: 'Tabbed Content',
-      progress: 'Progress Bar',
-      social: 'Social Media Feed',
-      newsletter: 'Newsletter Signup',
-      divider: '',
-      spacer: ''
-    };
-    return defaults[type] || 'New Element';
-  };
-
-  const getDefaultStyles = (type: string) => {
-    const styleDefaults: Record<string, any> = {
-      heading: {
-        fontSize: '2.5rem',
-        fontWeight: 'bold',
-        color: '#1f2937',
-        textAlign: 'center',
-        margin: '0 0 1rem 0'
-      },
-      text: {
-        fontSize: '1rem',
-        color: '#4b5563',
-        textAlign: 'left',
-        margin: '0 0 1rem 0'
-      },
-      button: {
-        fontSize: '1rem',
-        fontWeight: '600',
-        color: '#ffffff',
-        backgroundColor: '#3b82f6',
-        padding: '12px 24px',
-        borderRadius: '6px',
-        textAlign: 'center',
-        border: 'none',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      },
-      image: {
-        borderRadius: '8px',
-        boxShadow: '0 10px 25px -3px rgba(0, 0, 0, 0.1)'
-      }
-    };
-    return styleDefaults[type] || {};
-  };
-
-  const updateElementStyle = useCallback((elementId: string, styleKey: string, styleValue: string) => {
-    setSections(prev => prev.map(section => ({
-      ...section,
-      elements: section.elements.map(element =>
-        element.id === elementId
-          ? { ...element, styles: { ...element.styles, [styleKey]: styleValue } }
-          : element
-      )
-    })));
-  }, []);
-
-  const updateElementContent = useCallback((elementId: string, content: string) => {
-    setSections(prev => prev.map(section => ({
-      ...section,
-      elements: section.elements.map(element =>
-        element.id === elementId ? { ...element, content } : element
-      )
-    })));
-  }, []);
-
-  const deleteElement = useCallback((elementId: string) => {
-    setSections(prev => prev.map(section => ({
-      ...section,
-      elements: section.elements.filter(element => element.id !== elementId)
-    })));
-    setSelectedElement(null);
-    toast.success('Element deleted');
-  }, []);
-
-  const duplicateElement = useCallback((elementId: string) => {
-    setSections(prev => prev.map(section => {
-      const elementToDuplicate = section.elements.find(e => e.id === elementId);
-      if (elementToDuplicate) {
-        const duplicatedElement = {
-          ...elementToDuplicate,
-          id: `element-${Date.now()}`,
-          position: { 
-            x: elementToDuplicate.position.x + 20, 
-            y: elementToDuplicate.position.y + 20 
-          }
-        };
-        return {
-          ...section,
-          elements: [...section.elements, duplicatedElement]
-        };
-      }
-      return section;
-    }));
-    toast.success('Element duplicated');
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent, sectionId: string) => {
-    e.preventDefault();
-    try {
-      const elementData = JSON.parse(e.dataTransfer.getData('application/json'));
-      addElement(elementData.type, sectionId);
-    } catch (error) {
-      console.error('Error handling drop:', error);
+    // Update the site in the store
+    if (site) {
+      const updatedSite = {
+        ...site,
+        pages: site.pages.map(p => 
+          p.id === currentPage.id 
+            ? { ...p, isPublished: true, title: publishedPage.title, slug: publishedPage.slug }
+            : p
+        )
+      };
+      updateSite(site.id, updatedSite);
     }
-  }, [addElement]);
+
+    toast.success('Page published successfully');
+  }, [currentPage, site, updateSite]);
 
   const getViewportClass = () => {
     switch (viewMode) {
@@ -384,132 +624,287 @@ export function VisualPageBuilder() {
     }
   };
 
-  const renderElement = (element: PageElement) => {
-    const commonProps = {
-      key: element.id,
-      className: `cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all ${
-        selectedElement?.id === element.id ? 'ring-2 ring-blue-500' : ''
-      } ${!isPreviewMode ? 'min-h-[40px]' : ''}`,
-      style: {
-        ...element.styles,
-        position: 'relative' as const,
-        transform: element.styles.transform || 'none',
-        opacity: element.styles.opacity || '1'
-      },
-      onClick: () => !isPreviewMode && setSelectedElement(element)
-    };
+  const renderPreview = () => {
+    if (!currentPage) {
+      return (
+        <div className="flex items-center justify-center h-full bg-gray-100">
+          <div className="text-center">
+            <Layout className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-600 mb-2">No Page Selected</h3>
+            <p className="text-gray-500 mb-4">Create or select a page to start building</p>
+            <Button onClick={addPage}>Create New Page</Button>
+          </div>
+        </div>
+      );
+    }
 
+    return (
+      <div 
+        className={`${getViewportClass()} relative bg-white shadow-lg min-h-screen`}
+        style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
+      >
+        {currentPage.sections.length === 0 ? (
+          <div className="flex items-center justify-center h-96 border-2 border-dashed border-gray-300 m-8 rounded-lg">
+            <div className="text-center">
+              <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-600 mb-2">Add Your First Section</h3>
+              <p className="text-gray-500 mb-4">Start building your page by adding sections</p>
+              <Button onClick={addSection}>Add Section</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-0">
+            {currentPage.sections.map((section) => (
+              <div
+                key={section.id}
+                className={`relative min-h-[200px] ${
+                  selectedSection === section.id ? 'ring-2 ring-blue-500' : ''
+                } ${section.isSticky ? 'sticky top-0' : ''}`}
+                style={{
+                  background: section.background.type === 'color' 
+                    ? section.background.value 
+                    : section.background.type === 'gradient'
+                    ? section.background.value
+                    : `url(${section.background.value})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  padding: `${section.padding.top}px ${section.padding.right}px ${section.padding.bottom}px ${section.padding.left}px`,
+                  marginTop: `${section.margin.top}px`,
+                  marginBottom: `${section.margin.bottom}px`,
+                }}
+                onClick={() => setSelectedSection(section.id)}
+              >
+                {!isPreviewMode && (
+                  <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 text-xs rounded z-10">
+                    {section.name}
+                  </div>
+                )}
+                
+                <div 
+                  className="relative z-10" 
+                  style={{ 
+                    maxWidth: section.isFullWidth ? '100%' : section.maxWidth, 
+                    margin: '0 auto' 
+                  }}
+                >
+                  {section.elements.length === 0 ? (
+                    <div className="flex items-center justify-center h-32 border-2 border-dashed border-gray-300 rounded-lg">
+                      <div className="text-center">
+                        <p className="text-gray-500 mb-2">Drop elements here</p>
+                        <Badge variant="outline">Empty Section</Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {section.elements.map((element) => (
+                        <div
+                          key={element.id}
+                          className={`cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all ${
+                            selectedElement?.id === element.id ? 'ring-2 ring-blue-500' : ''
+                          } ${!isPreviewMode ? 'min-h-[40px]' : ''}`}
+                          style={{
+                            ...element.styles,
+                            position: 'relative',
+                            transform: element.styles.transform || 'none',
+                            opacity: element.styles.opacity || '1'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            !isPreviewMode && setSelectedElement(element);
+                          }}
+                        >
+                          {renderElement(element)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderElement = (element: PageElement) => {
+    // Enhanced element rendering with more types
     switch (element.type) {
       case 'heading':
-        return <h1 {...commonProps}>{element.content}</h1>;
+        return <h1 style={element.styles}>{element.content}</h1>;
       case 'text':
-        return <p {...commonProps}>{element.content}</p>;
+        return <p style={element.styles}>{element.content}</p>;
       case 'button':
         return (
-          <button {...commonProps} type="button">
+          <button 
+            style={element.styles}
+            onClick={() => element.settings.link && window.open(element.settings.link, element.settings.linkTarget)}
+          >
             {element.content}
           </button>
         );
       case 'image':
         return (
           <img 
-            {...commonProps} 
             src={element.content} 
-            alt="Page element" 
-            className={`${commonProps.className} max-w-full h-auto`}
+            alt={element.settings.alt || 'Page element'} 
+            style={element.styles}
+            className="max-w-full h-auto"
+            loading={element.settings.lazy ? 'lazy' : 'eager'}
           />
         );
-      case 'video':
+      case 'hero':
         return (
-          <div {...commonProps}>
-            <iframe 
-              src={element.content} 
-              className="w-full h-64" 
-              frameBorder="0" 
-              allowFullScreen
-            />
+          <div className="text-center py-20" style={element.styles}>
+            <h1 className="text-5xl font-bold mb-6">{element.content}</h1>
+            <p className="text-xl text-gray-600 mb-8">Subtitle text here</p>
+            <Button size="lg">Get Started</Button>
           </div>
         );
-      case 'form':
+      case 'features':
         return (
-          <div {...commonProps}>
-            <div className="space-y-4 p-6 border rounded-lg bg-gray-50">
-              <h3 className="font-medium text-lg">{element.content}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" placeholder="First Name" className="p-3 border rounded" />
-                <input type="text" placeholder="Last Name" className="p-3 border rounded" />
+          <div className="grid md:grid-cols-3 gap-8" style={element.styles}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Feature {i}</h3>
+                <p className="text-gray-600">Description of feature {i}</p>
               </div>
-              <input type="email" placeholder="Email Address" className="w-full p-3 border rounded" />
-              <input type="tel" placeholder="Phone Number" className="w-full p-3 border rounded" />
-              <textarea placeholder="Message" rows={4} className="w-full p-3 border rounded resize-none" />
-              <button className="w-full bg-blue-600 text-white p-3 rounded font-medium hover:bg-blue-700 transition-colors">
-                Submit
-              </button>
-            </div>
+            ))}
+          </div>
+        );
+      case 'cta':
+        return (
+          <div className="text-center bg-blue-600 text-white py-16 rounded-lg" style={element.styles}>
+            <h2 className="text-3xl font-bold mb-4">{element.content}</h2>
+            <p className="text-xl mb-8">Ready to get started?</p>
+            <Button size="lg" variant="secondary">Take Action Now</Button>
           </div>
         );
       case 'testimonial':
         return (
-          <div {...commonProps}>
-            <div className="p-6 bg-white rounded-lg shadow-lg border">
-              <div className="flex items-center mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="italic text-gray-600 mb-4">{element.content}</p>
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
-                <div>
-                  <div className="font-medium">John Doe</div>
-                  <div className="text-sm text-gray-500">CEO, Company Inc.</div>
-                </div>
+          <div className="bg-white p-8 rounded-lg shadow-lg" style={element.styles}>
+            <div className="flex items-center mb-4">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+              ))}
+            </div>
+            <p className="text-lg italic mb-6">"{element.content}"</p>
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+              <div>
+                <div className="font-semibold">John Doe</div>
+                <div className="text-gray-500">CEO, Company Inc.</div>
               </div>
             </div>
           </div>
         );
       case 'pricing':
         return (
-          <div {...commonProps}>
-            <div className="p-6 border rounded-lg text-center bg-white shadow-lg">
-              <h3 className="text-xl font-bold mb-2">{element.content}</h3>
-              <div className="text-4xl font-bold text-blue-600 mb-4">$99<span className="text-lg text-gray-500">/mo</span></div>
-              <ul className="text-sm space-y-2 mb-6">
-                <li className="flex items-center justify-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Feature 1
+          <div className="bg-white p-8 border rounded-lg text-center shadow-lg" style={element.styles}>
+            <h3 className="text-2xl font-bold mb-4">{element.content}</h3>
+            <div className="text-5xl font-bold text-blue-600 mb-6">$99<span className="text-lg text-gray-500">/mo</span></div>
+            <ul className="space-y-3 mb-8">
+              {['Feature 1', 'Feature 2', 'Feature 3'].map((feature, i) => (
+                <li key={i} className="flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  {feature}
                 </li>
-                <li className="flex items-center justify-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Feature 2
-                </li>
-                <li className="flex items-center justify-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Feature 3
-                </li>
-              </ul>
-              <button className="w-full bg-blue-600 text-white p-3 rounded font-medium hover:bg-blue-700 transition-colors">
-                Choose Plan
-              </button>
+              ))}
+            </ul>
+            <Button className="w-full" size="lg">Choose Plan</Button>
+          </div>
+        );
+      case 'team':
+        return (
+          <div className="grid md:grid-cols-3 gap-8" style={element.styles}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="text-center">
+                <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4"></div>
+                <h3 className="text-xl font-semibold mb-2">Team Member {i}</h3>
+                <p className="text-gray-600 mb-4">Position Title</p>
+                <div className="flex justify-center space-x-2">
+                  <Button size="sm" variant="outline">LinkedIn</Button>
+                  <Button size="sm" variant="outline">Twitter</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      case 'stats':
+        return (
+          <div className="grid md:grid-cols-4 gap-8 text-center" style={element.styles}>
+            {[
+              { number: '10K+', label: 'Customers' },
+              { number: '99%', label: 'Satisfaction' },
+              { number: '50+', label: 'Countries' },
+              { number: '24/7', label: 'Support' }
+            ].map((stat, i) => (
+              <div key={i}>
+                <div className="text-4xl font-bold text-blue-600 mb-2">{stat.number}</div>
+                <div className="text-gray-600">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      case 'form':
+        return (
+          <div className="bg-white p-8 rounded-lg shadow-lg" style={element.styles}>
+            <h3 className="text-2xl font-bold mb-6">{element.content}</h3>
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <Input placeholder="First Name" />
+                <Input placeholder="Last Name" />
+              </div>
+              <Input type="email" placeholder="Email Address" />
+              <Input type="tel" placeholder="Phone Number" />
+              <Textarea placeholder="Message" rows={4} />
+              <Button className="w-full" size="lg">Submit</Button>
             </div>
+          </div>
+        );
+      case 'faq':
+        return (
+          <div className="space-y-4" style={element.styles}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border rounded-lg">
+                <div className="p-4 cursor-pointer hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">Frequently Asked Question {i}?</h4>
+                    <ChevronDown className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         );
       case 'gallery':
         return (
-          <div {...commonProps}>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="aspect-square bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4" style={element.styles}>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="aspect-square bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        );
+      case 'video':
+        return (
+          <div className="aspect-video" style={element.styles}>
+            <iframe 
+              src={element.content} 
+              className="w-full h-full rounded-lg" 
+              frameBorder="0" 
+              allowFullScreen
+            />
           </div>
         );
       case 'divider':
-        return <hr {...commonProps} className={`${commonProps.className} border-gray-300 my-8`} />;
+        return <hr className="border-gray-300 my-8" style={element.styles} />;
       case 'spacer':
-        return <div {...commonProps} style={{ ...commonProps.style, height: '50px' }} />;
+        return <div style={{ ...element.styles, height: '50px', backgroundColor: 'transparent' }} />;
       default:
-        return <div {...commonProps}>{element.content}</div>;
+        return <div style={element.styles}>{element.content}</div>;
     }
   };
 
