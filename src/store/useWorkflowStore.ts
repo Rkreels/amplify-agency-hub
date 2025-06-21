@@ -18,6 +18,16 @@ export interface ActionConfig {
   delay?: { amount: number; unit: 'minutes' | 'hours' | 'days' };
 }
 
+export interface ExecutionLog {
+  id: string;
+  timestamp: Date;
+  level: 'info' | 'warning' | 'error' | 'success';
+  message: string;
+  nodeId?: string;
+  result?: 'success' | 'error' | 'warning';
+  data?: any;
+}
+
 export interface WorkflowExecution {
   id: string;
   workflowId: string;
@@ -29,17 +39,9 @@ export interface WorkflowExecution {
   logs: ExecutionLog[];
 }
 
-export interface ExecutionLog {
-  id: string;
-  timestamp: Date;
-  level: 'info' | 'warning' | 'error' | 'success';
-  message: string;
-  data?: any;
-}
-
 export interface WorkflowNode {
   id: string;
-  type: 'trigger' | 'action' | 'condition' | 'delay' | 'goal';
+  type: 'trigger' | 'action' | 'condition' | 'delay' | 'goal' | 'wait' | 'end';
   position: { x: number; y: number };
   data: {
     label: string;
@@ -69,6 +71,8 @@ export interface WorkflowSettings {
   maxExecutionTime: number;
   retryAttempts: number;
   enableLogging: boolean;
+  allowReentry?: boolean;
+  errorHandling?: 'stop' | 'continue' | 'retry';
   notifications: {
     onSuccess: boolean;
     onFailure: boolean;

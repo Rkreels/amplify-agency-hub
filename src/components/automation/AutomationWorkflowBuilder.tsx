@@ -269,7 +269,7 @@ export function AutomationWorkflowBuilder() {
         />
       )}
       
-      {(configModalNode?.type === 'action' || configModalNode?.type === 'condition' || configModalNode?.type === 'wait' || configModalNode?.type === 'end') && (
+      {(configModalNode?.type === 'action' || configModalNode?.type === 'condition' || configModalNode?.type === 'delay' || configModalNode?.type === 'wait' || configModalNode?.type === 'end' || configModalNode?.type === 'goal') && (
         <ActionConfigModal
           isOpen={isConfigModalOpen}
           onClose={closeConfigModal}

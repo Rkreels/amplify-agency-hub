@@ -41,7 +41,7 @@ export function WorkflowHistory() {
     workflowId: 'default-workflow',
     contactId: `contact-${2000 + i}`,
     status: ['completed', 'running', 'failed'][Math.floor(Math.random() * 3)] as 'running' | 'completed' | 'failed',
-    currentNode: `node-${i}`,
+    currentStep: Math.floor(Math.random() * 5) + 1,
     startedAt: new Date(Date.now() - i * 3600000),
     completedAt: Math.random() > 0.3 ? new Date(Date.now() - i * 3000000) : undefined,
     logs: []
@@ -181,8 +181,8 @@ export function WorkflowHistory() {
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td className="py-1 text-gray-500">Current/Last Node:</td>
-                                  <td>{execution.currentNode}</td>
+                                  <td className="py-1 text-gray-500">Current Step:</td>
+                                  <td>{execution.currentStep}</td>
                                 </tr>
                               </tbody>
                             </table>
@@ -195,10 +195,10 @@ export function WorkflowHistory() {
                                     {execution.logs.map((log, index) => (
                                       <div key={index} className="text-xs font-mono p-1 border-l-2 border-gray-300">
                                         <span className="text-gray-500">{new Date(log.timestamp).toISOString()}</span>
-                                        <span className={`ml-2 ${log.result === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                                          [{log.result}]
+                                        <span className={`ml-2 ${log.level === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                          [{log.level}]
                                         </span>
-                                        <span className="ml-2 text-blue-600">{log.nodeId}</span>
+                                        {log.nodeId && <span className="ml-2 text-blue-600">{log.nodeId}</span>}
                                         <span className="ml-2">{log.message}</span>
                                       </div>
                                     ))}
@@ -249,4 +249,28 @@ export function WorkflowHistory() {
       </Tabs>
     </div>
   );
+
+  // Helper function to format date
+  function formatDate(date: Date) {
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(date);
+  }
+
+  // Helper function to get status badge
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-600"><Check className="h-3 w-3 mr-1" /> Completed</Badge>;
+      case 'running':
+        return <Badge className="bg-blue-600"><Clock className="h-3 w-3 mr-1 animate-spin" /> Running</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-600"><X className="h-3 w-3 mr-1" /> Failed</Badge>;
+      case 'paused':
+        return <Badge variant="outline" className="border-amber-600 text-amber-600">Paused</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  }
 }
