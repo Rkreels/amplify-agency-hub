@@ -1,6 +1,7 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Zap, 
   GitBranch,
@@ -11,171 +12,74 @@ import {
   Workflow,
   Calendar,
   Settings,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Workflow as WorkflowType } from '@/store/useWorkflowStore';
-
-interface ActionType {
-  id: string;
-  label: string;
-  icon: React.ComponentType<any>;
-  category: string;
-  description: string;
-}
+import { WorkflowNode } from '@/store/useWorkflowStore';
 
 interface ActionsPanelProps {
-  actionTypes: ActionType[];
-  draggedAction: ActionType | null;
-  handleDragStart: (action: ActionType, e: React.DragEvent) => void;
-  handleDragEnd: () => void;
-  addTrigger: () => void;
-  currentWorkflow: WorkflowType | null;
+  node: WorkflowNode | undefined;
+  onClose: () => void;
 }
 
-// Category icons mapping
-const categoryIcons = {
-  communication: Mail,
-  contact: User,
-  sales: Target,
-  automation: Workflow,
-  scheduling: Calendar,
-  flow: GitBranch
-};
-
-// Category display names
-const categoryNames = {
-  communication: 'Communication',
-  contact: 'Contact Management',
-  sales: 'Sales & Opportunities',
-  automation: 'Workflow Management',
-  scheduling: 'Scheduling',
-  flow: 'Flow Control'
-};
-
-export function ActionsPanel({
-  actionTypes,
-  draggedAction,
-  handleDragStart,
-  handleDragEnd,
-  addTrigger,
-  currentWorkflow
-}: ActionsPanelProps) {
-  // Group actions by category
-  const groupedActions = actionTypes.reduce((acc, action) => {
-    if (!acc[action.category]) {
-      acc[action.category] = [];
-    }
-    acc[action.category].push(action);
-    return acc;
-  }, {} as Record<string, ActionType[]>);
+export function ActionsPanel({ node, onClose }: ActionsPanelProps) {
+  if (!node) return null;
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="p-4 space-y-6">
-        {/* Quick Actions */}
-        <div className="space-y-3">
-          <h3 className="font-semibold text-sm text-gray-600 uppercase tracking-wider">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={addTrigger}
-              className="h-auto flex-col gap-1 p-3 hover:bg-orange-50 hover:border-orange-300"
-            >
-              <Zap className="h-4 w-4 text-orange-500" />
-              <span className="text-xs">Add Trigger</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-auto flex-col gap-1 p-3 hover:bg-blue-50 hover:border-blue-300"
-            >
-              <GitBranch className="h-4 w-4 text-blue-500" />
-              <span className="text-xs">Add Condition</span>
-            </Button>
-          </div>
-        </div>
+    <div className="p-4 border-l bg-white h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold">Node Properties</h3>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-        {/* Workflow Stats */}
-        {currentWorkflow && (
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-600 uppercase tracking-wider">Workflow Stats</h3>
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <div className="bg-blue-50 p-2 rounded border">
-                <div className="text-lg font-bold text-blue-600">{currentWorkflow.nodes.length}</div>
-                <div className="text-xs text-blue-600">Nodes</div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium mb-2">Node Details</h4>
+            <div className="space-y-2">
+              <div>
+                <label className="text-sm text-gray-600">Type</label>
+                <p className="font-medium">{node.type}</p>
               </div>
-              <div className="bg-green-50 p-2 rounded border">
-                <div className="text-lg font-bold text-green-600">{currentWorkflow.connections.length}</div>
-                <div className="text-xs text-green-600">Connections</div>
+              <div>
+                <label className="text-sm text-gray-600">Label</label>
+                <p className="font-medium">{node.data.label}</p>
               </div>
-              <div className="bg-purple-50 p-2 rounded border">
-                <div className="text-lg font-bold text-purple-600">{currentWorkflow.stats.triggered}</div>
-                <div className="text-xs text-purple-600">Triggered</div>
-              </div>
-              <div className="bg-orange-50 p-2 rounded border">
-                <div className="text-lg font-bold text-orange-600">{currentWorkflow.stats.completed}</div>
-                <div className="text-xs text-orange-600">Completed</div>
+              <div>
+                <label className="text-sm text-gray-600">Status</label>
+                <Badge variant={node.data.isConfigured ? "default" : "outline"}>
+                  {node.data.isConfigured ? "Configured" : "Setup Required"}
+                </Badge>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Available Actions */}
-        <div className="space-y-3">
-          <h3 className="font-semibold text-sm text-gray-600 uppercase tracking-wider">Available Actions</h3>
-          <div className="text-xs text-gray-500 mb-2">
-            Drag and drop actions to the canvas
+          <div>
+            <h4 className="font-medium mb-2">Position</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <label className="text-gray-600">X:</label>
+                <span className="ml-1">{Math.round(node.position.x)}</span>
+              </div>
+              <div>
+                <label className="text-gray-600">Y:</label>
+                <span className="ml-1">{Math.round(node.position.y)}</span>
+              </div>
+            </div>
           </div>
-          
-          {Object.entries(groupedActions).map(([category, actions]) => {
-            const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons] || Settings;
-            const categoryName = categoryNames[category as keyof typeof categoryNames] || category;
-            
-            return (
-              <Collapsible key={category} defaultOpen={category === 'communication'} className="mb-2">
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded">
-                  <div className="flex items-center space-x-2">
-                    <CategoryIcon className="h-4 w-4" />
-                    <h4 className="font-medium text-sm">{categoryName}</h4>
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 mt-2">
-                  <div className="grid gap-2">
-                    {actions.map((action) => {
-                      const Icon = action.icon;
-                      return (
-                        <div
-                          key={action.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(action, e)}
-                          onDragEnd={handleDragEnd}
-                          className={`flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-grab active:cursor-grabbing transition-all border border-gray-200 hover:border-gray-300 hover:shadow-sm ${
-                            draggedAction?.id === action.id ? 'opacity-50 scale-95' : ''
-                          }`}
-                        >
-                          <div className="flex items-center justify-center mr-3">
-                            <Grip className="h-3 w-3 text-gray-400 mr-1" />
-                            <div className="bg-gray-700 text-white p-2 rounded">
-                              <Icon className="h-4 w-4" />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{action.label}</div>
-                            <div className="text-xs text-gray-500 truncate">{action.description}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
+
+          <div>
+            <h4 className="font-medium mb-2">Configuration</h4>
+            <Button variant="outline" className="w-full">
+              <Settings className="h-4 w-4 mr-2" />
+              Configure Node
+            </Button>
+          </div>
         </div>
-      </div>
-    </ScrollArea>
+      </ScrollArea>
+    </div>
   );
 }

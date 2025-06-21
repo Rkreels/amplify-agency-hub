@@ -1,61 +1,66 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import { useWorkflowStore } from '@/store/useWorkflowStore';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-export function WorkflowValidationStatus() {
-  const { currentWorkflow } = useWorkflowStore();
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
 
-  if (!currentWorkflow) return null;
+interface WorkflowValidationStatusProps {
+  validation: ValidationResult;
+  onClose: () => void;
+}
 
-  const nodes = currentWorkflow.nodes || [];
-  const connections = currentWorkflow.connections || [];
-  
-  const totalNodes = nodes.length;
-  const configuredNodes = nodes.filter(n => n.data?.isConfigured).length;
-  const unconfiguredNodes = totalNodes - configuredNodes;
-  const totalConnections = connections.length;
-
-  const hasErrors = unconfiguredNodes > 0 || totalNodes === 0;
-  const isValid = totalNodes > 0 && unconfiguredNodes === 0;
-
+export function WorkflowValidationStatus({ validation, onClose }: WorkflowValidationStatusProps) {
   return (
-    <Card className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur shadow-lg border">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-3">
-          {isValid ? (
-            <CheckCircle className="h-5 w-5 text-green-600" />
-          ) : hasErrors ? (
-            <XCircle className="h-5 w-5 text-red-600" />
-          ) : (
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-          )}
-          
-          <div className="flex items-center gap-3 text-sm">
-            <Badge variant={totalNodes > 0 ? "default" : "secondary"}>
-              {totalNodes} Nodes
-            </Badge>
-            
-            <Badge variant={totalConnections > 0 ? "default" : "secondary"}>
-              {totalConnections} Connections
-            </Badge>
-            
-            {unconfiguredNodes > 0 && (
-              <Badge variant="destructive">
-                {unconfiguredNodes} Unconfigured
-              </Badge>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {validation.isValid ? (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-500" />
             )}
-            
-            {isValid && (
-              <Badge variant="default" className="bg-green-100 text-green-800">
-                Ready to Deploy
-              </Badge>
-            )}
+            Workflow Validation
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge variant={validation.isValid ? "default" : "destructive"}>
+              {validation.isValid ? "Valid" : "Invalid"}
+            </Badge>
+            <span className="text-sm text-gray-600">
+              {validation.isValid ? "Workflow is ready to activate" : `${validation.errors.length} issues found`}
+            </span>
           </div>
+
+          {validation.errors.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Issues to Fix:</h4>
+              <div className="space-y-1">
+                {validation.errors.map((error, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="flex justify-end pt-4">
+          <Button onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
