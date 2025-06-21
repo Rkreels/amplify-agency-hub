@@ -2,6 +2,41 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 
+export interface TriggerConfig {
+  id: string;
+  type: string;
+  name: string;
+  conditions: Record<string, any>;
+  isActive: boolean;
+}
+
+export interface ActionConfig {
+  id: string;
+  type: string;
+  name: string;
+  settings: Record<string, any>;
+  delay?: { amount: number; unit: 'minutes' | 'hours' | 'days' };
+}
+
+export interface WorkflowExecution {
+  id: string;
+  workflowId: string;
+  contactId: string;
+  status: 'running' | 'completed' | 'failed' | 'paused';
+  startedAt: Date;
+  completedAt?: Date;
+  currentStep: number;
+  logs: ExecutionLog[];
+}
+
+export interface ExecutionLog {
+  id: string;
+  timestamp: Date;
+  level: 'info' | 'warning' | 'error' | 'success';
+  message: string;
+  data?: any;
+}
+
 export interface WorkflowNode {
   id: string;
   type: 'trigger' | 'action' | 'condition' | 'delay' | 'goal';
@@ -20,6 +55,25 @@ export interface WorkflowConnection {
   target: string;
   sourceHandle?: string;
   targetHandle?: string;
+  label?: string;
+}
+
+export interface WorkflowStats {
+  triggered: number;
+  completed: number;
+  failed: number;
+  conversionRate: number;
+}
+
+export interface WorkflowSettings {
+  maxExecutionTime: number;
+  retryAttempts: number;
+  enableLogging: boolean;
+  notifications: {
+    onSuccess: boolean;
+    onFailure: boolean;
+    email: string;
+  };
 }
 
 export interface Workflow {
@@ -31,6 +85,8 @@ export interface Workflow {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  stats: WorkflowStats;
+  settings: WorkflowSettings;
 }
 
 interface WorkflowStore {
@@ -39,11 +95,27 @@ interface WorkflowStore {
   selectedNode: string | null;
   isLoading: boolean;
   
+  // Modal state
+  isConfigModalOpen: boolean;
+  configModalNode: WorkflowNode | null;
+  
+  // Execution state
+  isExecuting: boolean;
+  executionLogs: WorkflowExecution[];
+  
   // Actions
   createNewWorkflow: (data: Partial<Workflow>) => void;
   loadWorkflow: (workflowId: string) => void;
   saveWorkflow: () => void;
   deleteWorkflow: (workflowId: string) => void;
+  updateWorkflowName: (name: string) => void;
+  updateWorkflowSettings: (settings: Partial<WorkflowSettings>) => void;
+  
+  // Workflow management
+  activateWorkflow: (workflowId: string) => void;
+  deactivateWorkflow: (workflowId: string) => void;
+  testWorkflow: (contactData: any) => Promise<void>;
+  validateWorkflow: () => { isValid: boolean; errors: string[] };
   
   // Node actions
   addNode: (node: Omit<WorkflowNode, 'id'>) => void;
@@ -58,6 +130,7 @@ interface WorkflowStore {
   
   // Modal actions
   openConfigModal: (node: WorkflowNode) => void;
+  closeConfigModal: () => void;
 }
 
 export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
@@ -65,6 +138,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   currentWorkflow: null,
   selectedNode: null,
   isLoading: false,
+  isConfigModalOpen: false,
+  configModalNode: null,
+  isExecuting: false,
+  executionLogs: [],
 
   createNewWorkflow: (data) => {
     const newWorkflow: Workflow = {
@@ -76,6 +153,22 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       isActive: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      stats: {
+        triggered: 0,
+        completed: 0,
+        failed: 0,
+        conversionRate: 0
+      },
+      settings: {
+        maxExecutionTime: 3600,
+        retryAttempts: 3,
+        enableLogging: true,
+        notifications: {
+          onSuccess: false,
+          onFailure: true,
+          email: ''
+        }
+      },
       ...data
     };
 
@@ -123,6 +216,121 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     }));
 
     toast.success('Workflow deleted');
+  },
+
+  updateWorkflowName: (name) => {
+    const { currentWorkflow } = get();
+    if (!currentWorkflow) return;
+
+    const updatedWorkflow = { ...currentWorkflow, name };
+    set((state) => ({
+      workflows: state.workflows.map(w => 
+        w.id === currentWorkflow.id ? updatedWorkflow : w
+      ),
+      currentWorkflow: updatedWorkflow
+    }));
+  },
+
+  updateWorkflowSettings: (settings) => {
+    const { currentWorkflow } = get();
+    if (!currentWorkflow) return;
+
+    const updatedWorkflow = {
+      ...currentWorkflow,
+      settings: { ...currentWorkflow.settings, ...settings }
+    };
+
+    set((state) => ({
+      workflows: state.workflows.map(w => 
+        w.id === currentWorkflow.id ? updatedWorkflow : w
+      ),
+      currentWorkflow: updatedWorkflow
+    }));
+
+    toast.success('Workflow settings updated');
+  },
+
+  activateWorkflow: (workflowId) => {
+    set((state) => ({
+      workflows: state.workflows.map(w => 
+        w.id === workflowId ? { ...w, isActive: true } : w
+      ),
+      currentWorkflow: state.currentWorkflow?.id === workflowId 
+        ? { ...state.currentWorkflow, isActive: true } 
+        : state.currentWorkflow
+    }));
+  },
+
+  deactivateWorkflow: (workflowId) => {
+    set((state) => ({
+      workflows: state.workflows.map(w => 
+        w.id === workflowId ? { ...w, isActive: false } : w
+      ),
+      currentWorkflow: state.currentWorkflow?.id === workflowId 
+        ? { ...state.currentWorkflow, isActive: false } 
+        : state.currentWorkflow
+    }));
+  },
+
+  testWorkflow: async (contactData) => {
+    set({ isExecuting: true });
+    
+    try {
+      const { currentWorkflow } = get();
+      if (!currentWorkflow) throw new Error('No workflow selected');
+
+      // Simulate workflow execution
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const execution: WorkflowExecution = {
+        id: `exec-${Date.now()}`,
+        workflowId: currentWorkflow.id,
+        contactId: contactData.id,
+        status: 'completed',
+        startedAt: new Date(),
+        completedAt: new Date(),
+        currentStep: currentWorkflow.nodes.length,
+        logs: []
+      };
+
+      set((state) => ({
+        executionLogs: [...state.executionLogs, execution]
+      }));
+
+      toast.success('Workflow test completed successfully');
+    } catch (error) {
+      toast.error('Workflow test failed');
+    } finally {
+      set({ isExecuting: false });
+    }
+  },
+
+  validateWorkflow: () => {
+    const { currentWorkflow } = get();
+    if (!currentWorkflow) {
+      return { isValid: false, errors: ['No workflow selected'] };
+    }
+
+    const errors: string[] = [];
+    
+    if (currentWorkflow.nodes.length === 0) {
+      errors.push('Workflow must have at least one node');
+    }
+
+    const unconfiguredNodes = currentWorkflow.nodes.filter(n => !n.data.isConfigured);
+    if (unconfiguredNodes.length > 0) {
+      errors.push(`${unconfiguredNodes.length} nodes are not configured`);
+    }
+
+    const triggers = currentWorkflow.nodes.filter(n => n.type === 'trigger');
+    if (triggers.length === 0) {
+      errors.push('Workflow must have at least one trigger');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   },
 
   addNode: (nodeData) => {
@@ -237,8 +445,16 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
 
   openConfigModal: (node) => {
-    // This would open a configuration modal for the node
-    // For now, we'll just show a toast
-    toast.info(`Configure ${node.data.label} - Feature coming soon`);
+    set({
+      isConfigModalOpen: true,
+      configModalNode: node
+    });
+  },
+
+  closeConfigModal: () => {
+    set({
+      isConfigModalOpen: false,
+      configModalNode: null
+    });
   }
 }));

@@ -31,66 +31,78 @@ const triggerTypes = [
     id: 'contact_created',
     name: 'Contact Created',
     description: 'Triggers when a new contact is added',
-    icon: User,
+    icon: 'User',
     category: 'Contact Events'
   },
   {
     id: 'appointment_booked',
     name: 'Appointment Booked',
     description: 'Triggers when an appointment is scheduled',
-    icon: Calendar,
+    icon: 'Calendar',
     category: 'Calendar Events'
   },
   {
     id: 'appointment_cancelled',
     name: 'Appointment Cancelled',
     description: 'Triggers when an appointment is cancelled',
-    icon: Calendar,
+    icon: 'Calendar',
     category: 'Calendar Events'
   },
   {
     id: 'form_submitted',
     name: 'Form Submitted',
     description: 'Triggers when a form is submitted',
-    icon: FileText,
+    icon: 'FileText',
     category: 'Form Events'
   },
   {
     id: 'tag_applied',
     name: 'Tag Applied',
     description: 'Triggers when a tag is added to a contact',
-    icon: Tag,
+    icon: 'Tag',
     category: 'Contact Events'
   },
   {
     id: 'opportunity_created',
     name: 'Opportunity Created',
     description: 'Triggers when a new opportunity is created',
-    icon: Target,
+    icon: 'Target',
     category: 'Sales Events'
   },
   {
     id: 'email_opened',
     name: 'Email Opened',
     description: 'Triggers when an email is opened',
-    icon: Mail,
+    icon: 'Mail',
     category: 'Communication Events'
   },
   {
     id: 'sms_received',
     name: 'SMS Received',
     description: 'Triggers when an SMS is received',
-    icon: MessageSquare,
+    icon: 'MessageSquare',
     category: 'Communication Events'
   },
   {
     id: 'webhook',
     name: 'Webhook',
     description: 'Triggers via external webhook',
-    icon: Settings,
+    icon: 'Settings',
     category: 'External Events'
   }
 ];
+
+// Icon mapping
+const iconMap = {
+  User,
+  Calendar,
+  FileText,
+  Tag,
+  Target,
+  Mail,
+  MessageSquare,
+  Settings
+};
 
 interface TriggerConfigModalProps {
   isOpen: boolean;
@@ -262,7 +274,7 @@ export function TriggerConfigModal({ isOpen, onClose, node }: TriggerConfigModal
                   <h3 className="font-medium mb-2">{category}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {triggers.map((trigger) => {
-                      const Icon = trigger.icon;
+                      const IconComponent = iconMap[trigger.icon as keyof typeof iconMap];
                       return (
                         <Card 
                           key={trigger.id}
@@ -273,7 +285,7 @@ export function TriggerConfigModal({ isOpen, onClose, node }: TriggerConfigModal
                         >
                           <CardHeader className="pb-2">
                             <div className="flex items-center space-x-2">
-                              <Icon className="h-5 w-5" />
+                              <IconComponent className="h-5 w-5" />
                               <CardTitle className="text-sm">{trigger.name}</CardTitle>
                             </div>
                           </CardHeader>
