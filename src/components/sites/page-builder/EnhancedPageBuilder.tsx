@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { Element } from './types';
 import { ElementRenderer } from './ElementRenderer';
 import { DesignPanel } from './DesignPanel';
-import { ElementTemplates } from './ElementTemplates';
+import { EnhancedElementTemplates } from './EnhancedElementTemplates';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -243,16 +243,16 @@ export function EnhancedPageBuilder({ siteId }: EnhancedPageBuilderProps) {
         <ScrollArea className="flex-1">
           <Tabs value={activePanel} className="w-full">
             <TabsContent value="elements" className="p-4 mt-0">
-              <ElementTemplates onAddElement={addElement} />
+              <EnhancedElementTemplates onAddElement={addElement} />
             </TabsContent>
 
             <TabsContent value="design" className="p-4 mt-0">
               {selectedElement ? (
                 <DesignPanel
-                  element={selectedElement}
-                  onUpdateElement={(updates) => updateElement(selectedElement.id, updates)}
-                  onDeleteElement={() => deleteElement(selectedElement.id)}
-                  onDuplicateElement={() => duplicateElement(selectedElement)}
+                  selectedElement={selectedElement}
+                  onUpdateElement={updateElement}
+                  onDeleteElement={deleteElement}
+                  onDuplicateElement={duplicateElement}
                 />
               ) : (
                 <div className="text-center py-8 text-gray-500">
