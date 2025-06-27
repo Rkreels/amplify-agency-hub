@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdvancedPageBuilder } from "@/components/sites/AdvancedPageBuilder";
 import { EnhancedFunnelBuilder } from "@/components/sites/EnhancedFunnelBuilder";
+import { DashboardCustomization } from "@/components/dashboard/DashboardCustomization";
 import { useSitesStore } from "@/store/useSitesStore";
 import { 
   Plus, 
