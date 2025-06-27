@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,7 +67,7 @@ interface Element {
     overflow?: string;
     display?: string;
     flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
-    flexWrap?: string;
+    flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
     justifyContent?: string;
     alignItems?: string;
     alignContent?: string;
@@ -167,6 +166,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       label: 'Text',
       icon: Type,
       template: {
+        id: `element-${Date.now()}`,
         type: 'text' as const,
         content: 'Your text here',
         styles: {
@@ -183,6 +183,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       label: 'Heading',
       icon: Type,
       template: {
+        id: `element-${Date.now()}`,
         type: 'text' as const,
         content: 'Your Heading',
         styles: {
@@ -199,6 +200,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       label: 'Button',
       icon: Square,
       template: {
+        id: `element-${Date.now()}`,
         type: 'button' as const,
         content: 'Click Me',
         href: '#',
@@ -211,7 +213,6 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
           fontWeight: '600',
           textAlign: 'center' as const,
           cursor: 'pointer',
-          border: 'none',
         }
       }
     },
@@ -220,6 +221,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       label: 'Image',
       icon: Image,
       template: {
+        id: `element-${Date.now()}`,
         type: 'image' as const,
         src: 'https://via.placeholder.com/400x300',
         alt: 'Placeholder Image',
@@ -236,6 +238,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       label: 'Container',
       icon: Layout,
       template: {
+        id: `element-${Date.now()}`,
         type: 'container' as const,
         children: [],
         styles: {
@@ -253,6 +256,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       label: 'Divider',
       icon: MoreHorizontal,
       template: {
+        id: `element-${Date.now()}`,
         type: 'divider' as const,
         styles: {
           height: '1px',
@@ -396,10 +400,55 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
   // Render element based on type
   const renderElement = useCallback((element: Element, isSelected: boolean = false) => {
     const baseStyles: React.CSSProperties = {
-      position: element.styles.position as any || 'relative',
-      ...element.styles,
-      transform: element.styles.transform,
+      position: element.styles.position as React.CSSProperties['position'] || 'relative',
+      fontSize: element.styles.fontSize,
+      fontWeight: element.styles.fontWeight as React.CSSProperties['fontWeight'],
+      fontFamily: element.styles.fontFamily,
+      color: element.styles.color,
+      backgroundColor: element.styles.backgroundColor,
+      backgroundImage: element.styles.backgroundImage,
+      padding: element.styles.padding,
+      margin: element.styles.margin,
+      textAlign: element.styles.textAlign as React.CSSProperties['textAlign'],
+      borderRadius: element.styles.borderRadius,
+      borderWidth: element.styles.borderWidth,
+      borderColor: element.styles.borderColor,
+      borderStyle: element.styles.borderStyle as React.CSSProperties['borderStyle'],
+      boxShadow: element.styles.boxShadow,
+      width: element.styles.width,
+      height: element.styles.height,
+      minWidth: element.styles.minWidth,
+      minHeight: element.styles.minHeight,
+      maxWidth: element.styles.maxWidth,
+      maxHeight: element.styles.maxHeight,
+      top: element.styles.top,
+      left: element.styles.left,
+      right: element.styles.right,
+      bottom: element.styles.bottom,
+      zIndex: element.styles.zIndex,
       opacity: element.styles.opacity,
+      transform: element.styles.transform,
+      transition: element.styles.transition,
+      cursor: element.styles.cursor as React.CSSProperties['cursor'],
+      overflow: element.styles.overflow as React.CSSProperties['overflow'],
+      display: element.styles.display as React.CSSProperties['display'],
+      flexDirection: element.styles.flexDirection as React.CSSProperties['flexDirection'],
+      flexWrap: element.styles.flexWrap as React.CSSProperties['flexWrap'],
+      justifyContent: element.styles.justifyContent as React.CSSProperties['justifyContent'],
+      alignItems: element.styles.alignItems as React.CSSProperties['alignItems'],
+      alignContent: element.styles.alignContent as React.CSSProperties['alignContent'],
+      gap: element.styles.gap,
+      gridTemplateColumns: element.styles.gridTemplateColumns,
+      gridTemplateRows: element.styles.gridTemplateRows,
+      gridGap: element.styles.gridGap,
+      animation: element.styles.animation,
+      animationDuration: element.styles.animationDuration,
+      animationDelay: element.styles.animationDelay,
+      animationIterationCount: element.styles.animationIterationCount as React.CSSProperties['animationIterationCount'],
+      animationDirection: element.styles.animationDirection as React.CSSProperties['animationDirection'],
+      animationFillMode: element.styles.animationFillMode as React.CSSProperties['animationFillMode'],
+      animationPlayState: element.styles.animationPlayState as React.CSSProperties['animationPlayState'],
+      animationTimingFunction: element.styles.animationTimingFunction as React.CSSProperties['animationTimingFunction'],
     };
 
     const wrapperStyles: React.CSSProperties = {

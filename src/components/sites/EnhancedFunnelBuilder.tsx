@@ -1,24 +1,32 @@
-
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
-  Target, Zap, TrendingUp, Users, BarChart3, ArrowRight, ArrowDown,
-  Play, Pause, Settings, Eye, Edit, Copy, Trash2, Plus, Save,
-  Globe, Mail, Phone, CreditCard, Calendar, Clock, Award, Share,
-  MessageSquare, FileText, Image, Video, Layout, Grid, Layers,
-  MousePointer, Type, Square, Circle, Star, CheckCircle, XCircle,
-  AlertCircle, Info, ChevronDown, ChevronUp, Monitor, Tablet, Smartphone
+  Plus, Edit, Trash2, Copy, Move, Eye, EyeOff, Settings, 
+  Type, Image, Square, Circle, Layout, Layers, Palette, 
+  MousePointer, Hand, ZoomIn, ZoomOut, RotateCcw, RotateCw,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  Bold, Italic, Underline, Code, Link, List, ListOrdered,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUp,
+  Monitor, Tablet, Smartphone, Play, Pause, Save, Download, Upload,
+  MoreHorizontal, Quote, Grid, Columns, Rows, PanelLeft, PanelRight,
+  Target, TrendingUp, Users, DollarSign, Clock, CheckCircle,
+  Star, Award, Shield, Zap, Heart, MessageCircle, Share2,
+  Mail, Phone, MapPin, Calendar, Globe, Search, Filter,
+  BarChart3, PieChart, LineChart, Activity, Briefcase
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface FunnelStep {
   id: string;
