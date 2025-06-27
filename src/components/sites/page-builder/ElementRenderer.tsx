@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Element } from './types';
 import { 
@@ -98,6 +99,10 @@ export function ElementRenderer({ element, isSelected, onElementClick }: Element
     textDecoration: element.styles.textDecoration,
     objectFit: (element.styles.objectFit as React.CSSProperties['objectFit']),
     border: element.styles.border,
+    borderLeft: element.styles.borderLeft,
+    borderRight: element.styles.borderRight,
+    borderTop: element.styles.borderTop,
+    borderBottom: element.styles.borderBottom,
   };
 
   const wrapperStyles: React.CSSProperties = {
@@ -444,12 +449,13 @@ export function ElementRenderer({ element, isSelected, onElementClick }: Element
       );
 
     default:
+      const elementTypeString = String(element.type || 'Unknown');
       return (
         <div key={element.id} style={wrapperStyles} onClick={handleElementClick}>
           <div style={{ ...baseStyles, padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '2px dashed #d1d5db' }}>
             <div style={{ textAlign: 'center', color: '#6b7280' }}>
               <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '5px' }}>
-                {element.type ? (element.type.charAt(0).toUpperCase() + element.type.slice(1)) : 'Unknown'} Element
+                {elementTypeString.charAt(0).toUpperCase() + elementTypeString.slice(1)} Element
               </div>
               <div style={{ fontSize: '12px' }}>
                 Click to configure
