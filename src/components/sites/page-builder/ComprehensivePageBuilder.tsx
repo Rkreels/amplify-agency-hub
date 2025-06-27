@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Element } from './types';
 import { ElementRenderer } from './ElementRenderer';
@@ -106,7 +105,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
         padding: '16px',
         margin: '8px',
         position: 'relative',
-        zIndex: 1,
+        zIndex: '1', // Fix: Convert number to string
         ...template.styles
       },
       ...template
@@ -421,9 +420,6 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                     element={element}
                     isSelected={selectedElement?.id === element.id}
                     onElementClick={setSelectedElement}
-                    onElementUpdate={updateElement}
-                    previewMode={previewMode}
-                    snapToGrid={snapToGrid}
                   />
                 ))
               )}
