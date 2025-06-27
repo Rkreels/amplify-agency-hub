@@ -252,7 +252,7 @@ export function EnhancedPageBuilder({ siteId }: EnhancedPageBuilderProps) {
                   selectedElement={selectedElement}
                   onUpdateElement={updateElement}
                   onDeleteElement={deleteElement}
-                  onDuplicateElement={duplicateElement}
+                  onDuplicateElement={() => duplicateElement(selectedElement)}
                 />
               ) : (
                 <div className="text-center py-8 text-gray-500">
