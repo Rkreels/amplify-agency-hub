@@ -1,49 +1,39 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Eye, 
-  EyeOff,
-  Edit, 
-  Copy, 
-  Trash2,
   Globe,
   Users,
-  Calendar,
-  Settings,
-  BarChart3,
-  MousePointer,
-  Smartphone,
-  Monitor,
-  ExternalLink,
-  Download,
-  Upload,
-  RefreshCw,
+  TrendingUp,
   Zap,
-  Target,
-  TrendingUp
+  RefreshCw,
+  Monitor,
+  Eye,
+  Edit,
+  ExternalLink,
+  BarChart3,
+  Settings,
+  Copy,
+  Download,
+  Trash2,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSitesStore, Site } from '@/store/useSitesStore';
 import { SiteForm } from '@/components/sites/SiteForm';
 import { SiteDetails } from '@/components/sites/SiteDetails';
-import { AdvancedPageBuilder } from '@/components/sites/AdvancedPageBuilder';
+import { EnhancedPageBuilder } from '@/components/sites/page-builder/EnhancedPageBuilder';
+import { SitesSidebar } from '@/components/sites/SitesSidebar';
 import { EnhancedFunnelBuilder } from '@/components/sites/EnhancedFunnelBuilder';
 import { 
   Dialog, 
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+  DialogTitle 
 } from '@/components/ui/dialog';
 import { 
   DropdownMenu, 
@@ -52,7 +42,6 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Sites() {
   const { sites, selectedSite, setSelectedSite, deleteSite, publishSite, unpublishSite } = useSitesStore();
@@ -64,14 +53,6 @@ export default function Sites() {
   const [showPageBuilder, setShowPageBuilder] = useState(false);
   const [showFunnelBuilder, setShowFunnelBuilder] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
-  const filteredSites = sites.filter(site => {
-    const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         site.url.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || site.status === filterStatus;
-    const matchesType = filterType === 'all' || site.type === filterType;
-    return matchesSearch && matchesStatus && matchesType;
-  });
 
   const handleSiteAction = (action: string, site: Site) => {
     switch (action) {
@@ -121,25 +102,7 @@ export default function Sites() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'bg-green-100 text-green-800';
-      case 'draft': return 'bg-yellow-100 text-yellow-800';
-      case 'archived': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'website': return <Globe className="h-4 w-4" />;
-      case 'landing': return <Target className="h-4 w-4" />;
-      case 'funnel': return <TrendingUp className="h-4 w-4" />;
-      case 'booking': return <Calendar className="h-4 w-4" />;
-      default: return <Globe className="h-4 w-4" />;
-    }
-  };
-
+  // Enhanced Page Builder View
   if (showPageBuilder && selectedSite) {
     return (
       <div className="h-screen flex flex-col">
@@ -156,15 +119,27 @@ export default function Sites() {
               ← Back to Sites
             </Button>
             <h1 className="text-xl font-semibold">Page Builder - {selectedSite.name}</h1>
+            <Badge variant="outline">{selectedSite.type}</Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Eye className="h-4 w-4 mr-1" />
+              Preview
+            </Button>
+            <Button size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              Publish
+            </Button>
           </div>
         </div>
         <div className="flex-1">
-          <AdvancedPageBuilder siteId={selectedSite.id} />
+          <EnhancedPageBuilder siteId={selectedSite.id} />
         </div>
       </div>
     );
   }
 
+  // Enhanced Funnel Builder View
   if (showFunnelBuilder && selectedSite) {
     return (
       <div className="h-screen flex flex-col">
@@ -181,6 +156,7 @@ export default function Sites() {
               ← Back to Sites
             </Button>
             <h1 className="text-xl font-semibold">Funnel Builder - {selectedSite.name}</h1>
+            <Badge variant="outline">{selectedSite.type}</Badge>
           </div>
         </div>
         <div className="flex-1">
@@ -190,311 +166,246 @@ export default function Sites() {
     );
   }
 
+  // Main Sites Dashboard with Sidebar
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Sites & Funnels</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => toast.info('Refreshing sites...')}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button onClick={() => setShowSiteForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Site
-          </Button>
-        </div>
-      </div>
+    <div className="flex h-screen bg-gray-50">
+      {/* Left Sidebar */}
+      <SitesSidebar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        filterType={filterType}
+        setFilterType={setFilterType}
+        onSiteSelect={setSelectedSite}
+        onCreateSite={() => setShowSiteForm(true)}
+        selectedSite={selectedSite}
+      />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          {/* Quick Stats */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Sites</CardTitle>
-                <Globe className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{sites.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {sites.filter(s => s.status === 'published').length} published
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {sites.reduce((sum, site) => sum + site.visitors, 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground">This month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">12.5%</div>
-                <p className="text-xs text-muted-foreground">+2.1% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Funnels</CardTitle>
-                <Zap className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {sites.filter(s => s.type === 'funnel' && s.status === 'published').length}
-                </div>
-                <p className="text-xs text-muted-foreground">Running campaigns</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters and Search */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 max-w-sm">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search sites..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Sites & Funnels</h1>
+              <p className="text-gray-600">Build and manage your websites, landing pages, and funnels</p>
             </div>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="website">Website</SelectItem>
-                <SelectItem value="landing">Landing</SelectItem>
-                <SelectItem value="funnel">Funnel</SelectItem>
-                <SelectItem value="booking">Booking</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sites Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredSites.map((site) => (
-              <Card key={site.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(site.type)}
-                      <CardTitle className="text-lg">{site.name}</CardTitle>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleSiteAction('view', site)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Site
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleSiteAction('edit', site)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleSiteAction('pages', site)}>
-                          <Monitor className="h-4 w-4 mr-2" />
-                          Edit Pages
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleSiteAction('funnels', site)}>
-                          <TrendingUp className="h-4 w-4 mr-2" />
-                          Edit Funnels
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleSiteAction('analytics', site)}>
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          Analytics
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleSiteAction('settings', site)}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleSiteAction('duplicate', site)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleSiteAction('export', site)}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Export
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {site.status === 'published' ? (
-                          <DropdownMenuItem onClick={() => handleSiteAction('unpublish', site)}>
-                            <EyeOff className="h-4 w-4 mr-2" />
-                            Unpublish
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => handleSiteAction('publish', site)}>
-                            <Globe className="h-4 w-4 mr-2" />
-                            Publish
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem 
-                          onClick={() => handleSiteAction('delete', site)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(site.status)}>
-                      {site.status}
-                    </Badge>
-                    <Badge variant="outline">
-                      {site.type}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <ExternalLink className="h-3 w-3" />
-                      <span className="truncate">{site.url}</span>
-                    </div>
-                    {site.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {site.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {site.visitors.toLocaleString()} visitors
-                      </span>
-                      <span className="text-muted-foreground">
-                        Updated {new Date(site.lastUpdated).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleSiteAction('pages', site)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleSiteAction('view', site)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {filteredSites.length === 0 && (
-            <div className="text-center py-12">
-              <Globe className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No sites found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || filterStatus !== 'all' || filterType !== 'all'
-                  ? 'Try adjusting your search or filters'
-                  : 'Get started by creating your first site'}
-              </p>
-              <Button onClick={() => setShowSiteForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Site
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => toast.info('Refreshing sites...')}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
               </Button>
             </div>
-          )}
-        </TabsContent>
+          </div>
+        </div>
 
-        <TabsContent value="templates" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Template Cards */}
-            {[
-              { name: 'Business Landing Page', type: 'landing', preview: '/api/placeholder/400/300' },
-              { name: 'E-commerce Store', type: 'website', preview: '/api/placeholder/400/300' },
-              { name: 'Lead Generation Funnel', type: 'funnel', preview: '/api/placeholder/400/300' },
-              { name: 'Booking Page', type: 'booking', preview: '/api/placeholder/400/300' },
-            ].map((template, index) => (
-              <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
-                <div className="aspect-video bg-gray-100 rounded-t-lg"></div>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold">{template.name}</h3>
-                  <Badge variant="outline" className="mt-2">{template.type}</Badge>
-                  <Button className="w-full mt-3" size="sm">
-                    Use Template
+        {/* Content */}
+        <div className="flex-1 p-6 overflow-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              {/* Quick Stats */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Sites</CardTitle>
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{sites.length}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {sites.filter(s => s.status === 'published').length} published
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {sites.reduce((sum, site) => sum + site.visitors, 0).toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">This month</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">12.5%</div>
+                    <p className="text-xs text-muted-foreground">+2.1% from last month</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Funnels</CardTitle>
+                    <Zap className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {sites.filter(s => s.type === 'funnel' && s.status === 'published').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Running campaigns</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Selected Site Details */}
+              {selectedSite && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {selectedSite.name}
+                          <Badge variant="outline">{selectedSite.status}</Badge>
+                        </CardTitle>
+                        <p className="text-sm text-gray-600 mt-1">{selectedSite.url}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => handleSiteAction('view', selectedSite)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Site
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSiteAction('edit', selectedSite)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSiteAction('pages', selectedSite)}>
+                            <Monitor className="h-4 w-4 mr-2" />
+                            Edit Pages
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleSiteAction('analytics', selectedSite)}>
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Analytics
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSiteAction('settings', selectedSite)}>
+                            <Settings className="h-4 w-4 mr-2" />
+                            Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleSiteAction('duplicate', selectedSite)}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSiteAction('export', selectedSite)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{selectedSite.visitors.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">Visitors</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{selectedSite.pages.length}</div>
+                        <div className="text-sm text-gray-600">Pages</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">8.4%</div>
+                        <div className="text-sm text-gray-600">Conversion</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-600">4.2s</div>
+                        <div className="text-sm text-gray-600">Load Time</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" onClick={() => handleSiteAction('pages', selectedSite)}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit Pages
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleSiteAction('view', selectedSite)}>
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View Live
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {!selectedSite && (
+                <div className="text-center py-12">
+                  <Globe className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Select a Site to Get Started</h3>
+                  <p className="text-gray-600 mb-6">Choose a site from the sidebar to view details and start editing</p>
+                  <Button onClick={() => setShowSiteForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Site
                   </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="templates" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { name: 'Business Landing Page', type: 'landing', preview: '/api/placeholder/400/300' },
+                  { name: 'E-commerce Store', type: 'website', preview: '/api/placeholder/400/300' },
+                  { name: 'Lead Generation Funnel', type: 'funnel', preview: '/api/placeholder/400/300' },
+                  { name: 'Booking Page', type: 'booking', preview: '/api/placeholder/400/300' },
+                ].map((template, index) => (
+                  <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
+                    <div className="aspect-video bg-gray-100 rounded-t-lg"></div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold">{template.name}</h3>
+                      <Badge variant="outline" className="mt-2">{template.type}</Badge>
+                      <Button className="w-full mt-3" size="sm">
+                        Use Template
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Site Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Analytics dashboard coming soon...</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </TabsContent>
+            </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Site Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Analytics dashboard coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Site Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Global site settings coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Site Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Global site settings coming soon...</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
 
       {/* Dialogs */}
       <Dialog open={showSiteForm} onOpenChange={setShowSiteForm}>
