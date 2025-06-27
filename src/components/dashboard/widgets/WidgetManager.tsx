@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,8 +19,12 @@ import { RecentActivityWidget } from './RecentActivityWidget';
 import { PipelineWidget } from './PipelineWidget';
 import { DashboardCustomizer, type DashboardWidget } from './DashboardCustomizer';
 import { useVoiceTraining } from '@/components/voice/VoiceTrainingProvider';
+import { DashboardEditor, type DashboardComponent } from '@/components/dashboard/DashboardEditor';
+import { useSubAccount } from '@/contexts/SubAccountContext';
 
 export function WidgetManager() {
+  const { currentSubAccount } = useSubAccount();
+  
   const [widgets, setWidgets] = useState<DashboardWidget[]>([
     {
       id: 'metrics-sales',
@@ -85,6 +88,29 @@ export function WidgetManager() {
     }
   ]);
 
+  const [dashboardComponents, setDashboardComponents] = useState<DashboardComponent[]>([
+    {
+      id: 'revenue-metrics',
+      name: 'Revenue Metrics',
+      description: 'Total revenue, MRR, and growth rates',
+      icon: <DollarSign className="h-4 w-4" />,
+      category: 'metrics',
+      enabled: true,
+      position: { x: 0, y: 0 },
+      size: { width: 1, height: 1 }
+    },
+    {
+      id: 'contact-metrics',
+      name: 'Contact Metrics', 
+      description: 'Total contacts, leads, and conversion rates',
+      icon: <Users className="h-4 w-4" />,
+      category: 'metrics',
+      enabled: true,
+      position: { x: 1, y: 0 },
+      size: { width: 1, height: 1 }
+    }
+  ]);
+
   const { announceFeature } = useVoiceTraining();
 
   React.useEffect(() => {
@@ -110,18 +136,22 @@ export function WidgetManager() {
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Header */}
+      {/* Dashboard Header with sub-account info */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <LayoutDashboard className="h-8 w-8" />
-            Dashboard
+            {currentSubAccount?.name} Dashboard
           </h1>
           <p className="text-gray-600 mt-1">
-            Welcome back! Here's what's happening with your business today.
+            Welcome back! Here's what's happening with {currentSubAccount?.name} today.
           </p>
         </div>
         <div className="flex gap-2">
+          <DashboardEditor 
+            components={dashboardComponents} 
+            onComponentsChange={setDashboardComponents} 
+          />
           <DashboardCustomizer widgets={widgets} onWidgetsChange={setWidgets} />
           <Button variant="outline" size="sm">
             <BarChart3 className="h-4 w-4 mr-1" />
@@ -130,14 +160,14 @@ export function WidgetManager() {
         </div>
       </div>
 
-      {/* Key Performance Indicators */}
+      {/* Key Performance Indicators with sub-account specific data */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100">Total Revenue</p>
-                <p className="text-3xl font-bold">$127,350</p>
+                <p className="text-3xl font-bold">${currentSubAccount?.stats.revenue.toLocaleString()}</p>
                 <p className="text-sm text-blue-100 mt-1">+12.5% from last month</p>
               </div>
               <DollarSign className="h-12 w-12 text-blue-200" />
@@ -150,7 +180,7 @@ export function WidgetManager() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100">Total Contacts</p>
-                <p className="text-3xl font-bold">2,847</p>
+                <p className="text-3xl font-bold">{currentSubAccount?.stats.contacts.toLocaleString()}</p>
                 <p className="text-sm text-green-100 mt-1">+156 new this week</p>
               </div>
               <Users className="h-12 w-12 text-green-200" />
@@ -162,8 +192,8 @@ export function WidgetManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100">Active Opportunities</p>
-                <p className="text-3xl font-bold">24</p>
+                <p className="text-purple-100">Active Campaigns</p>
+                <p className="text-3xl font-bold">{currentSubAccount?.stats.campaigns}</p>
                 <p className="text-sm text-purple-100 mt-1">$85K in pipeline</p>
               </div>
               <Target className="h-12 w-12 text-purple-200" />
@@ -176,7 +206,7 @@ export function WidgetManager() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-100">Appointments</p>
-                <p className="text-3xl font-bold">18</p>
+                <p className="text-3xl font-bold">{currentSubAccount?.stats.appointments}</p>
                 <p className="text-sm text-orange-100 mt-1">This week</p>
               </div>
               <Calendar className="h-12 w-12 text-orange-200" />

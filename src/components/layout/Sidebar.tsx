@@ -1,8 +1,9 @@
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SubAccountSwitcher } from "./SubAccountSwitcher";
+import { useSubAccount } from "@/contexts/SubAccountContext";
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -159,6 +160,7 @@ const navigation = [
 export function Sidebar() {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const { hasPermission } = useSubAccount();
 
   const toggleExpanded = (name: string) => {
     setExpandedItems(prev => 
@@ -168,10 +170,33 @@ export function Sidebar() {
     );
   };
 
+  // Filter navigation based on permissions
+  const filteredNavigation = navigation.filter(item => {
+    const requiredPermissions: Record<string, string> = {
+      '/conversations': 'conversations',
+      '/calendars': 'calendar',
+      '/contacts': 'contacts',
+      '/crm': 'pipeline',
+      '/opportunities': 'pipeline',
+      '/marketing': 'marketing',
+      '/automation': 'automation',
+      '/phone-system': 'phone',
+      '/reporting': 'analytics'
+    };
+
+    const permission = requiredPermissions[item.href];
+    return !permission || hasPermission(permission);
+  });
+
   return (
     <div className="pb-12 w-64">
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
+          {/* Sub-account switcher */}
+          <div className="mb-4">
+            <SubAccountSwitcher />
+          </div>
+          
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">GH</span>
@@ -181,9 +206,9 @@ export function Sidebar() {
           <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
             Navigation
           </h2>
-          <ScrollArea className="h-[calc(100vh-120px)]">
+          <ScrollArea className="h-[calc(100vh-200px)]">
             <div className="space-y-1">
-              {navigation.map((item) => {
+              {filteredNavigation.map((item) => {
                 const isExpanded = expandedItems.includes(item.name);
                 const isActive = location.pathname === item.href || 
                   (item.children && item.children.some(child => location.pathname === child.href));
