@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import {
   Filter, 
   MoreVertical, 
   Eye, 
+  EyeOff,
   Edit, 
   Copy, 
   Trash2,
@@ -506,11 +506,7 @@ export default function Sites() {
             </DialogDescription>
           </DialogHeader>
           <SiteForm 
-            onSuccess={() => {
-              setShowSiteForm(false);
-              toast.success('Site created successfully!');
-            }}
-            onCancel={() => setShowSiteForm(false)}
+            onClose={() => setShowSiteForm(false)}
           />
         </DialogContent>
       </Dialog>
@@ -525,7 +521,6 @@ export default function Sites() {
           </DialogHeader>
           {selectedSite && (
             <SiteDetails 
-              site={selectedSite}
               onClose={() => {
                 setShowSiteDetails(false);
                 setSelectedSite(null);

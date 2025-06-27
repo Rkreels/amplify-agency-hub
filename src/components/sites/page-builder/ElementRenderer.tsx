@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Element } from './types';
 import { 
@@ -47,6 +46,7 @@ export function ElementRenderer({ element, isSelected, onElementClick }: Element
     fontSize: element.styles.fontSize,
     fontWeight: (element.styles.fontWeight as React.CSSProperties['fontWeight']),
     fontFamily: element.styles.fontFamily,
+    fontStyle: (element.styles.fontStyle as React.CSSProperties['fontStyle']),
     color: element.styles.color,
     backgroundColor: element.styles.backgroundColor,
     backgroundImage: element.styles.backgroundImage,
@@ -449,7 +449,7 @@ export function ElementRenderer({ element, isSelected, onElementClick }: Element
           <div style={{ ...baseStyles, padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '2px dashed #d1d5db' }}>
             <div style={{ textAlign: 'center', color: '#6b7280' }}>
               <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '5px' }}>
-                {element.type ? element.type.charAt(0).toUpperCase() + element.type.slice(1) : 'Unknown'} Element
+                {element.type ? (element.type.charAt(0).toUpperCase() + element.type.slice(1)) : 'Unknown'} Element
               </div>
               <div style={{ fontSize: '12px' }}>
                 Click to configure

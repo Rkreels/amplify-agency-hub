@@ -1,4 +1,5 @@
 
+
 export interface Element {
   id: string;
   type: 'text' | 'image' | 'button' | 'container' | 'form' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map' | 'input';
@@ -12,12 +13,13 @@ export interface Element {
     fontSize?: string;
     fontWeight?: string;
     fontFamily?: string;
+    fontStyle?: string;
     color?: string;
     backgroundColor?: string;
     backgroundImage?: string;
     backgroundGradient?: string;
     padding?: string;
-    margin?: string;
+    margin?: string;  
     textAlign?: 'left' | 'center' | 'right' | 'justify';
     borderRadius?: string;
     borderWidth?: string;
@@ -113,3 +115,4 @@ export interface ElementTemplate {
   icon: any;
   template: Partial<Element>;
 }
+
