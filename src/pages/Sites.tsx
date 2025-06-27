@@ -505,7 +505,7 @@ export default function Sites() {
               Choose a site type and configure your new site.
             </DialogDescription>
           </DialogHeader>
-          <SiteForm />
+          <SiteForm onComplete={() => setShowSiteForm(false)} />
         </DialogContent>
       </Dialog>
 
