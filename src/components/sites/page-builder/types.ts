@@ -1,7 +1,7 @@
 
 export interface Element {
   id: string;
-  type: 'text' | 'image' | 'button' | 'container' | 'form' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map';
+  type: 'text' | 'image' | 'button' | 'container' | 'form' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map' | 'input';
   content?: string;
   src?: string;
   alt?: string;
@@ -23,6 +23,11 @@ export interface Element {
     borderWidth?: string;
     borderColor?: string;
     borderStyle?: string;
+    border?: string;
+    borderLeft?: string;
+    borderRight?: string;
+    borderTop?: string;
+    borderBottom?: string;
     boxShadow?: string;
     width?: string;
     height?: string;
@@ -59,6 +64,11 @@ export interface Element {
     animationFillMode?: string;
     animationPlayState?: string;
     animationTimingFunction?: string;
+    lineHeight?: string;
+    letterSpacing?: string;
+    textTransform?: string;
+    textDecoration?: string;
+    objectFit?: string;
   };
   attributes?: { [key: string]: string };
   responsive?: {

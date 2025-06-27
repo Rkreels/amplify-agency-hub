@@ -24,7 +24,7 @@ import {
   Underline,
   Palette,
   Layout,
-  Spacing,
+  Square,
   Type,
   Image,
   Link,
@@ -35,8 +35,7 @@ import {
   RotateCw,
   Layers,
   Box,
-  Border,
-  Shadow,
+  Frame,
   Zap,
   MousePointer,
   Smartphone,
@@ -416,7 +415,7 @@ export function DesignPanel({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
-                <Border className="h-4 w-4" />
+                <Frame className="h-4 w-4" />
                 Border & Effects
               </CardTitle>
             </CardHeader>
@@ -493,7 +492,7 @@ export function DesignPanel({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
-                <Spacing className="h-4 w-4" />
+                <Square className="h-4 w-4" />
                 Spacing
               </CardTitle>
             </CardHeader>
