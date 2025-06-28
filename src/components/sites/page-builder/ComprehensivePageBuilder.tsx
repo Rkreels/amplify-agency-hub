@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Element } from './types';
 import { ElementRenderer } from './ElementRenderer';
@@ -122,12 +121,9 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
           fontWeight: '600',
           cursor: 'pointer',
           textAlign: 'center',
-          display: 'inline-block',
           textDecoration: 'none',
           transition: 'all 0.3s ease',
           margin: '20px auto',
-          marginLeft: 'auto',
-          marginRight: 'auto',
           display: 'block',
           width: 'fit-content'
         }
