@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Element } from './types';
 import { ElementRenderer } from './ElementRenderer';
@@ -12,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { 
   Monitor, 
   Tablet, 
@@ -44,7 +46,8 @@ import {
   ArrowDown,
   CheckCircle2,
   AlertCircle,
-  Globe
+  Globe,
+  FileText
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
@@ -68,6 +71,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Initialize with sample content
@@ -76,26 +80,56 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
       {
         id: uuidv4(),
         type: 'heading',
-        content: 'Welcome to Our Website',
+        content: 'Welcome to Your New Website',
         styles: {
-          fontSize: '2.5rem',
+          fontSize: '48px',
           fontWeight: 'bold',
           textAlign: 'center',
-          margin: '20px 0',
-          color: '#1a202c'
+          margin: '40px 0 20px 0',
+          color: '#1a202c',
+          lineHeight: '1.2'
         },
         props: { level: 'h1' }
       },
       {
         id: uuidv4(),
         type: 'text',
-        content: 'This is a sample paragraph. Click to edit this text and make it your own.',
+        content: 'This is your new page created with our advanced page builder. Click on any element to edit it, or drag new elements from the sidebar to customize your page.',
         styles: {
-          fontSize: '1.1rem',
+          fontSize: '18px',
           lineHeight: '1.6',
-          margin: '16px 0',
+          margin: '20px 0',
           textAlign: 'center',
-          color: '#4a5568'
+          color: '#4a5568',
+          maxWidth: '600px',
+          marginLeft: 'auto',
+          marginRight: 'auto'
+        }
+      },
+      {
+        id: uuidv4(),
+        type: 'button',
+        content: 'Get Started',
+        href: '#',
+        target: '_self',
+        styles: {
+          backgroundColor: '#3182ce',
+          color: 'white',
+          padding: '16px 32px',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '18px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          textAlign: 'center',
+          display: 'inline-block',
+          textDecoration: 'none',
+          transition: 'all 0.3s ease',
+          margin: '20px auto',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          display: 'block',
+          width: 'fit-content'
         }
       }
     ];
@@ -134,15 +168,18 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
       id: uuidv4(),
       type: template.type || 'text',
       content: template.content || '',
+      src: template.src,
+      alt: template.alt,
+      href: template.href,
+      target: template.target,
       styles: {
-        padding: '16px',
-        margin: '8px',
         position: 'relative',
         zIndex: '1',
         ...template.styles
       },
       props: template.props,
-      ...template
+      attributes: template.attributes,
+      children: template.children || []
     };
 
     const newElements = [...elements, newElement];
@@ -175,21 +212,24 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
     toast.success('Element deleted');
   }, [elements, selectedElement, saveToHistory]);
 
-  const duplicateElement = useCallback((element: Element) => {
+  const duplicateElement = useCallback((elementId: string) => {
+    const element = elements.find(el => el.id === elementId);
+    if (!element) return;
+    
     const newElement: Element = {
       ...element,
       id: uuidv4(),
-      content: element.content + ' (Copy)',
+      content: element.content ? element.content + ' (Copy)' : element.content,
       styles: {
         ...element.styles,
-        top: element.styles?.position === 'absolute' ? 
-          (parseFloat(element.styles?.top || '0') + 20) + 'px' : undefined,
-        left: element.styles?.position === 'absolute' ? 
-          (parseFloat(element.styles?.left || '0') + 20) + 'px' : undefined
+        marginTop: '20px'
       }
     };
     
-    const newElements = [...elements, newElement];
+    const elementIndex = elements.findIndex(el => el.id === elementId);
+    const newElements = [...elements];
+    newElements.splice(elementIndex + 1, 0, newElement);
+    
     setElements(newElements);
     saveToHistory(newElements);
     setSelectedElement(newElement);
@@ -225,7 +265,6 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
-      // Simulate publishing process
       await new Promise(resolve => setTimeout(resolve, 2000));
       toast.success('Page published successfully!', {
         description: 'Your changes are now live on your website.'
@@ -257,7 +296,6 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
   const savePage = async () => {
     setIsSaving(true);
     try {
-      // Simulate save process
       await new Promise(resolve => setTimeout(resolve, 1000));
       setLastSaved(new Date());
       toast.success('Page saved successfully');
@@ -307,6 +345,31 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (data) {
+        const template = JSON.parse(data);
+        addElement(template);
+      }
+    } catch (error) {
+      console.error('Error parsing dropped data:', error);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   return (
     <div className="flex h-full bg-gray-50">
       {/* Main Canvas Area */}
@@ -323,6 +386,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                   onClick={undo} 
                   disabled={historyIndex <= 0}
                   className="rounded-none border-r"
+                  title="Undo"
                 >
                   <Undo className="h-4 w-4" />
                 </Button>
@@ -332,6 +396,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                   onClick={redo} 
                   disabled={historyIndex >= history.length - 1}
                   className="rounded-none"
+                  title="Redo"
                 >
                   <Redo className="h-4 w-4" />
                 </Button>
@@ -346,6 +411,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                   size="sm"
                   onClick={() => setViewMode('desktop')}
                   className="rounded-none border-r"
+                  title="Desktop View"
                 >
                   <Monitor className="h-4 w-4" />
                 </Button>
@@ -354,6 +420,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                   size="sm"
                   onClick={() => setViewMode('tablet')}
                   className="rounded-none border-r"
+                  title="Tablet View"
                 >
                   <Tablet className="h-4 w-4" />
                 </Button>
@@ -362,6 +429,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                   size="sm"
                   onClick={() => setViewMode('mobile')}
                   className="rounded-none"
+                  title="Mobile View"
                 >
                   <Smartphone className="h-4 w-4" />
                 </Button>
@@ -371,16 +439,16 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
 
               {/* Zoom Controls */}
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setZoom(Math.max(25, zoom - 25))}>
+                <Button variant="ghost" size="sm" onClick={() => setZoom(Math.max(25, zoom - 25))} title="Zoom Out">
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 <span className="text-sm font-medium w-16 text-center bg-gray-100 px-2 py-1 rounded">
                   {zoom}%
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => setZoom(Math.min(200, zoom + 25))}>
+                <Button variant="ghost" size="sm" onClick={() => setZoom(Math.min(200, zoom + 25))} title="Zoom In">
                   <ZoomIn className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={resetZoom}>
+                <Button variant="ghost" size="sm" onClick={resetZoom} title="Reset Zoom">
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
@@ -415,7 +483,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                 className="flex items-center gap-2"
               >
                 {previewMode ? <Pause className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {previewMode ? 'Edit Mode' : 'Preview'}
+                {previewMode ? 'Edit' : 'Preview'}
               </Button>
               
               <Button 
@@ -450,7 +518,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
         <div className="flex-1 overflow-auto bg-gray-100 p-6">
           <div className="flex justify-center">
             <div 
-              className={`bg-white shadow-xl transition-all duration-300 min-h-screen ${getViewportClass()}`}
+              className={`bg-white shadow-xl transition-all duration-300 min-h-screen relative ${getViewportClass()}`}
               style={{ 
                 transform: `scale(${zoom / 100})`,
                 transformOrigin: 'top center'
@@ -458,13 +526,16 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
               ref={canvasRef}
             >
               <div 
-                className="relative p-8"
+                className={`relative p-8 min-h-screen ${isDragging ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
                 style={{
                   backgroundImage: gridEnabled && !previewMode ? 
                     'radial-gradient(circle at 1px 1px, rgba(0,0,0,.15) 1px, transparent 0)' : 'none',
                   backgroundSize: gridEnabled && !previewMode ? '20px 20px' : 'none'
                 }}
                 onClick={() => !previewMode && setSelectedElement(null)}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
               >
                 {elements.length === 0 ? (
                   <div className="text-center py-24 text-gray-500">
@@ -473,18 +544,18 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                     </div>
                     <h3 className="text-xl font-medium mb-2 text-gray-900">Start Building Your Page</h3>
                     <p className="text-sm mb-6 text-gray-600 max-w-md mx-auto">
-                      Drag elements from the panel on the right to get started building your page
+                      Drag elements from the panel on the right to get started building your page, or click the buttons below to add your first element.
                     </p>
                     <div className="flex justify-center gap-3">
-                      <Button variant="outline" size="sm" onClick={() => addElement({ type: 'text' })}>
+                      <Button variant="outline" size="sm" onClick={() => addElement({ type: 'text', content: 'Your text here...' })}>
                         <Type className="h-4 w-4 mr-2" />
                         Add Text
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => addElement({ type: 'image' })}>
+                      <Button variant="outline" size="sm" onClick={() => addElement({ type: 'image', src: 'https://via.placeholder.com/400x300' })}>
                         <Image className="h-4 w-4 mr-2" />
                         Add Image
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => addElement({ type: 'button' })}>
+                      <Button variant="outline" size="sm" onClick={() => addElement({ type: 'button', content: 'Click Me' })}>
                         <Square className="h-4 w-4 mr-2" />
                         Add Button
                       </Button>
@@ -500,9 +571,17 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                       isPreviewMode={previewMode}
                       onUpdateElement={updateElement}
                       onDeleteElement={deleteElement}
-                      onDuplicateElement={duplicateElement}
+                      onDuplicateElement={() => duplicateElement(element.id)}
                     />
                   ))
+                )}
+                
+                {isDragging && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-blue-500 text-white px-4 py-2 rounded-lg">
+                      Drop element here
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -540,41 +619,26 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
             <TabsContent value="elements" className="p-4 mt-0 space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Add Elements</h3>
-                <Badge variant="secondary">{elements.length}</Badge>
+                <Badge variant="secondary">{elements.length} elements</Badge>
               </div>
               <EnhancedElementTemplates onAddElement={addElement} />
             </TabsContent>
 
             <TabsContent value="design" className="p-4 mt-0">
-              {selectedElement ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">Design Panel</h3>
-                    <Badge variant="outline" className="capitalize">{selectedElement.type}</Badge>
-                  </div>
-                  <DesignPanel
-                    selectedElement={selectedElement}
-                    onUpdateElement={updateElement}
-                    onDeleteElement={deleteElement}
-                    onDuplicateElement={() => duplicateElement(selectedElement)}
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <MousePointer className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <h4 className="font-medium mb-2">No Element Selected</h4>
-                  <p className="text-sm">Click on any element in the canvas to edit its design properties</p>
-                </div>
-              )}
+              <DesignPanel
+                selectedElement={selectedElement}
+                onUpdateElement={updateElement}
+                onDeleteElement={deleteElement}
+                onDuplicateElement={duplicateElement}
+              />
             </TabsContent>
 
-            
             <TabsContent value="layers" className="p-4 mt-0 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">Page Layers</h3>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{elements.length}</Badge>
-                  <Button size="sm" variant="outline" onClick={clearAll}>
+                  <Button size="sm" variant="outline" onClick={clearAll} title="Clear All">
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -600,6 +664,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                             moveElement(element.id, 'up');
                           }}
                           disabled={index === 0}
+                          title="Move Up"
                         >
                           <ArrowUp className="h-3 w-3" />
                         </Button>
@@ -612,6 +677,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                             moveElement(element.id, 'down');
                           }}
                           disabled={index === elements.length - 1}
+                          title="Move Down"
                         >
                           <ArrowDown className="h-3 w-3" />
                         </Button>
@@ -637,8 +703,9 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                         className="h-6 w-6 p-0"
                         onClick={(e) => {
                           e.stopPropagation();
-                          duplicateElement(element);
+                          duplicateElement(element.id);
                         }}
+                        title="Duplicate"
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -650,6 +717,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                           e.stopPropagation();
                           deleteElement(element.id);
                         }}
+                        title="Delete"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
