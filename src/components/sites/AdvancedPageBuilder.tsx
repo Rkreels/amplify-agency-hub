@@ -99,6 +99,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       src: element.src,
       alt: element.alt,
       href: element.href,
+      target: element.target,
       children: element.children || [],
       styles: element.styles || {},
       attributes: element.attributes || {},

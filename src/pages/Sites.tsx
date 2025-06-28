@@ -277,7 +277,7 @@ export default function Sites() {
                 className="pl-9"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(value: 'all' | 'published' | 'draft' | 'archived') => setFilterStatus(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -288,7 +288,7 @@ export default function Sites() {
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterType} onValueChange={setFilterType}>
+            <Select value={filterType} onValueChange={(value: 'all' | 'website' | 'landing' | 'funnel' | 'booking') => setFilterType(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>

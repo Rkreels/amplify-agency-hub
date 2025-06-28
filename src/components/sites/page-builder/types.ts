@@ -3,6 +3,10 @@ export interface Element {
   id: string;
   type: 'text' | 'image' | 'button' | 'container' | 'form' | 'heading' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map' | 'input';
   content?: string;
+  src?: string;
+  alt?: string;
+  href?: string;
+  target?: '_blank' | '_self';
   styles?: {
     [key: string]: string;
   };
@@ -17,7 +21,34 @@ export interface Element {
     required?: boolean;
     type?: string;
   };
+  attributes?: {
+    [key: string]: any;
+    type?: string;
+    placeholder?: string;
+    name?: string;
+    required?: boolean;
+  };
   children?: Element[];
+}
+
+export interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  elements: Element[];
+  settings: {
+    title: string;
+    description: string;
+    keywords: string;
+  };
+  isPublished: boolean;
+}
+
+export interface ElementTemplate {
+  type: string;
+  label: string;
+  icon: any;
+  template: Element;
 }
 
 export interface PageBuilderState {
