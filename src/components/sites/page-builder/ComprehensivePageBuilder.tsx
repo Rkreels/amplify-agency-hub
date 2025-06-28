@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Element } from './types';
 import { ElementRenderer } from './ElementRenderer';
@@ -569,6 +568,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
               )}
             </TabsContent>
 
+            
             <TabsContent value="layers" className="p-4 mt-0 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">Page Layers</h3>

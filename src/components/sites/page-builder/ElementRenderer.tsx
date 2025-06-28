@@ -37,7 +37,6 @@ export function ElementRenderer({
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -171,11 +170,11 @@ export function ElementRenderer({
             {element.props?.src ? (
               <img
                 src={element.props.src}
-                alt={element.props.alt || 'Image'}
+                alt={element.props?.alt || 'Image'}
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover',
+                  objectFit: 'cover' as const,
                   borderRadius: element.styles?.borderRadius || '0px'
                 }}
               />
@@ -270,6 +269,28 @@ export function ElementRenderer({
           </form>
         );
 
+      case 'divider':
+        return (
+          <hr style={{
+            ...baseStyles,
+            border: 'none',
+            borderTop: `2px solid ${element.styles?.borderColor || '#e5e7eb'}`,
+            margin: '20px 0',
+            width: '100%'
+          }} />
+        );
+
+      case 'spacer':
+        return (
+          <div style={{
+            ...baseStyles,
+            height: element.styles?.height || '40px',
+            width: '100%',
+            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+            border: isSelected ? '1px dashed #3b82f6' : 'none'
+          }} />
+        );
+
       default:
         return (
           <div style={{ ...baseStyles, padding: '16px', border: '1px dashed #ccc' }}>
@@ -293,7 +314,7 @@ export function ElementRenderer({
         position: element.styles?.position === 'absolute' ? 'absolute' : 'relative',
         left: element.styles?.left,
         top: element.styles?.top,
-        zIndex: isSelected ? 1000 : element.styles?.zIndex || 1
+        zIndex: isSelected ? 1000 : parseInt(element.styles?.zIndex || '1')
       }}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setIsHovered(true)}

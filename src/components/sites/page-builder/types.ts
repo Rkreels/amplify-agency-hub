@@ -1,118 +1,33 @@
 
-
 export interface Element {
   id: string;
-  type: 'text' | 'image' | 'button' | 'container' | 'form' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map' | 'input';
+  type: 'text' | 'image' | 'button' | 'container' | 'form' | 'heading' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map' | 'input';
   content?: string;
-  src?: string;
-  alt?: string;
-  href?: string;
-  target?: '_blank' | '_self';
-  children?: Element[];
-  styles: {
-    fontSize?: string;
-    fontWeight?: string;
-    fontFamily?: string;
-    fontStyle?: string;
-    color?: string;
-    backgroundColor?: string;
-    backgroundImage?: string;
-    backgroundGradient?: string;
-    padding?: string;
-    margin?: string;  
-    textAlign?: 'left' | 'center' | 'right' | 'justify';
-    borderRadius?: string;
-    borderWidth?: string;
-    borderColor?: string;
-    borderStyle?: string;
-    border?: string;
-    borderLeft?: string;
-    borderRight?: string;
-    borderTop?: string;
-    borderBottom?: string;
-    boxShadow?: string;
-    width?: string;
-    height?: string;
-    minWidth?: string;
-    minHeight?: string;
-    maxWidth?: string;
-    maxHeight?: string;
-    position?: 'static' | 'relative' | 'absolute' | 'fixed' | 'sticky';
-    top?: string;
-    left?: string;
-    right?: string;
-    bottom?: string;
-    zIndex?: string;
-    opacity?: string;
-    transform?: string;
-    transition?: string;
-    cursor?: string;
-    overflow?: string;
-    display?: string;
-    flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
-    flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
-    justifyContent?: string;
-    alignItems?: string;
-    alignContent?: string;
-    gap?: string;
-    gridTemplateColumns?: string;
-    gridTemplateRows?: string;
-    gridGap?: string;
-    animation?: string;
-    animationDuration?: string;
-    animationDelay?: string;
-    animationIterationCount?: string;
-    animationDirection?: string;
-    animationFillMode?: string;
-    animationPlayState?: string;
-    animationTimingFunction?: string;
-    lineHeight?: string;
-    letterSpacing?: string;
-    textTransform?: string;
-    textDecoration?: string;
-    objectFit?: string;
+  styles?: {
+    [key: string]: string;
   };
-  attributes?: { [key: string]: string };
-  responsive?: {
-    mobile?: Partial<Element['styles']>;
-    tablet?: Partial<Element['styles']>;
-    desktop?: Partial<Element['styles']>;
-  };
-  interactions?: {
-    onClick?: string;
-    onHover?: string;
-    onFocus?: string;
-  };
-  seo?: {
-    title?: string;
-    description?: string;
-    keywords?: string;
+  props?: {
+    [key: string]: any;
+    level?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    src?: string;
     alt?: string;
+    href?: string;
+    target?: '_blank' | '_self';
+    placeholder?: string;
+    required?: boolean;
+    type?: string;
   };
+  children?: Element[];
 }
 
-export interface Page {
-  id: string;
-  title: string;
-  slug: string;
+export interface PageBuilderState {
   elements: Element[];
-  settings: {
-    title: string;
-    description: string;
-    keywords: string;
-    favicon?: string;
-    customCSS?: string;
-    customJS?: string;
-    headerCode?: string;
-    footerCode?: string;
-  };
-  isPublished: boolean;
+  selectedElement: Element | null;
+  history: Element[][];
+  historyIndex: number;
+  zoom: number;
+  viewMode: 'desktop' | 'tablet' | 'mobile';
+  previewMode: boolean;
+  gridEnabled: boolean;
+  snapToGrid: boolean;
 }
-
-export interface ElementTemplate {
-  type: string;
-  label: string;
-  icon: any;
-  template: Partial<Element>;
-}
-
