@@ -6,141 +6,122 @@ export interface Campaign {
   name: string;
   type: 'email' | 'sms' | 'social' | 'ads';
   status: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed';
-  startDate: Date;
-  endDate?: Date;
-  budget: number;
-  spent: number;
-  impressions: number;
-  clicks: number;
-  conversions: number;
-  target: {
-    audience: string;
-    demographics: string[];
-    interests: string[];
+  audience: string;
+  subject?: string;
+  content: string;
+  scheduledDate?: Date;
+  stats: {
+    sent: number;
+    delivered: number;
+    opened: number;
+    clicked: number;
+    unsubscribed: number;
   };
-  content: {
-    subject?: string;
-    message: string;
-    images: string[];
-  };
-  metrics: {
-    openRate?: number;
-    clickRate: number;
-    conversionRate: number;
-    roi: number;
-  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface MarketingStore {
   campaigns: Campaign[];
-  selectedCampaign: Campaign | null;
+  selectedCampaign: string | null;
   searchQuery: string;
-  statusFilter: string;
   typeFilter: string;
-  setSelectedCampaign: (campaign: Campaign | null) => void;
-  setSearchQuery: (query: string) => void;
-  setStatusFilter: (status: string) => void;
-  setTypeFilter: (type: string) => void;
-  addCampaign: (campaign: Omit<Campaign, 'id'>) => void;
+  statusFilter: string;
+  addCampaign: (campaign: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateCampaign: (id: string, updates: Partial<Campaign>) => void;
   deleteCampaign: (id: string) => void;
-  pauseCampaign: (id: string) => void;
-  resumeCampaign: (id: string) => void;
+  duplicateCampaign: (id: string) => void;
+  setSelectedCampaign: (id: string | null) => void;
+  setSearchQuery: (query: string) => void;
+  setTypeFilter: (type: string) => void;
+  setStatusFilter: (status: string) => void;
+  getFilteredCampaigns: () => Campaign[];
 }
 
-const mockCampaigns: Campaign[] = [
-  {
-    id: '1',
-    name: 'Summer Sale Email Campaign',
-    type: 'email',
-    status: 'active',
-    startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    endDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
-    budget: 5000,
-    spent: 1250,
-    impressions: 45000,
-    clicks: 2250,
-    conversions: 180,
-    target: {
-      audience: 'Existing Customers',
-      demographics: ['25-45', 'Urban'],
-      interests: ['Shopping', 'Technology']
-    },
-    content: {
-      subject: 'Don\'t Miss Our Summer Sale - 50% Off!',
-      message: 'Get amazing deals on all our products...',
-      images: []
-    },
-    metrics: {
-      openRate: 25.5,
-      clickRate: 5.0,
-      conversionRate: 8.0,
-      roi: 320
-    }
-  },
-  {
-    id: '2',
-    name: 'New Product Launch SMS',
-    type: 'sms',
-    status: 'scheduled',
-    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    budget: 2000,
-    spent: 0,
-    impressions: 0,
-    clicks: 0,
-    conversions: 0,
-    target: {
-      audience: 'VIP Customers',
-      demographics: ['30-55'],
-      interests: ['Premium Products']
-    },
-    content: {
-      message: 'Be the first to try our new product! Early access for VIP customers.',
-      images: []
-    },
-    metrics: {
-      clickRate: 0,
-      conversionRate: 0,
-      roi: 0
-    }
-  }
-];
-
 export const useMarketingStore = create<MarketingStore>((set, get) => ({
-  campaigns: mockCampaigns,
+  campaigns: [
+    {
+      id: '1',
+      name: 'Welcome Email Series',
+      type: 'email',
+      status: 'active',
+      audience: 'New Subscribers',
+      subject: 'Welcome to our community!',
+      content: 'Thank you for joining us...',
+      stats: {
+        sent: 1250,
+        delivered: 1230,
+        opened: 450,
+        clicked: 89,
+        unsubscribed: 5
+      },
+      createdAt: new Date('2024-12-01'),
+      updatedAt: new Date()
+    },
+    {
+      id: '2',
+      name: 'Holiday Promotion',
+      type: 'sms',
+      status: 'scheduled',
+      audience: 'VIP Customers',
+      content: '🎄 Special holiday offer just for you! 50% off...',
+      scheduledDate: new Date('2024-12-25'),
+      stats: {
+        sent: 0,
+        delivered: 0,
+        opened: 0,
+        clicked: 0,
+        unsubscribed: 0
+      },
+      createdAt: new Date('2024-12-15'),
+      updatedAt: new Date()
+    }
+  ],
   selectedCampaign: null,
   searchQuery: '',
-  statusFilter: 'all',
-  typeFilter: 'all',
-  
-  setSelectedCampaign: (campaign) => set({ selectedCampaign: campaign }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  setStatusFilter: (status) => set({ statusFilter: status }),
-  setTypeFilter: (type) => set({ typeFilter: type }),
-  
+  typeFilter: '',
+  statusFilter: '',
   addCampaign: (campaign) => set((state) => ({
-    campaigns: [...state.campaigns, { ...campaign, id: Date.now().toString() }]
+    campaigns: [...state.campaigns, {
+      ...campaign,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }]
   })),
-  
   updateCampaign: (id, updates) => set((state) => ({
-    campaigns: state.campaigns.map(campaign =>
-      campaign.id === id ? { ...campaign, ...updates } : campaign
+    campaigns: state.campaigns.map(campaign => 
+      campaign.id === id ? { ...campaign, ...updates, updatedAt: new Date() } : campaign
     )
   })),
-  
   deleteCampaign: (id) => set((state) => ({
     campaigns: state.campaigns.filter(campaign => campaign.id !== id)
   })),
-  
-  pauseCampaign: (id) => set((state) => ({
-    campaigns: state.campaigns.map(campaign =>
-      campaign.id === id ? { ...campaign, status: 'paused' } : campaign
-    )
-  })),
-  
-  resumeCampaign: (id) => set((state) => ({
-    campaigns: state.campaigns.map(campaign =>
-      campaign.id === id ? { ...campaign, status: 'active' } : campaign
-    )
-  }))
+  duplicateCampaign: (id) => set((state) => {
+    const campaign = state.campaigns.find(c => c.id === id);
+    if (!campaign) return state;
+    return {
+      campaigns: [...state.campaigns, {
+        ...campaign,
+        id: Date.now().toString(),
+        name: `${campaign.name} (Copy)`,
+        status: 'draft' as const,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }]
+    };
+  }),
+  setSelectedCampaign: (id) => set({ selectedCampaign: id }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setTypeFilter: (type) => set({ typeFilter: type }),
+  setStatusFilter: (status) => set({ statusFilter: status }),
+  getFilteredCampaigns: () => {
+    const { campaigns, searchQuery, typeFilter, statusFilter } = get();
+    return campaigns.filter(campaign => {
+      if (searchQuery && !campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (typeFilter && campaign.type !== typeFilter) return false;
+      if (statusFilter && campaign.status !== statusFilter) return false;
+      return true;
+    });
+  }
 }));

@@ -1,490 +1,633 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Bot, 
   Brain, 
   MessageSquare, 
+  TrendingUp, 
   Calendar, 
-  Mail, 
-  Phone, 
+  Share2, 
   Star, 
-  Target, 
+  Phone,
   Zap,
-  Bot,
-  Mic,
-  Image,
-  FileText,
   BarChart3,
   Settings,
   Play,
   Pause,
-  Save
-} from "lucide-react";
+  Plus,
+  Edit,
+  Trash2,
+  Mic,
+  Eye,
+  Target,
+  Users,
+  Mail,
+  FileText,
+  Sparkles
+} from 'lucide-react';
+import { useVoiceTraining } from '@/components/voice/VoiceTrainingProvider';
+import { toast } from 'sonner';
+
+interface AIModel {
+  id: string;
+  name: string;
+  type: 'text' | 'voice' | 'image' | 'analysis';
+  status: 'active' | 'training' | 'inactive';
+  accuracy: number;
+  lastTrained: Date;
+  usage: number;
+}
+
+interface AIWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  type: 'conversation' | 'content' | 'analysis' | 'automation';
+  isActive: boolean;
+  successRate: number;
+  executions: number;
+}
 
 export function ComprehensiveAIFeatures() {
-  const [activeTab, setActiveTab] = useState("chatbots");
-  const [isTraining, setIsTraining] = useState(false);
-
-  const aiFeatures = [
+  const { announceFeature } = useVoiceTraining();
+  const [selectedTab, setSelectedTab] = useState('overview');
+  const [isTrainingModel, setIsTrainingModel] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
+  const [aiModels, setAiModels] = useState<AIModel[]>([
     {
-      title: "AI Chatbots",
-      description: "Intelligent conversational AI for customer support",
-      icon: MessageSquare,
-      status: "active",
-      usage: "2,450 conversations this month"
+      id: '1',
+      name: 'Conversation AI',
+      type: 'text',
+      status: 'active',
+      accuracy: 94.2,
+      lastTrained: new Date('2024-12-01'),
+      usage: 15420
     },
     {
-      title: "AI Appointment Scheduling",
-      description: "Automated booking and calendar management",
-      icon: Calendar,
-      status: "active",
-      usage: "156 appointments scheduled"
+      id: '2',
+      name: 'Voice Assistant',
+      type: 'voice',
+      status: 'active',
+      accuracy: 89.7,
+      lastTrained: new Date('2024-11-28'),
+      usage: 8932
     },
     {
-      title: "AI Voice Assistants",
-      description: "Voice-powered customer interactions",
-      icon: Mic,
-      status: "beta",
-      usage: "89 voice calls handled"
+      id: '3',
+      name: 'Content Generator',
+      type: 'text',
+      status: 'training',
+      accuracy: 78.5,
+      lastTrained: new Date('2024-12-10'),
+      usage: 5234
     },
     {
-      title: "AI Content Generation",
-      description: "Automated content creation for marketing",
-      icon: FileText,
-      status: "active",
-      usage: "45 pieces of content generated"
-    },
-    {
-      title: "AI Lead Scoring",
-      description: "Intelligent lead qualification and scoring",
-      icon: Target,
-      status: "active",
-      usage: "1,248 leads scored"
-    },
-    {
-      title: "AI Analytics",
-      description: "Predictive analytics and insights",
-      icon: BarChart3,
-      status: "active",
-      usage: "Daily insights generated"
+      id: '4',
+      name: 'Lead Scorer',
+      type: 'analysis',
+      status: 'active',
+      accuracy: 91.8,
+      lastTrained: new Date('2024-11-30'),
+      usage: 12045
     }
-  ];
+  ]);
 
-  const chatbotTemplates = [
-    { name: "Customer Support", description: "Handle common customer inquiries", category: "Support" },
-    { name: "Lead Qualification", description: "Qualify leads automatically", category: "Sales" },
-    { name: "Appointment Booking", description: "Book appointments seamlessly", category: "Scheduling" },
-    { name: "Product Recommendations", description: "Suggest products based on needs", category: "Sales" },
-    { name: "FAQ Assistant", description: "Answer frequently asked questions", category: "Support" },
-    { name: "Survey Collector", description: "Collect customer feedback", category: "Research" }
-  ];
+  const [aiWorkflows, setAiWorkflows] = useState<AIWorkflow[]>([
+    {
+      id: '1',
+      name: 'Smart Email Responses',
+      description: 'Automatically generate contextual email responses',
+      type: 'conversation',
+      isActive: true,
+      successRate: 92.3,
+      executions: 2847
+    },
+    {
+      id: '2',
+      name: 'Content Optimization',
+      description: 'Optimize marketing content for better engagement',
+      type: 'content',
+      isActive: true,
+      successRate: 87.9,
+      executions: 1653
+    },
+    {
+      id: '3',
+      name: 'Customer Sentiment Analysis',
+      description: 'Analyze customer sentiment from conversations',
+      type: 'analysis',
+      isActive: false,
+      successRate: 94.1,
+      executions: 5672
+    },
+    {
+      id: '4',
+      name: 'Automated Follow-ups',
+      description: 'AI-powered follow-up sequences based on behavior',
+      type: 'automation',
+      isActive: true,
+      successRate: 78.6,
+      executions: 3891
+    }
+  ]);
 
-  const voiceAgents = [
-    { name: "Sales Agent", status: "active", calls: 45, conversion: "12%" },
-    { name: "Support Agent", status: "active", calls: 89, conversion: "78%" },
-    { name: "Appointment Agent", status: "paused", calls: 23, conversion: "34%" },
-    { name: "Follow-up Agent", status: "active", calls: 67, conversion: "23%" }
-  ];
+  const [generatingContent, setGeneratingContent] = useState(false);
+  const [contentPrompt, setContentPrompt] = useState('');
+  const [generatedContent, setGeneratedContent] = useState('');
+
+  useEffect(() => {
+    announceFeature(
+      'AI Features Dashboard',
+      'Access comprehensive AI-powered tools for your business. Manage AI models, create intelligent workflows, generate content, analyze data, and automate tasks with advanced artificial intelligence capabilities.'
+    );
+  }, [announceFeature]);
+
+  const handleTrainModel = async (model: AIModel) => {
+    setIsTrainingModel(true);
+    setSelectedModel(model);
+    
+    // Simulate training process
+    toast.success(`Starting training for ${model.name}...`);
+    
+    setTimeout(() => {
+      setAiModels(prev => prev.map(m => 
+        m.id === model.id 
+          ? { ...m, status: 'training' as const, lastTrained: new Date() }
+          : m
+      ));
+    }, 1000);
+
+    setTimeout(() => {
+      setAiModels(prev => prev.map(m => 
+        m.id === model.id 
+          ? { 
+              ...m, 
+              status: 'active' as const, 
+              accuracy: Math.min(100, m.accuracy + Math.random() * 5),
+              lastTrained: new Date() 
+            }
+          : m
+      ));
+      setIsTrainingModel(false);
+      setSelectedModel(null);
+      toast.success(`Training completed for ${model.name}!`);
+    }, 5000);
+  };
+
+  const handleToggleWorkflow = (workflow: AIWorkflow) => {
+    setAiWorkflows(prev => prev.map(w => 
+      w.id === workflow.id ? { ...w, isActive: !w.isActive } : w
+    ));
+    toast.success(`Workflow ${workflow.isActive ? 'deactivated' : 'activated'}`);
+  };
+
+  const handleGenerateContent = async () => {
+    if (!contentPrompt.trim()) {
+      toast.error('Please enter a prompt');
+      return;
+    }
+
+    setGeneratingContent(true);
+    
+    // Simulate AI content generation
+    setTimeout(() => {
+      const sampleContent = `Based on your prompt "${contentPrompt}", here's AI-generated content:
+
+Subject: ${contentPrompt.includes('email') ? 'Personalized Email Campaign' : 'Generated Content'}
+
+${contentPrompt.includes('email') 
+  ? `Hi there! We noticed you've been interested in our services. Here's a special offer just for you - 20% off your first purchase! This limited-time deal won't last long, so act fast. Click here to claim your discount and transform your business today.`
+  : `This is intelligently generated content based on your specific requirements. Our AI has analyzed your prompt and created relevant, engaging copy that aligns with your brand voice and marketing goals. The content is optimized for engagement and conversion.`
+}
+
+Best regards,
+Your AI Assistant`;
+
+      setGeneratedContent(sampleContent);
+      setGeneratingContent(false);
+      toast.success('Content generated successfully!');
+    }, 3000);
+  };
+
+  const ModelCard = ({ model }: { model: AIModel }) => {
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'active': return 'text-green-600';
+        case 'training': return 'text-yellow-600';
+        case 'inactive': return 'text-gray-500';
+        default: return 'text-gray-500';
+      }
+    };
+
+    const getModelIcon = (type: string) => {
+      switch (type) {
+        case 'text': return MessageSquare;
+        case 'voice': return Mic;
+        case 'image': return Eye;
+        case 'analysis': return BarChart3;
+        default: return Brain;
+      }
+    };
+
+    const ModelIcon = getModelIcon(model.type);
+
+    return (
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <ModelIcon className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">{model.name}</CardTitle>
+                <Badge 
+                  variant={model.status === 'active' ? 'default' : model.status === 'training' ? 'secondary' : 'outline'}
+                  className="mt-1"
+                >
+                  {model.status}
+                </Badge>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleTrainModel(model)}
+              disabled={model.status === 'training'}
+            >
+              {model.status === 'training' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Accuracy</span>
+              <span className="font-medium">{model.accuracy.toFixed(1)}%</span>
+            </div>
+            <Progress value={model.accuracy} />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-xl font-bold">{model.usage.toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">Usage Count</div>
+            </div>
+            <div>
+              <div className="text-sm font-medium">{model.type.toUpperCase()}</div>
+              <div className="text-xs text-muted-foreground">Model Type</div>
+            </div>
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            Last trained: {model.lastTrained.toLocaleDateString()}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const WorkflowCard = ({ workflow }: { workflow: AIWorkflow }) => {
+    const getWorkflowIcon = (type: string) => {
+      switch (type) {
+        case 'conversation': return MessageSquare;
+        case 'content': return FileText;
+        case 'analysis': return BarChart3;
+        case 'automation': return Zap;
+        default: return Bot;
+      }
+    };
+
+    const WorkflowIcon = getWorkflowIcon(workflow.type);
+
+    return (
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <WorkflowIcon className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">{workflow.name}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">{workflow.description}</p>
+              </div>
+            </div>
+            <Switch
+              checked={workflow.isActive}
+              onCheckedChange={() => handleToggleWorkflow(workflow)}
+            />
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-xl font-bold text-green-600">{workflow.successRate}%</div>
+              <div className="text-xs text-muted-foreground">Success Rate</div>
+            </div>
+            <div>
+              <div className="text-xl font-bold">{workflow.executions.toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">Executions</div>
+            </div>
+          </div>
+          
+          <Badge 
+            variant="outline" 
+            className="w-full justify-center"
+          >
+            {workflow.type.toUpperCase()}
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Brain className="h-8 w-8 text-primary" />
-            AI Features
+          <h1 className="text-2xl font-bold flex items-center">
+            <Brain className="h-8 w-8 mr-3 text-primary" />
+            AI Features Dashboard
           </h1>
-          <p className="text-muted-foreground">Leverage AI to automate and optimize your business processes</p>
+          <p className="text-muted-foreground">
+            Manage and monitor all AI-powered features and capabilities
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2">
           <Button variant="outline">
             <Settings className="h-4 w-4 mr-2" />
             AI Settings
           </Button>
           <Button>
-            <Bot className="h-4 w-4 mr-2" />
-            Create AI Agent
+            <Plus className="h-4 w-4 mr-2" />
+            New AI Model
           </Button>
         </div>
       </div>
 
-      {/* AI Features Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {aiFeatures.map((feature, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <feature.icon className="h-8 w-8 text-primary" />
-                <Badge variant={feature.status === 'active' ? 'default' : 'secondary'}>
-                  {feature.status}
-                </Badge>
+      {/* AI Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active AI Models</p>
+                <p className="text-2xl font-bold">{aiModels.filter(m => m.status === 'active').length}</p>
               </div>
-              <CardTitle className="text-lg">{feature.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">{feature.description}</p>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm font-medium">{feature.usage}</p>
-              <Button variant="outline" size="sm" className="mt-3 w-full">
-                Configure
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+              <Bot className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">AI Interactions Today</p>
+                <p className="text-2xl font-bold">2,453</p>
+                <p className="text-xs text-muted-foreground">+23% from yesterday</p>
+              </div>
+              <Sparkles className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Avg. Success Rate</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {(aiWorkflows.reduce((acc, w) => acc + w.successRate, 0) / aiWorkflows.length).toFixed(1)}%
+                </p>
+              </div>
+              <Target className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Time Saved Today</p>
+                <p className="text-2xl font-bold">12.5h</p>
+                <p className="text-xs text-muted-foreground">Automation impact</p>
+              </div>
+              <Zap className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Detailed AI Tools */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="chatbots">Chatbots</TabsTrigger>
-          <TabsTrigger value="voice">Voice AI</TabsTrigger>
-          <TabsTrigger value="content">Content AI</TabsTrigger>
-          <TabsTrigger value="scoring">Lead Scoring</TabsTrigger>
-          <TabsTrigger value="analytics">AI Analytics</TabsTrigger>
-          <TabsTrigger value="training">Training</TabsTrigger>
+      {/* Tabs */}
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="models">AI Models</TabsTrigger>
+          <TabsTrigger value="workflows">Workflows</TabsTrigger>
+          <TabsTrigger value="generator">Content Generator</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="chatbots" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Chatbot Templates</CardTitle>
-                <p className="text-sm text-muted-foreground">Choose from pre-built chatbot templates</p>
+                <CardTitle>Recent AI Activity</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {chatbotTemplates.map((template, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{template.name}</h4>
-                      <p className="text-sm text-muted-foreground">{template.description}</p>
-                      <Badge variant="outline" className="mt-1">{template.category}</Badge>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { action: 'Generated email response', time: '2 minutes ago', type: 'text' },
+                    { action: 'Analyzed customer sentiment', time: '5 minutes ago', type: 'analysis' },
+                    { action: 'Created marketing content', time: '8 minutes ago', type: 'content' },
+                    { action: 'Processed voice message', time: '12 minutes ago', type: 'voice' },
+                    { action: 'Updated lead score', time: '15 minutes ago', type: 'analysis' }
+                  ].map((activity, index) => (
+                    <div key={index} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-sm">{activity.action}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{activity.time}</span>
                     </div>
-                    <Button variant="outline" size="sm">Deploy</Button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Chatbot Builder</CardTitle>
-                <p className="text-sm text-muted-foreground">Create custom chatbot flows</p>
+                <CardTitle>AI Performance Trends</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Chatbot Name</label>
-                  <Input placeholder="Enter chatbot name" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Welcome Message</label>
-                  <Textarea placeholder="Hi! How can I help you today?" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Enable AI Learning</span>
-                  <Switch />
-                </div>
-                <div className="flex gap-2">
-                  <Button className="flex-1">
-                    <Play className="h-4 w-4 mr-2" />
-                    Test Chatbot
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Draft
-                  </Button>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Model Accuracy</span>
+                      <span className="font-medium">94.2%</span>
+                    </div>
+                    <Progress value={94.2} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Response Quality</span>
+                      <span className="font-medium">89.7%</span>
+                    </div>
+                    <Progress value={89.7} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Automation Success</span>
+                      <span className="font-medium">87.3%</span>
+                    </div>
+                    <Progress value={87.3} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>User Satisfaction</span>
+                      <span className="font-medium">92.8%</span>
+                    </div>
+                    <Progress value={92.8} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="voice" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Voice AI Agents</CardTitle>
-              <p className="text-sm text-muted-foreground">Manage your AI voice assistants</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {voiceAgents.map((agent, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <Mic className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{agent.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {agent.calls} calls • {agent.conversion} conversion rate
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
-                        {agent.status}
-                      </Badge>
-                      <Button variant="outline" size="sm">
-                        {agent.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                      </Button>
-                      <Button variant="outline" size="sm">Configure</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="content" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Generator</CardTitle>
-                <p className="text-sm text-muted-foreground">Generate marketing content with AI</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Content Type</label>
-                  <select className="w-full p-2 border rounded-md">
-                    <option>Email Subject Lines</option>
-                    <option>Social Media Posts</option>
-                    <option>Blog Post Ideas</option>
-                    <option>Ad Copy</option>
-                    <option>Product Descriptions</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Topic/Keywords</label>
-                  <Input placeholder="Enter topic or keywords" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Tone</label>
-                  <select className="w-full p-2 border rounded-md">
-                    <option>Professional</option>
-                    <option>Friendly</option>
-                    <option>Casual</option>
-                    <option>Urgent</option>
-                    <option>Informative</option>
-                  </select>
-                </div>
-                <Button className="w-full">
-                  <Zap className="h-4 w-4 mr-2" />
-                  Generate Content
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Generated Content</CardTitle>
-                <p className="text-sm text-muted-foreground">AI-generated content will appear here</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm">
-                    "Unlock Your Business Potential: 5 Strategies That Actually Work"
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">Email Subject Line • Professional tone</p>
-                </div>
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm">
-                    "Transform your business with proven strategies that deliver real results..."
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">Social Media Post • Professional tone</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">Regenerate</Button>
-                  <Button className="flex-1">Use Content</Button>
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="models" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {aiModels.map((model) => (
+              <ModelCard key={model.id} model={model} />
+            ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="scoring" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Lead Scoring</CardTitle>
-              <p className="text-sm text-muted-foreground">Intelligent lead qualification and scoring</p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">Hot</div>
-                  <div className="text-sm text-muted-foreground">Score: 85+</div>
-                  <div className="text-lg font-semibold">156 Leads</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">Warm</div>
-                  <div className="text-sm text-muted-foreground">Score: 60-84</div>
-                  <div className="text-lg font-semibold">324 Leads</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">Cold</div>
-                  <div className="text-sm text-muted-foreground">Score: 0-59</div>
-                  <div className="text-lg font-semibold">768 Leads</div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="font-medium">Scoring Criteria</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Email Engagement</span>
-                    <span className="text-sm font-medium">+25 points</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Website Activity</span>
-                    <span className="text-sm font-medium">+20 points</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Form Submissions</span>
-                    <span className="text-sm font-medium">+30 points</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Company Size</span>
-                    <span className="text-sm font-medium">+15 points</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="workflows" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Insights</CardTitle>
-                <p className="text-sm text-muted-foreground">Predictive analytics and recommendations</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Target className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium">Conversion Opportunity</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    45 warm leads are likely to convert within the next 7 days
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Star className="h-4 w-4 text-yellow-600" />
-                    <span className="font-medium">Best Performing Content</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Email campaigns with personalized subject lines perform 34% better
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Calendar className="h-4 w-4 text-green-600" />
-                    <span className="font-medium">Optimal Timing</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Tuesday 2-4 PM shows highest engagement rates for your audience
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Predictions</CardTitle>
-                <p className="text-sm text-muted-foreground">AI-powered forecasting</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Next Month Revenue</span>
-                    <span className="text-lg font-bold text-green-600">$78,500</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">+17% from current month</div>
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Expected Leads</span>
-                    <span className="text-lg font-bold text-blue-600">1,650</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">+32% from current month</div>
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Conversion Rate</span>
-                    <span className="text-lg font-bold text-purple-600">22.4%</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">+4% improvement predicted</div>
-                </div>
-              </CardContent>
-            </Card>
+            {aiWorkflows.map((workflow) => (
+              <WorkflowCard key={workflow.id} workflow={workflow} />
+            ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="training" className="space-y-6">
+        <TabsContent value="generator" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>AI Model Training</CardTitle>
-              <p className="text-sm text-muted-foreground">Train AI models with your business data</p>
+              <CardTitle>AI Content Generator</CardTitle>
+              <CardDescription>
+                Generate marketing content, emails, and copy using AI
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">Customer Support Model</h4>
-                  <p className="text-sm text-muted-foreground">Last trained: 2 days ago</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="default">Active</Badge>
-                  <Button variant="outline" size="sm" 
-                          onClick={() => setIsTraining(!isTraining)}
-                          disabled={isTraining}>
-                    {isTraining ? 'Training...' : 'Retrain'}
-                  </Button>
-                </div>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="content-prompt">Content Prompt</Label>
+                <Textarea
+                  id="content-prompt"
+                  placeholder="Describe what you want to generate (e.g., 'Create a welcome email for new subscribers')"
+                  value={contentPrompt}
+                  onChange={(e) => setContentPrompt(e.target.value)}
+                  rows={3}
+                />
               </div>
               
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">Sales Assistant Model</h4>
-                  <p className="text-sm text-muted-foreground">Last trained: 5 days ago</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary">Needs Update</Badge>
-                  <Button variant="outline" size="sm">Retrain</Button>
-                </div>
-              </div>
+              <Button 
+                onClick={handleGenerateContent}
+                disabled={generatingContent || !contentPrompt.trim()}
+                className="w-full"
+              >
+                {generatingContent ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Generating Content...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate Content
+                  </>
+                )}
+              </Button>
 
-              <div className="space-y-4">
-                <h4 className="font-medium">Training Data Sources</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="text-sm">Email Conversations</span>
-                    <Badge variant="outline">2,450 items</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="text-sm">Chat Transcripts</span>
-                    <Badge variant="outline">1,890 items</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="text-sm">Support Tickets</span>
-                    <Badge variant="outline">756 items</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="text-sm">FAQ Database</span>
-                    <Badge variant="outline">145 items</Badge>
+              {generatedContent && (
+                <div className="space-y-2">
+                  <Label>Generated Content</Label>
+                  <Textarea
+                    value={generatedContent}
+                    readOnly
+                    rows={8}
+                    className="bg-muted"
+                  />
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => navigator.clipboard.writeText(generatedContent)}>
+                      Copy Content
+                    </Button>
+                    <Button variant="outline" onClick={() => setGeneratedContent('')}>
+                      Clear
+                    </Button>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Training Modal */}
+      {isTrainingModel && selectedModel && (
+        <Dialog open={isTrainingModel} onOpenChange={() => {}}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Training AI Model</DialogTitle>
+              <DialogDescription>
+                {selectedModel.name} is being trained with new data
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div>
+                  <p className="font-medium">Training in progress...</p>
+                  <p className="text-sm text-muted-foreground">This may take a few minutes</p>
+                </div>
+              </div>
+              <Progress value={60} />
+              <p className="text-xs text-muted-foreground">
+                Processing training data and optimizing model parameters
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

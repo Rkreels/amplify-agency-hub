@@ -1,215 +1,333 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { 
   Phone, 
   PhoneCall, 
   PhoneIncoming, 
   PhoneOutgoing, 
   PhoneMissed,
-  Voicemail,
-  Settings,
-  Play,
-  Pause,
-  Download,
-  Upload,
-  Users,
-  Clock,
-  BarChart3,
   Mic,
   MicOff,
   Volume2,
-  VolumeX
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
+  VolumeX,
+  Pause,
+  Play,
+  Clock,
+  Users,
+  Settings,
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Upload
+} from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { usePhoneStore, type Call } from '@/store/usePhoneStore';
+import { useVoiceTraining } from '@/components/voice/VoiceTrainingProvider';
+import { toast } from 'sonner';
 
 export function PhoneSystemDashboard() {
-  const [activeTab, setActiveTab] = useState("calls");
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const {
+    calls,
+    phoneNumbers,
+    activeCall,
+    isDialerOpen,
+    dialedNumber,
+    isMuted,
+    isOnHold,
+    callVolume,
+    addCall,
+    updateCall,
+    endCall,
+    setActiveCall,
+    setDialerOpen,
+    setDialedNumber,
+    dialNumber,
+    answerCall,
+    toggleMute,
+    toggleHold,
+    setVolume,
+    addPhoneNumber,
+    updatePhoneNumber
+  } = usePhoneStore();
 
-  const callStats = [
-    { title: "Total Calls Today", value: "156", icon: Phone, color: "text-blue-600" },
-    { title: "Answered Calls", value: "128", icon: PhoneIncoming, color: "text-green-600" },
-    { title: "Missed Calls", value: "28", icon: PhoneMissed, color: "text-red-600" },
-    { title: "Voicemails", value: "12", icon: Voicemail, color: "text-purple-600" }
-  ];
+  const { announceFeature } = useVoiceTraining();
+  const [selectedTab, setSelectedTab] = useState('dialer');
+  const [callDuration, setCallDuration] = useState(0);
 
-  const recentCalls = [
-    {
-      id: 1,
-      contact: "Sarah Johnson",
-      phone: "+1 (555) 123-4567",
-      type: "incoming",
-      duration: "5:32",
-      time: "2 minutes ago",
-      status: "answered"
-    },
-    {
-      id: 2,
-      contact: "Michael Chen",
-      phone: "+1 (555) 234-5678",
-      type: "outgoing",
-      duration: "12:45",
-      time: "15 minutes ago",
-      status: "answered"
-    },
-    {
-      id: 3,
-      contact: "Unknown",
-      phone: "+1 (555) 345-6789",
-      type: "incoming",
-      duration: "0:00",
-      time: "32 minutes ago",
-      status: "missed"
-    },
-    {
-      id: 4,
-      contact: "Emily Rodriguez",
-      phone: "+1 (555) 456-7890",
-      type: "incoming",
-      duration: "8:15",
-      time: "1 hour ago",
-      status: "answered"
+  useEffect(() => {
+    announceFeature(
+      'Phone System',
+      'Make and receive calls, manage phone numbers, and track call history. Use the dialer to make outbound calls or manage incoming calls with full call controls.'
+    );
+  }, [announceFeature]);
+
+  // Call timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (activeCall && activeCall.status === 'connected') {
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      setCallDuration(0);
     }
-  ];
+    return () => clearInterval(interval);
+  }, [activeCall]);
 
-  const phoneNumbers = [
-    {
-      number: "+1 (555) 123-0001",
-      type: "Main Line",
-      status: "active",
-      assignedTo: "All Users"
-    },
-    {
-      number: "+1 (555) 123-0002",
-      type: "Sales",
-      status: "active",
-      assignedTo: "Sales Team"
-    },
-    {
-      number: "+1 (555) 123-0003",
-      type: "Support",
-      status: "active",
-      assignedTo: "Support Team"
-    },
-    {
-      number: "+1 (555) 123-0004",
-      type: "Emergency",
-      status: "inactive",
-      assignedTo: "Management"
-    }
-  ];
-
-  const voicemails = [
-    {
-      id: 1,
-      from: "Sarah Johnson",
-      phone: "+1 (555) 123-4567",
-      duration: "1:45",
-      time: "15 minutes ago",
-      transcription: "Hi, I'm calling about the quote you sent. Could you please call me back?",
-      isNew: true
-    },
-    {
-      id: 2,
-      from: "Unknown Caller",
-      phone: "+1 (555) 987-6543",
-      duration: "0:32",
-      time: "2 hours ago",
-      transcription: "Hello, this is regarding your recent inquiry...",
-      isNew: false
-    }
-  ];
-
-  const getCallIcon = (type: string, status: string) => {
-    if (status === "missed") return PhoneMissed;
-    return type === "incoming" ? PhoneIncoming : PhoneOutgoing;
+  const handleDialerInput = (digit: string) => {
+    setDialedNumber(dialedNumber + digit);
   };
 
-  const getCallColor = (type: string, status: string) => {
-    if (status === "missed") return "text-red-600";
-    return type === "incoming" ? "text-green-600" : "text-blue-600";
+  const handleMakeCall = () => {
+    if (!dialedNumber) {
+      toast.error('Please enter a phone number');
+      return;
+    }
+    dialNumber(dialedNumber);
+    toast.success(`Calling ${dialedNumber}...`);
   };
+
+  const handleAnswerCall = (call: Call) => {
+    answerCall(call.id);
+    setActiveCall(call);
+    toast.success(`Call connected with ${call.contactName}`);
+  };
+
+  const handleEndCall = () => {
+    if (activeCall) {
+      endCall(activeCall.id);
+      setActiveCall(null);
+      toast.success('Call ended');
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getCallStatusColor = (status: Call['status']) => {
+    switch (status) {
+      case 'connected': return 'text-green-600';
+      case 'ringing': return 'text-yellow-600';
+      case 'ended': return 'text-gray-500';
+      case 'missed': return 'text-red-600';
+      case 'voicemail': return 'text-blue-600';
+      default: return 'text-gray-500';
+    }
+  };
+
+  const getCallIcon = (call: Call) => {
+    if (call.direction === 'inbound') {
+      return call.status === 'missed' ? PhoneMissed : PhoneIncoming;
+    }
+    return PhoneOutgoing;
+  };
+
+  const DialerPad = () => (
+    <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+      {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((digit) => (
+        <Button
+          key={digit}
+          variant="outline"
+          className="aspect-square text-lg font-semibold"
+          onClick={() => handleDialerInput(digit)}
+        >
+          {digit}
+        </Button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Phone className="h-8 w-8 text-primary" />
-            Phone System
-          </h1>
-          <p className="text-muted-foreground">Manage calls, voicemails, and phone settings</p>
+          <h1 className="text-2xl font-bold">Phone System</h1>
+          <p className="text-muted-foreground">
+            Make calls, manage phone numbers, and track call history
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setDialerOpen(true)}>
+            <Phone className="h-4 w-4 mr-2" />
+            Open Dialer
           </Button>
-          <Button>
-            <PhoneCall className="h-4 w-4 mr-2" />
-            Make Call
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Number
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Phone Number</DialogTitle>
+                <DialogDescription>
+                  Add a new phone number to your system
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone-number">Phone Number</Label>
+                  <Input id="phone-number" placeholder="+1-555-0123" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="number-type">Type</Label>
+                  <select id="number-type" className="w-full border rounded-md px-3 py-2">
+                    <option value="local">Local</option>
+                    <option value="toll-free">Toll-Free</option>
+                    <option value="international">International</option>
+                  </select>
+                </div>
+                <Button className="w-full">Add Number</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       {/* Call Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {callStats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Calls Today</p>
+                <p className="text-2xl font-bold">
+                  {calls.filter(call => {
+                    const today = new Date();
+                    const callDate = new Date(call.startTime);
+                    return callDate.toDateString() === today.toDateString();
+                  }).length}
+                </p>
+              </div>
+              <PhoneCall className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Missed Calls</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {calls.filter(call => call.status === 'missed').length}
+                </p>
+              </div>
+              <PhoneMissed className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Average Duration</p>
+                <p className="text-2xl font-bold">
+                  {formatDuration(
+                    Math.round(
+                      calls.filter(call => call.duration > 0)
+                        .reduce((acc, call) => acc + call.duration, 0) / 
+                      Math.max(calls.filter(call => call.duration > 0).length, 1)
+                    )
+                  )}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Numbers</p>
+                <p className="text-2xl font-bold">
+                  {phoneNumbers.filter(num => num.isActive).length}
+                </p>
+              </div>
+              <Phone className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Active Call Panel */}
-      {isCallActive && (
-        <Card className="bg-primary/5 border-primary/20">
+      {/* Active Call Widget */}
+      {activeCall && (
+        <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-12 w-12">
-                  <AvatarFallback>SJ</AvatarFallback>
+                  <AvatarFallback>
+                    {activeCall.contactName.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">Sarah Johnson</h3>
-                  <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
-                  <p className="text-sm text-muted-foreground">Call duration: 02:45</p>
+                  <h3 className="font-semibold">{activeCall.contactName}</h3>
+                  <p className="text-blue-100">{activeCall.phoneNumber}</p>
+                  <p className="text-sm text-blue-200">
+                    {activeCall.status === 'connected' ? formatDuration(callDuration) : activeCall.status}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              
+              <div className="flex items-center space-x-3">
+                <div className="text-center">
+                  <p className="text-xs text-blue-200">Volume</p>
+                  <Slider
+                    value={[callVolume]}
+                    onValueChange={(value) => setVolume(value[0])}
+                    max={100}
+                    step={1}
+                    className="w-20"
+                  />
+                </div>
+                
                 <Button
-                  variant={isMuted ? "destructive" : "outline"}
+                  variant={isMuted ? "destructive" : "secondary"}
                   size="sm"
-                  onClick={() => setIsMuted(!isMuted)}
+                  onClick={toggleMute}
                 >
                   {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Volume2 className="h-4 w-4" />
+                
+                <Button
+                  variant={isOnHold ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={toggleHold}
+                >
+                  {isOnHold ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Users className="h-4 w-4" />
-                </Button>
+                
                 <Button
                   variant="destructive"
-                  onClick={() => setIsCallActive(false)}
+                  onClick={handleEndCall}
                 >
-                  End Call
+                  <Phone className="h-4 w-4 rotate-[135deg]" />
                 </Button>
               </div>
             </div>
@@ -218,242 +336,193 @@ export function PhoneSystemDashboard() {
       )}
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="calls">Recent Calls</TabsTrigger>
-          <TabsTrigger value="voicemails">Voicemails</TabsTrigger>
-          <TabsTrigger value="numbers">Phone Numbers</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Dialer */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Dialer</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              value={dialedNumber}
+              onChange={(e) => setDialedNumber(e.target.value)}
+              placeholder="Enter phone number"
+              className="text-center text-lg"
+            />
+            
+            <DialerPad />
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setDialedNumber('')}
+              >
+                Clear
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleMakeCall}
+                disabled={!dialedNumber}
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Call
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="calls" className="space-y-6">
-          <Card>
-            <CardHeader>
+        {/* Call History */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <CardTitle>Recent Calls</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentCalls.map((call) => {
-                  const CallIcon = getCallIcon(call.type, call.status);
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {calls.slice(0, 10).map((call) => {
+                const CallIcon = getCallIcon(call);
+                return (
+                  <div key={call.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <CallIcon className={`h-5 w-5 ${getCallStatusColor(call.status)}`} />
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs">
+                          {call.contactName.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{call.contactName}</p>
+                        <p className="text-sm text-muted-foreground">{call.phoneNumber}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {call.duration > 0 ? formatDuration(call.duration) : call.status}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {call.startTime.toLocaleString()}
+                      </p>
+                    </div>
+                    
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setDialedNumber(call.phoneNumber)}>
+                        <Phone className="h-3 w-3" />
+                      </Button>
+                      {call.status === 'ringing' && call.direction === 'inbound' && (
+                        <Button size="sm" onClick={() => handleAnswerCall(call)}>
+                          Answer
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Phone Numbers Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Phone Numbers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {phoneNumbers.map((number) => (
+              <div key={number.id} className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-medium">{number.number}</p>
+                    <p className="text-sm text-muted-foreground">{number.type}</p>
+                  </div>
+                  <Badge variant={number.isActive ? 'default' : 'secondary'}>
+                    {number.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2 text-sm">
+                  {number.assignedTo && (
+                    <p><span className="text-muted-foreground">Assigned to:</span> {number.assignedTo}</p>
+                  )}
                   
-                  return (
-                    <div key={call.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <CallIcon className={`h-5 w-5 ${getCallColor(call.type, call.status)}`} />
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback>
-                            {call.contact.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="font-medium">{call.contact}</h4>
-                          <p className="text-sm text-muted-foreground">{call.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{call.duration}</p>
-                          <p className="text-xs text-muted-foreground">{call.time}</p>
-                        </div>
-                        <Badge variant={call.status === 'answered' ? 'default' : 'destructive'}>
-                          {call.status}
-                        </Badge>
-                        <Button variant="ghost" size="sm">
-                          <PhoneCall className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="voicemails" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Voicemails</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {voicemails.map((voicemail) => (
-                  <div key={voicemail.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <Voicemail className="h-5 w-5 text-purple-600" />
-                        <div>
-                          <h4 className="font-medium">{voicemail.from}</h4>
-                          <p className="text-sm text-muted-foreground">{voicemail.phone}</p>
-                        </div>
-                        {voicemail.isNew && (
-                          <Badge variant="destructive">New</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-muted-foreground">{voicemail.duration}</span>
-                        <span className="text-sm text-muted-foreground">{voicemail.time}</span>
-                        <Button variant="ghost" size="sm">
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-sm bg-muted p-3 rounded-md">{voicemail.transcription}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="numbers" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Phone Numbers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {phoneNumbers.map((number, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{number.number}</h4>
-                      <p className="text-sm text-muted-foreground">{number.type}</p>
-                      <p className="text-sm text-muted-foreground">Assigned to: {number.assignedTo}</p>
-                    </div>
+                  <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Badge variant={number.status === 'active' ? 'default' : 'secondary'}>
-                        {number.status}
-                      </Badge>
-                      <Button variant="outline" size="sm">Configure</Button>
+                      <Switch 
+                        checked={number.forwardingEnabled} 
+                        onCheckedChange={(checked) => 
+                          updatePhoneNumber(number.id, { forwardingEnabled: checked })
+                        }
+                      />
+                      <span>Forwarding</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        checked={number.voicemailEnabled}
+                        onCheckedChange={(checked) => 
+                          updatePhoneNumber(number.id, { voicemailEnabled: checked })
+                        }
+                      />
+                      <span>Voicemail</span>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Call Volume</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Peak Hours (9-11 AM)</span>
-                      <span>45 calls</span>
-                    </div>
-                    <Progress value={75} />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Business Hours</span>
-                      <span>128 calls</span>
-                    </div>
-                    <Progress value={85} />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>After Hours</span>
-                      <span>28 calls</span>
-                    </div>
-                    <Progress value={30} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span>Answer Rate</span>
-                    <span className="font-semibold text-green-600">82%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Average Call Duration</span>
-                    <span className="font-semibold">6:23</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>First Call Resolution</span>
-                    <span className="font-semibold text-blue-600">74%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Customer Satisfaction</span>
-                    <span className="font-semibold text-purple-600">4.6/5</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            ))}
           </div>
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="settings" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Call Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span>Call Recording</span>
-                  <Switch />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Voicemail Transcription</span>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Call Forwarding</span>
-                  <Switch />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Do Not Disturb</span>
-                  <Switch />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Hours</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Monday - Friday</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Input type="time" defaultValue="09:00" className="w-32" />
-                    <span>to</span>
-                    <Input type="time" defaultValue="17:00" className="w-32" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Saturday</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Input type="time" defaultValue="10:00" className="w-32" />
-                    <span>to</span>
-                    <Input type="time" defaultValue="14:00" className="w-32" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Sunday</span>
-                  <Switch />
-                </div>
-              </CardContent>
-            </Card>
+      {/* Dialer Modal */}
+      <Dialog open={isDialerOpen} onOpenChange={setDialerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Phone Dialer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <Input
+              value={dialedNumber}
+              onChange={(e) => setDialedNumber(e.target.value)}
+              placeholder="Enter phone number"
+              className="text-center text-xl"
+            />
+            
+            <DialerPad />
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setDialedNumber('')}
+              >
+                Clear
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleMakeCall}
+                disabled={!dialedNumber}
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Call
+              </Button>
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
