@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,8 +27,8 @@ export function EventForm({ event, selectedDate, onComplete }: EventFormProps) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     description: event?.description || '',
-    start: event?.start || defaultStart,
-    end: event?.end || defaultEnd,
+    startTime: event?.startTime || defaultStart,
+    endTime: event?.endTime || defaultEnd,
     type: event?.type || 'appointment' as CalendarEvent['type'],
     location: event?.location || '',
     attendees: event?.attendees || [],
@@ -82,7 +81,7 @@ export function EventForm({ event, selectedDate, onComplete }: EventFormProps) {
       return;
     }
 
-    if (formData.start >= formData.end) {
+    if (formData.startTime >= formData.endTime) {
       toast.error('End time must be after start time');
       return;
     }
@@ -143,10 +142,10 @@ export function EventForm({ event, selectedDate, onComplete }: EventFormProps) {
           <Input
             id="start"
             type="datetime-local"
-            value={formatDateTimeLocal(formData.start)}
+            value={formatDateTimeLocal(formData.startTime)}
             onChange={(e) => setFormData(prev => ({ 
               ...prev, 
-              start: new Date(e.target.value) 
+              startTime: new Date(e.target.value) 
             }))}
           />
         </div>
@@ -155,10 +154,10 @@ export function EventForm({ event, selectedDate, onComplete }: EventFormProps) {
           <Input
             id="end"
             type="datetime-local"
-            value={formatDateTimeLocal(formData.end)}
+            value={formatDateTimeLocal(formData.endTime)}
             onChange={(e) => setFormData(prev => ({ 
               ...prev, 
-              end: new Date(e.target.value) 
+              endTime: new Date(e.target.value) 
             }))}
           />
         </div>
@@ -181,7 +180,6 @@ export function EventForm({ event, selectedDate, onComplete }: EventFormProps) {
               <SelectItem value="meeting">Meeting</SelectItem>
               <SelectItem value="call">Call</SelectItem>
               <SelectItem value="task">Task</SelectItem>
-              <SelectItem value="reminder">Reminder</SelectItem>
             </SelectContent>
           </Select>
         </div>

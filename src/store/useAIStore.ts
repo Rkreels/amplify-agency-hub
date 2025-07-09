@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface AIConversationResponse {
@@ -88,7 +87,7 @@ export interface AIChatbot {
   id: string;
   name: string;
   type: 'website' | 'facebook' | 'instagram' | 'whatsapp';
-  platform: 'website' | 'facebook' | 'instagram' | 'whatsapp';
+  platform: string;
   personality: string;
   knowledgeBase: string[];
   isActive: boolean;

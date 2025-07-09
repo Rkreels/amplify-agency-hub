@@ -17,6 +17,10 @@ export interface CalendarEvent {
   attendees?: string[];
   createdAt: Date;
   updatedAt: Date;
+  color?: string;
+  isRecurring?: boolean;
+  recurringRule?: string;
+  createdBy?: string;
 }
 
 export interface AppointmentType {
@@ -32,6 +36,16 @@ export interface AppointmentType {
   createdAt: Date;
 }
 
+export interface CalendarType {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  isActive: boolean;
+  color?: string;
+  appointmentCount?: number;
+}
+
 export interface AvailabilitySlot {
   id: string;
   dayOfWeek: number;
@@ -43,8 +57,12 @@ export interface AvailabilitySlot {
 interface CalendarStore {
   events: CalendarEvent[];
   appointmentTypes: AppointmentType[];
+  calendarTypes: CalendarType[];
   availability: AvailabilitySlot[];
   selectedDate: Date;
+  selectedEvent: CalendarEvent | null;
+  selectedTab: string;
+  selectedCalendarView: string;
   viewMode: 'month' | 'week' | 'day';
   
   // Actions
@@ -52,10 +70,16 @@ interface CalendarStore {
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   deleteEvent: (id: string) => void;
   setSelectedDate: (date: Date) => void;
+  setSelectedEvent: (event: CalendarEvent | null) => void;
+  setSelectedTab: (tab: string) => void;
+  setSelectedCalendarView: (view: string) => void;
   setViewMode: (mode: 'month' | 'week' | 'day') => void;
   addAppointmentType: (type: Omit<AppointmentType, 'id' | 'createdAt'>) => void;
   updateAppointmentType: (id: string, updates: Partial<AppointmentType>) => void;
   deleteAppointmentType: (id: string) => void;
+  addCalendarType: (type: Omit<CalendarType, 'id'>) => void;
+  updateCalendarType: (id: string, updates: Partial<CalendarType>) => void;
+  deleteCalendarType: (id: string) => void;
   updateAvailability: (slots: AvailabilitySlot[]) => void;
   getEventsForDate: (date: Date) => CalendarEvent[];
   getEventsForWeek: (startDate: Date) => CalendarEvent[];
@@ -93,6 +117,17 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
       createdAt: new Date()
     }
   ],
+  calendarTypes: [
+    {
+      id: '1',
+      name: 'Sales Calendar',
+      description: 'Calendar for sales appointments',
+      type: 'sales',
+      isActive: true,
+      color: '#3B82F6',
+      appointmentCount: 5
+    }
+  ],
   availability: [
     {
       id: '1',
@@ -110,6 +145,9 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     }
   ],
   selectedDate: new Date(),
+  selectedEvent: null,
+  selectedTab: 'appointments',
+  selectedCalendarView: 'month',
   viewMode: 'month',
 
   addEvent: (event) => {
@@ -145,6 +183,18 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     set({ selectedDate: date });
   },
 
+  setSelectedEvent: (event) => {
+    set({ selectedEvent: event });
+  },
+
+  setSelectedTab: (tab) => {
+    set({ selectedTab: tab });
+  },
+
+  setSelectedCalendarView: (view) => {
+    set({ selectedCalendarView: view });
+  },
+
   setViewMode: (mode) => {
     set({ viewMode: mode });
   },
@@ -172,6 +222,31 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   deleteAppointmentType: (id) => {
     set(state => ({
       appointmentTypes: state.appointmentTypes.filter(type => type.id !== id)
+    }));
+  },
+
+  addCalendarType: (type) => {
+    const newType: CalendarType = {
+      ...type,
+      id: Date.now().toString()
+    };
+
+    set(state => ({
+      calendarTypes: [...state.calendarTypes, newType]
+    }));
+  },
+
+  updateCalendarType: (id, updates) => {
+    set(state => ({
+      calendarTypes: state.calendarTypes.map(type =>
+        type.id === id ? { ...type, ...updates } : type
+      )
+    }));
+  },
+
+  deleteCalendarType: (id) => {
+    set(state => ({
+      calendarTypes: state.calendarTypes.filter(type => type.id !== id)
     }));
   },
 

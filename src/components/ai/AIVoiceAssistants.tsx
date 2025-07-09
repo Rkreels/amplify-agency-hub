@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 export function AIVoiceAssistants() {
   const { 
     voiceAssistants, 
-    activeVoiceCall,
     createVoiceAssistant 
   } = useAIStore();
   
@@ -33,13 +32,18 @@ export function AIVoiceAssistants() {
 
     createVoiceAssistant({
       ...newAssistant,
+      instructions: 'You are a helpful AI voice assistant.',
+      isActive: true,
+      callsHandled: 0,
+      averageCallDuration: 180,
+      satisfactionScore: 4.5,
+      skills: ['appointment_booking', 'lead_qualification'],
       features: {
         appointment_booking: true,
         lead_qualification: true,
         information_gathering: true,
         call_routing: false
-      },
-      isActive: true
+      }
     });
 
     setNewAssistant({

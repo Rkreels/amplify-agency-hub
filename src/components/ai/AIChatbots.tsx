@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,24 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, MessageSquare, Globe, Facebook, Instagram, MessageCircle, Settings } from 'lucide-react';
+import { MessageSquare, Bot, Settings, Plus } from 'lucide-react';
 import { useAIStore } from '@/store/useAIStore';
 import { toast } from 'sonner';
 
 export function AIChatbots() {
-  const { 
-    chatbots, 
-    createChatbot 
-  } = useAIStore();
+  const { chatbots, createChatbot } = useAIStore();
   
   const [newChatbot, setNewChatbot] = useState({
     name: '',
-    type: 'website' as 'website' | 'facebook' | 'instagram' | 'whatsapp',
-    personality: 'helpful_professional',
-    knowledgeBase: [] as string[]
+    type: 'website' as const,
+    personality: 'friendly'
   });
-
-  const [knowledgeInput, setKnowledgeInput] = useState('');
 
   const handleCreateChatbot = () => {
     if (!newChatbot.name.trim()) {
@@ -35,47 +28,28 @@ export function AIChatbots() {
 
     createChatbot({
       ...newChatbot,
-      responses: {},
+      platform: newChatbot.type,
+      knowledgeBase: [],
       isActive: true,
+      conversationsHandled: 0,
+      averageResponseTime: 2.5,
+      handoffRate: 0.05,
+      languages: ['en-US'],
+      responses: {},
       analytics: {
         conversations: 0,
-        resolution_rate: 0,
-        satisfaction_score: 0
+        resolution_rate: 85,
+        satisfaction_score: 4.2
       }
     });
 
     setNewChatbot({
       name: '',
       type: 'website',
-      personality: 'helpful_professional',
-      knowledgeBase: []
+      personality: 'friendly'
     });
 
     toast.success('Chatbot created successfully!');
-  };
-
-  const addKnowledge = () => {
-    if (knowledgeInput.trim()) {
-      setNewChatbot({
-        ...newChatbot,
-        knowledgeBase: [...newChatbot.knowledgeBase, knowledgeInput.trim()]
-      });
-      setKnowledgeInput('');
-    }
-  };
-
-  const removeKnowledge = (index: number) => {
-    setNewChatbot({
-      ...newChatbot,
-      knowledgeBase: newChatbot.knowledgeBase.filter((_, i) => i !== index)
-    });
-  };
-
-  const platformIcons = {
-    website: Globe,
-    facebook: Facebook,
-    instagram: Instagram,
-    whatsapp: MessageCircle
   };
 
   return (
@@ -155,8 +129,8 @@ export function AIChatbots() {
               <div className="flex gap-2">
                 <Input
                   placeholder="Add knowledge topic (e.g., pricing, support)"
-                  value={knowledgeInput}
-                  onChange={(e) => setKnowledgeInput(e.target.value)}
+                  value={newChatbot.knowledgeBase}
+                  onChange={(e) => setNewChatbot({...newChatbot, knowledgeBase: e.target.value})}
                   onKeyPress={(e) => e.key === 'Enter' && addKnowledge()}
                 />
                 <Button onClick={addKnowledge} size="sm">Add</Button>
@@ -290,3 +264,4 @@ export function AIChatbots() {
     </div>
   );
 }
+

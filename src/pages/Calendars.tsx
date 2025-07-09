@@ -7,7 +7,6 @@ import { Settings, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { useState, useEffect } from "react";
-import { defaultEvents } from "@/lib/calendar-data";
 import { UpcomingAppointmentsCard } from "@/components/calendar/UpcomingAppointmentsCard";
 import { CalendarTabContent } from "@/components/calendar/CalendarTabContent";
 import { CalendarsTabContent } from "@/components/calendar/CalendarsTabContent";
@@ -33,7 +32,15 @@ export default function Calendars() {
   // Load default events if none exist
   useEffect(() => {
     if (events.length === 0) {
-      defaultEvents.forEach(event => addEvent(event));
+      // Add a sample event with proper structure
+      addEvent({
+        title: 'Sample Meeting',
+        description: 'This is a sample meeting',
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 3600000),
+        type: 'meeting',
+        status: 'scheduled'
+      });
     }
   }, [events.length, addEvent]);
 
