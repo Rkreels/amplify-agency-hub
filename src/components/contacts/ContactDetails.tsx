@@ -1,25 +1,26 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
-  Mail, 
   Phone, 
+  Mail, 
   Building, 
-  Calendar, 
-  Star,
-  MessageSquare,
-  PhoneCall,
-  Edit,
-  Trash2,
-  Plus,
-  Activity
+  Edit, 
+  MessageSquare, 
+  Calendar,
+  DollarSign,
+  Activity,
+  User,
+  Clock,
+  Star
 } from 'lucide-react';
-import { useContactsStore, type Contact } from '@/store/useContactsStore';
+import { type Contact } from '@/store/useContactsStore';
+import { ContactForm } from './ContactForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 interface ContactDetailsProps {
@@ -28,238 +29,379 @@ interface ContactDetailsProps {
 }
 
 export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
-  const { updateContact, deleteContact, customFields } = useContactsStore();
-  const [isAddingNote, setIsAddingNote] = useState(false);
-  const [newNote, setNewNote] = useState('');
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      const updatedNotes = contact.notes 
-        ? `${contact.notes}\n\n${new Date().toLocaleDateString()}: ${newNote}`
-        : `${new Date().toLocaleDateString()}: ${newNote}`;
-      
-      updateContact(contact.id, { notes: updatedNotes });
-      setNewNote('');
-      setIsAddingNote(false);
-      toast.success('Note added successfully');
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'email':
+        toast.success(`Opening email composer for ${contact.email}`);
+        break;
+      case 'call':
+        toast.success(`Initiating call to ${contact.phone}`);
+        break;
+      case 'message':
+        toast.success(`Opening message composer for ${contact.firstName}`);
+        break;
+      case 'appointment':
+        toast.success(`Opening calendar to schedule appointment`);
+        break;
     }
   };
 
-  const handleUpdateScore = () => {
-    const newScore = Math.min(100, contact.leadScore + Math.floor(Math.random() * 20));
-    updateContact(contact.id, { leadScore: newScore });
-    toast.success('Lead score updated');
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this contact?')) {
-      deleteContact(contact.id);
-      toast.success('Contact deleted successfully');
-      onClose();
+  const mockInteractions = [
+    {
+      id: '1',
+      type: 'email',
+      title: 'Welcome Email Sent',
+      description: 'Automated welcome sequence triggered',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      status: 'completed'
+    },
+    {
+      id: '2',
+      type: 'call',
+      title: 'Sales Call',
+      description: 'Initial discovery call completed',
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      status: 'completed'
+    },
+    {
+      id: '3',
+      type: 'email',
+      title: 'Follow-up Email',
+      description: 'Follow-up email after call',
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      status: 'completed'
     }
-  };
+  ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'customer': return 'bg-green-100 text-green-800';
-      case 'lead': return 'bg-blue-100 text-blue-800';
-      case 'prospect': return 'bg-yellow-100 text-yellow-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const mockOpportunities = [
+    {
+      id: '1',
+      title: 'Website Redesign Project',
+      value: 15000,
+      stage: 'Proposal',
+      probability: 75,
+      closeDate: '2024-02-15'
+    },
+    {
+      id: '2',
+      title: 'SEO Optimization',
+      value: 5000,
+      stage: 'Qualified',
+      probability: 45,
+      closeDate: '2024-03-01'
     }
-  };
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Contact Header */}
       <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-start space-x-4">
           <Avatar className="h-16 w-16">
             <AvatarImage src={contact.avatar} />
             <AvatarFallback className="text-lg">
-              {contact.firstName.charAt(0)}{contact.lastName.charAt(0)}
+              {contact.firstName.charAt(0) + contact.lastName.charAt(0)}
             </AvatarFallback>
           </Avatar>
+          
           <div>
             <h2 className="text-2xl font-bold">
               {contact.firstName} {contact.lastName}
             </h2>
-            <p className="text-gray-600">{contact.position}</p>
-            <p className="text-gray-600">{contact.company}</p>
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 mr-1" />
-            Delete
-          </Button>
-        </div>
-      </div>
-
-      {/* Status and Tags */}
-      <div className="flex flex-wrap gap-2">
-        <Badge className={getStatusColor(contact.status)}>
-          {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
-        </Badge>
-        {contact.tags.map((tag) => (
-          <Badge key={tag} variant="outline">{tag}</Badge>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Contact Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <Mail className="h-4 w-4 text-gray-500" />
-              <span>{contact.email}</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Phone className="h-4 w-4 text-gray-500" />
-              <span>{contact.phone}</span>
-            </div>
-            {contact.company && (
-              <div className="flex items-center space-x-3">
-                <Building className="h-4 w-4 text-gray-500" />
-                <span>{contact.company}</span>
-              </div>
-            )}
-            <div className="flex items-center space-x-3">
-              <Calendar className="h-4 w-4 text-gray-500" />
-              <span>Created: {contact.createdAt.toLocaleDateString()}</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Activity className="h-4 w-4 text-gray-500" />
-              <span>Source: {contact.source}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Lead Score */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Lead Score
-              <Button variant="outline" size="sm" onClick={handleUpdateScore}>
-                <Star className="h-4 w-4 mr-1" />
-                Update
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-4xl font-bold mb-2">{contact.leadScore}</div>
-              <div className="text-sm text-gray-600 mb-4">out of 100</div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full" 
-                  style={{ width: `${contact.leadScore}%` }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Custom Fields */}
-      {customFields.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Custom Fields</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {customFields.map((field) => (
-                <div key={field.id}>
-                  <label className="font-medium text-sm">{field.name}</label>
-                  <p className="text-gray-600">
-                    {contact.customFields[field.id] || 'Not set'}
-                  </p>
-                </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={
+                contact.status === 'customer' ? 'default' :
+                contact.status === 'lead' ? 'secondary' :
+                contact.status === 'prospect' ? 'outline' : 'destructive'
+              }>
+                {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
+              </Badge>
+              {contact.tags?.map((tag) => (
+                <Badge key={tag} variant="outline">
+                  {tag}
+                </Badge>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            
+            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Mail className="h-4 w-4" />
+                {contact.email}
+              </div>
+              {contact.phone && (
+                <div className="flex items-center gap-1">
+                  <Phone className="h-4 w-4" />
+                  {contact.phone}
+                </div>
+              )}
+              {contact.company && (
+                <div className="flex items-center gap-1">
+                  <Building className="h-4 w-4" />
+                  {contact.company}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleQuickAction('email')}>
+            <Mail className="h-4 w-4 mr-2" />
+            Email
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleQuickAction('call')}>
+            <Phone className="h-4 w-4 mr-2" />
+            Call
+          </Button>
+          <Button onClick={() => setShowEditDialog(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        </div>
+      </div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Button className="w-full" onClick={() => toast.success('Email composer opened')}>
-              <Mail className="h-4 w-4 mr-2" />
-              Send Email
-            </Button>
-            <Button className="w-full" onClick={() => toast.success('SMS composer opened')}>
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Send SMS
-            </Button>
-            <Button className="w-full" onClick={() => toast.success('Call initiated')}>
-              <PhoneCall className="h-4 w-4 mr-2" />
-              Call
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Button
+          variant="outline"
+          className="flex flex-col h-auto p-4 gap-2"
+          onClick={() => handleQuickAction('message')}
+        >
+          <MessageSquare className="h-5 w-5" />
+          <span className="text-sm">Send Message</span>
+        </Button>
+        
+        <Button
+          variant="outline"
+          className="flex flex-col h-auto p-4 gap-2"
+          onClick={() => handleQuickAction('appointment')}
+        >
+          <Calendar className="h-5 w-5" />
+          <span className="text-sm">Schedule</span>
+        </Button>
+        
+        <Button
+          variant="outline"
+          className="flex flex-col h-auto p-4 gap-2"
+          onClick={() => toast.success('Creating opportunity...')}
+        >
+          <DollarSign className="h-5 w-5" />
+          <span className="text-sm">Add Deal</span>
+        </Button>
+        
+        <Button
+          variant="outline"
+          className="flex flex-col h-auto p-4 gap-2"
+          onClick={() => toast.success('Adding note...')}
+        >
+          <Edit className="h-5 w-5" />
+          <span className="text-sm">Add Note</span>
+        </Button>
+      </div>
 
-      {/* Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            Notes
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsAddingNote(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Note
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isAddingNote && (
-            <div className="mb-4 space-y-2">
-              <Textarea
-                placeholder="Add a note..."
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                rows={3}
-              />
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsAddingNote(false)}
-                >
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleAddNote}>
-                  Save Note
-                </Button>
-              </div>
-            </div>
-          )}
+      {/* Contact Details Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="interactions">Activity</TabsTrigger>
+          <TabsTrigger value="opportunities">Deals</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Email:</span>
+                  <span>{contact.email}</span>
+                </div>
+                {contact.phone && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phone:</span>
+                    <span>{contact.phone}</span>
+                  </div>
+                )}
+                {contact.company && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Company:</span>
+                    <span>{contact.company}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge variant="outline">{contact.status}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Created:</span>
+                  <span>{contact.createdAt.toLocaleDateString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Interactions:</span>
+                  <span className="font-medium">{mockInteractions.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Open Opportunities:</span>
+                  <span className="font-medium">{mockOpportunities.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Value:</span>
+                  <span className="font-medium">
+                    ${mockOpportunities.reduce((sum, opp) => sum + opp.value, 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Last Contact:</span>
+                  <span className="font-medium">
+                    {mockInteractions[0]?.timestamp.toLocaleDateString() || 'Never'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           
-          {contact.notes ? (
-            <div className="whitespace-pre-wrap text-sm text-gray-700">
-              {contact.notes}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm italic">No notes added yet</p>
+          {contact.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{contact.notes}</p>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+        
+        <TabsContent value="interactions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Activity</CardTitle>
+              <CardDescription>Interaction history with this contact</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {mockInteractions.map((interaction) => (
+                  <div key={interaction.id} className="flex items-start space-x-4 p-3 rounded-lg bg-muted/30">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      {interaction.type === 'email' ? (
+                        <Mail className="h-4 w-4 text-primary" />
+                      ) : interaction.type === 'call' ? (
+                        <Phone className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Activity className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{interaction.title}</div>
+                      <div className="text-sm text-muted-foreground">{interaction.description}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-xs text-muted-foreground">
+                          {interaction.timestamp.toLocaleString()}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {interaction.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="opportunities" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Open Opportunities</CardTitle>
+              <CardDescription>Active deals for this contact</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {mockOpportunities.map((opp) => (
+                  <div key={opp.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div>
+                      <div className="font-medium">{opp.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Close Date: {opp.closeDate}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">${opp.value.toLocaleString()}</div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{opp.stage}</Badge>
+                        <span className="text-sm text-muted-foreground">{opp.probability}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="notes" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Contact Notes</CardTitle>
+              <CardDescription>Internal notes and observations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {contact.notes ? (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p>{contact.notes}</p>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Last updated: {contact.updatedAt.toLocaleString()}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No notes available for this contact</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-2"
+                    onClick={() => toast.success('Opening note editor...')}
+                  >
+                    Add Note
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Contact Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Contact</DialogTitle>
+          </DialogHeader>
+          <ContactForm 
+            contact={contact} 
+            onComplete={() => {
+              setShowEditDialog(false);
+              onClose();
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
