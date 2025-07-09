@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Plus } from "lucide-react";
-import { toast } from "sonner";
 import { useCalendarStore } from "@/store/useCalendarStore";
 import { useState, useEffect } from "react";
 import { UpcomingAppointmentsCard } from "@/components/calendar/UpcomingAppointmentsCard";

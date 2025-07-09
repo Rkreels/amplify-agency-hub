@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarEvent } from "@/lib/calendar-data";
+import { CalendarEvent } from "@/store/useCalendarStore";
 import { AppointmentItem } from "@/components/calendar/AppointmentItem";
 
 interface UpcomingAppointmentsCardProps {
@@ -15,6 +15,13 @@ export function UpcomingAppointmentsCard({ events, setSelectedDate }: UpcomingAp
   const handleViewAllAppointments = () => {
     toast.success("Loading all appointments");
   };
+
+  // Convert CalendarEvent to match AppointmentItem expected format
+  const convertToAppointmentFormat = (event: CalendarEvent) => ({
+    ...event,
+    date: new Date(event.startTime).toISOString().split('T')[0],
+    contactEmail: event.contactName ? `${event.contactName.toLowerCase().replace(' ', '.')}@example.com` : 'contact@example.com'
+  });
 
   return (
     <>
@@ -33,8 +40,11 @@ export function UpcomingAppointmentsCard({ events, setSelectedDate }: UpcomingAp
           <div className="space-y-3">
             {events
               .slice(0, 3)
-              .map((appointment) => (
-                <AppointmentItem key={appointment.id} appointment={appointment} />
+              .map((event) => (
+                <AppointmentItem 
+                  key={event.id} 
+                  appointment={convertToAppointmentFormat(event)} 
+                />
               ))}
           </div>
           

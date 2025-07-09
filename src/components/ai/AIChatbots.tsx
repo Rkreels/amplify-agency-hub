@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Bot, Settings, Plus } from 'lucide-react';
+import { MessageSquare, Bot, Settings, Globe, MessageCircle, Phone } from 'lucide-react';
 import { useAIStore } from '@/store/useAIStore';
 import { toast } from 'sonner';
+
+const platformIcons = {
+  website: Globe,
+  facebook: MessageCircle,
+  instagram: MessageCircle,
+  whatsapp: Phone
+};
 
 export function AIChatbots() {
   const { chatbots, createChatbot } = useAIStore();
@@ -17,8 +24,28 @@ export function AIChatbots() {
   const [newChatbot, setNewChatbot] = useState({
     name: '',
     type: 'website' as const,
-    personality: 'friendly'
+    personality: 'friendly',
+    knowledgeBase: [] as string[]
   });
+
+  const [knowledgeInput, setKnowledgeInput] = useState('');
+
+  const addKnowledge = () => {
+    if (knowledgeInput.trim()) {
+      setNewChatbot(prev => ({
+        ...prev,
+        knowledgeBase: [...prev.knowledgeBase, knowledgeInput.trim()]
+      }));
+      setKnowledgeInput('');
+    }
+  };
+
+  const removeKnowledge = (index: number) => {
+    setNewChatbot(prev => ({
+      ...prev,
+      knowledgeBase: prev.knowledgeBase.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleCreateChatbot = () => {
     if (!newChatbot.name.trim()) {
@@ -29,7 +56,6 @@ export function AIChatbots() {
     createChatbot({
       ...newChatbot,
       platform: newChatbot.type,
-      knowledgeBase: [],
       isActive: true,
       conversationsHandled: 0,
       averageResponseTime: 2.5,
@@ -46,7 +72,8 @@ export function AIChatbots() {
     setNewChatbot({
       name: '',
       type: 'website',
-      personality: 'friendly'
+      personality: 'friendly',
+      knowledgeBase: []
     });
 
     toast.success('Chatbot created successfully!');
@@ -129,8 +156,8 @@ export function AIChatbots() {
               <div className="flex gap-2">
                 <Input
                   placeholder="Add knowledge topic (e.g., pricing, support)"
-                  value={newChatbot.knowledgeBase}
-                  onChange={(e) => setNewChatbot({...newChatbot, knowledgeBase: e.target.value})}
+                  value={knowledgeInput}
+                  onChange={(e) => setKnowledgeInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addKnowledge()}
                 />
                 <Button onClick={addKnowledge} size="sm">Add</Button>
@@ -196,7 +223,7 @@ export function AIChatbots() {
         <CardContent>
           <div className="space-y-4">
             {chatbots.map((chatbot) => {
-              const PlatformIcon = platformIcons[chatbot.type];
+              const PlatformIcon = platformIcons[chatbot.platform as keyof typeof platformIcons];
               return (
                 <div key={chatbot.id} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -207,7 +234,7 @@ export function AIChatbots() {
                       <div>
                         <h3 className="font-medium">{chatbot.name}</h3>
                         <p className="text-sm text-muted-foreground capitalize">
-                          {chatbot.type} • {chatbot.personality.replace('_', ' ')}
+                          {chatbot.platform} • {chatbot.personality.replace('_', ' ')}
                         </p>
                       </div>
                     </div>
@@ -264,4 +291,3 @@ export function AIChatbots() {
     </div>
   );
 }
-

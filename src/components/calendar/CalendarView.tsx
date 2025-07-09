@@ -277,7 +277,7 @@ export function CalendarView() {
                           <h4 className="font-medium text-sm">{event.title}</h4>
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <Clock className="h-3 w-3 mr-1" />
-                            {new Date(event.start).toLocaleTimeString('en-US', {
+                            {new Date(event.startTime).toLocaleTimeString('en-US', {
                               hour: 'numeric',
                               minute: '2-digit',
                               hour12: true
@@ -336,13 +336,13 @@ export function CalendarView() {
                 <div>
                   <h4 className="font-medium mb-1">Start Time</h4>
                   <p className="text-gray-600">
-                    {new Date(selectedEvent.start).toLocaleString()}
+                    {new Date(selectedEvent.startTime).toLocaleString()}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-medium mb-1">End Time</h4>
                   <p className="text-gray-600">
-                    {new Date(selectedEvent.end).toLocaleString()}
+                    {new Date(selectedEvent.endTime).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -354,7 +354,7 @@ export function CalendarView() {
                 </div>
               )}
 
-              {selectedEvent.attendees.length > 0 && (
+              {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-1">Attendees</h4>
                   <div className="flex items-center space-x-1">

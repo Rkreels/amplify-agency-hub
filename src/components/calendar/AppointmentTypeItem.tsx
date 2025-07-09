@@ -1,85 +1,90 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { MoreHorizontal, Edit, Trash2, Clock, MapPin, DollarSign } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { AppointmentType, useCalendarStore } from '@/store/useCalendarStore';
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { MoreHorizontal, Edit, Trash2, Copy, ExternalLink } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useCalendarStore, AppointmentType } from "@/store/useCalendarStore";
+import { toast } from "sonner";
 
 interface AppointmentTypeItemProps {
   appointmentType: AppointmentType;
 }
 
-export const AppointmentTypeItem: React.FC<AppointmentTypeItemProps> = ({
-  appointmentType
-}) => {
+export function AppointmentTypeItem({ appointmentType }: AppointmentTypeItemProps) {
   const { updateAppointmentType, deleteAppointmentType } = useCalendarStore();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isActive, setIsActive] = useState(appointmentType.isActive);
 
-  const handleToggleActive = (isActive: boolean) => {
-    updateAppointmentType(appointmentType.id, { isActive });
+  const handleToggleActive = (checked: boolean) => {
+    setIsActive(checked);
+    updateAppointmentType(appointmentType.id, { isActive: checked });
+    toast.success(`${appointmentType.name} ${checked ? 'activated' : 'deactivated'}`);
+  };
+
+  const handleEdit = () => {
+    toast.info("Edit functionality coming soon");
   };
 
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this appointment type?')) {
+    if (window.confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
       deleteAppointmentType(appointmentType.id);
+      toast.success("Appointment type deleted");
     }
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/book/${appointmentType.id}`);
+    toast.success("Booking link copied to clipboard");
+  };
+
+  const handleViewBookingPage = () => {
+    window.open(`/book/${appointmentType.id}`, '_blank');
+  };
+
   return (
-    <Card className="mb-3">
+    <Card className={`transition-all ${!isActive ? 'opacity-60' : ''}`}>
       <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
             <div 
-              className="w-4 h-8 rounded"
-              style={{ backgroundColor: appointmentType.color }}
+              className={`w-4 h-4 rounded-full ${appointmentType.color || 'bg-blue-500'}`}
             />
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-medium text-gray-900">{appointmentType.name}</h3>
-                <Badge variant={appointmentType.isActive ? 'default' : 'secondary'}>
-                  {appointmentType.isActive ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-              
-              {appointmentType.description && (
-                <p className="text-sm text-gray-600 mt-1">{appointmentType.description}</p>
-              )}
-              
-              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                <div className="flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {appointmentType.duration} min
-                </div>
+            <div>
+              <h3 className="font-medium">{appointmentType.name}</h3>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <span>{appointmentType.duration} min</span>
                 {appointmentType.location && (
-                  <div className="flex items-center">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {appointmentType.location}
-                  </div>
+                  <>
+                    <span>•</span>
+                    <span>{appointmentType.location}</span>
+                  </>
                 )}
-                {appointmentType.price !== undefined && appointmentType.price > 0 && (
-                  <div className="flex items-center">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    ${appointmentType.price}
-                  </div>
+                {appointmentType.price && appointmentType.price > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>${appointmentType.price}</span>
+                  </>
                 )}
               </div>
+              {appointmentType.description && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {appointmentType.description}
+                </p>
+              )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Switch
-              checked={appointmentType.isActive}
+              checked={isActive}
               onCheckedChange={handleToggleActive}
             />
+            <Badge variant={isActive ? "default" : "secondary"}>
+              {isActive ? "Active" : "Inactive"}
+            </Badge>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">
@@ -87,11 +92,19 @@ export const AppointmentTypeItem: React.FC<AppointmentTypeItemProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                <DropdownMenuItem onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                <DropdownMenuItem onClick={handleCopy}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleViewBookingPage}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Booking Page
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -99,13 +112,7 @@ export const AppointmentTypeItem: React.FC<AppointmentTypeItemProps> = ({
             </DropdownMenu>
           </div>
         </div>
-        
-        {appointmentType.bufferTime && appointmentType.bufferTime > 0 && (
-          <div className="mt-2 text-xs text-gray-500">
-            Buffer time: {appointmentType.bufferTime} minutes
-          </div>
-        )}
       </CardContent>
     </Card>
   );
-};
+}
