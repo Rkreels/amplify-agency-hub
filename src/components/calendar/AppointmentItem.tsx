@@ -1,171 +1,129 @@
 
-import { useState } from "react";
-import { CalendarEvent } from "@/lib/calendar-data";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar as CalendarIcon, Clock, MapPin, Video } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useCalendarStore } from "@/store/useCalendarStore";
-import { toast } from "sonner";
-import { DatePicker } from "@/components/calendar/DatePicker";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { format } from "date-fns";
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Clock, Phone, User, MapPin, MoreHorizontal } from 'lucide-react';
+import { CalendarEvent, useCalendarStore } from '@/store/useCalendarStore';
 
 interface AppointmentItemProps {
   appointment: CalendarEvent;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export function AppointmentItem({ appointment }: AppointmentItemProps) {
-  const { deleteEvent, updateEvent } = useCalendarStore();
-  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState<Date>(
-    appointment.date instanceof Date ? appointment.date : new Date(appointment.date)
-  );
-  const [rescheduleTime, setRescheduleTime] = useState(appointment.time.split(' - ')[0]);
+export const AppointmentItem: React.FC<AppointmentItemProps> = ({
+  appointment,
+  onEdit,
+  onDelete
+}) => {
+  const { updateEvent } = useCalendarStore();
 
-  const handleCancel = () => {
-    updateEvent(appointment.id, { status: 'cancelled' });
-    toast.success("Appointment cancelled successfully");
-  };
-
-  const handleReschedule = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const [startTime] = appointment.time.split(' - ');
-    let newTime = appointment.time;
-    
-    if (startTime !== rescheduleTime) {
-      const endTimeStr = appointment.time.split(' - ')[1];
-      // Calculate the end time based on duration from startTime
-      const startHour = parseInt(startTime.split(':')[0]);
-      const endHour = parseInt(endTimeStr.split(':')[0]);
-      const duration = endHour - startHour;
-      
-      const newStartHour = parseInt(rescheduleTime.split(':')[0]);
-      const newEndHour = newStartHour + duration;
-      
-      const endTimePeriod = endTimeStr.split(' ')[1]; // AM/PM
-      const newEndTime = `${newEndHour}:${endTimeStr.split(':')[1]}`;
-      
-      newTime = `${rescheduleTime} - ${newEndTime}`;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-yellow-100 text-yellow-800';
     }
-    
-    updateEvent(appointment.id, { 
-      date: rescheduleDate,
-      time: newTime,
-      status: 'confirmed'
-    });
-    
-    toast.success("Appointment rescheduled successfully");
-    setShowRescheduleDialog(false);
   };
 
-  const timeSlots = [
-    "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", 
-    "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", 
-    "4:00 PM", "5:00 PM", "6:00 PM"
-  ];
-  
-  const formattedDate = appointment.date instanceof Date 
-    ? format(appointment.date, 'MMM d, yyyy')
-    : format(new Date(appointment.date), 'MMM d, yyyy');
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'call': return Phone;
+      case 'meeting': return User;
+      default: return Clock;
+    }
+  };
+
+  const handleStatusChange = (newStatus: CalendarEvent['status']) => {
+    updateEvent(appointment.id, { status: newStatus });
+  };
+
+  const TypeIcon = getTypeIcon(appointment.type);
 
   return (
-    <>
-      <div className="border rounded-md p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">{appointment.time}</span>
-          <Badge variant={appointment.status === 'confirmed' ? 'default' : 
-                appointment.status === 'cancelled' ? 'destructive' : 'outline'}>
-            {appointment.status === 'confirmed' ? 'Confirmed' : 
-            appointment.status === 'cancelled' ? 'Cancelled' : 'Pending'}
-          </Badge>
-        </div>
-        <div className="text-sm font-medium">{appointment.title}</div>
-        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-          <CalendarIcon className="h-3 w-3" />
-          <span>{formattedDate}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-          {appointment.type === 'Video Call' ? (
-            <Video className="h-3 w-3" />
-          ) : (
-            <MapPin className="h-3 w-3" />
-          )}
-          <span>{appointment.type}</span>
-        </div>
-        <Separator />
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={appointment.contact.avatar} alt={appointment.contact.name} />
-              <AvatarFallback>{appointment.contact.initials}</AvatarFallback>
-            </Avatar>
-            <div className="text-sm">{appointment.contact.name}</div>
+    <Card className="mb-3">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <TypeIcon className="h-4 w-4 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-medium text-gray-900">{appointment.title}</h3>
+              {appointment.description && (
+                <p className="text-sm text-gray-600 mt-1">{appointment.description}</p>
+              )}
+              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                <div className="flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {appointment.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {' - '}
+                  {appointment.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                {appointment.contactName && (
+                  <div className="flex items-center">
+                    <User className="h-3 w-3 mr-1" />
+                    {appointment.contactName}
+                  </div>
+                )}
+                {appointment.location && (
+                  <div className="flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {appointment.location}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          {appointment.status !== 'cancelled' && (
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowRescheduleDialog(true)}>
-                Reschedule
-              </Button>
-              <Button size="sm" variant="outline" className="text-destructive" onClick={handleCancel}>
-                Cancel
-              </Button>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Badge className={getStatusColor(appointment.status)}>
+              {appointment.status}
+            </Badge>
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {appointment.notes && (
+          <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
+            <strong>Notes:</strong> {appointment.notes}
+          </div>
+        )}
+
+        <div className="flex space-x-2 mt-3">
+          {appointment.status === 'scheduled' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleStatusChange('confirmed')}
+            >
+              Confirm
+            </Button>
+          )}
+          {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleStatusChange('completed')}
+            >
+              Mark Complete
+            </Button>
+          )}
+          {onEdit && (
+            <Button size="sm" variant="outline" onClick={onEdit}>
+              Edit
+            </Button>
+          )}
+          {onDelete && (
+            <Button size="sm" variant="outline" onClick={onDelete}>
+              Cancel
+            </Button>
           )}
         </div>
-      </div>
-
-      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reschedule Appointment</DialogTitle>
-            <DialogDescription>
-              Reschedule your appointment with {appointment.contact.name}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleReschedule} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Date</Label>
-              <DatePicker date={rescheduleDate} onDateChange={(date) => date && setRescheduleDate(date)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Select Time</Label>
-              <Select value={rescheduleTime} onValueChange={setRescheduleTime}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" className="w-full">
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              Confirm Reschedule
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+      </CardContent>
+    </Card>
   );
-}
+};

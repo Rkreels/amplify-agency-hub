@@ -1,140 +1,151 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Clock, Settings } from "lucide-react";
-import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { AppointmentTypeDialog } from "@/components/calendar/AppointmentTypeDialog";
-import { AppointmentTypeItem } from "@/components/calendar/AppointmentTypeItem";
-import { useCalendarStore } from "@/store/useCalendarStore";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCalendarStore } from '@/store/useCalendarStore';
+import { toast } from 'sonner';
 
-export function AvailabilityTabContent() {
-  const { 
-    appointmentTypes, 
-    bufferBefore, 
-    bufferAfter, 
-    setBufferBefore, 
-    setBufferAfter 
-  } = useCalendarStore();
+const DAYS_OF_WEEK = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+];
+
+export const AvailabilityTabContent: React.FC = () => {
+  const { availability, updateAvailability } = useCalendarStore();
+  const [localAvailability, setLocalAvailability] = useState(availability);
+
+  const handleTimeChange = (dayIndex: number, field: 'startTime' | 'endTime', value: string) => {
+    setLocalAvailability(prev => 
+      prev.map((slot, index) => 
+        slot.dayOfWeek === dayIndex 
+          ? { ...slot, [field]: value }
+          : slot
+      )
+    );
+  };
+
+  const handleActiveToggle = (dayIndex: number, isActive: boolean) => {
+    setLocalAvailability(prev => 
+      prev.map((slot, index) => 
+        slot.dayOfWeek === dayIndex 
+          ? { ...slot, isActive }
+          : slot
+      )
+    );
+  };
+
+  const handleSave = () => {
+    updateAvailability(localAvailability);
+    toast.success('Availability updated successfully!');
+  };
+
+  const getSlotForDay = (dayIndex: number) => {
+    return localAvailability.find(slot => slot.dayOfWeek === dayIndex) || {
+      id: `temp-${dayIndex}`,
+      dayOfWeek: dayIndex,
+      startTime: '09:00',
+      endTime: '17:00',
+      isActive: false
+    };
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Availability</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="font-medium">Default Hours</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
-                <div key={day} className="flex items-center justify-between border rounded-md p-3">
-                  <span>{day}</span>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">9:00 AM - 5:00 PM</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7"
-                      onClick={() => toast.success(`Edit ${day} hours`)}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {['Saturday', 'Sunday'].map((day) => (
-                <div key={day} className="flex items-center justify-between border rounded-md p-3 bg-muted/50">
-                  <span>{day}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Unavailable</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7"
-                      onClick={() => toast.success(`Edit ${day} hours`)}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Appointment Types</h3>
-              <AppointmentTypeDialog />
-            </div>
-            
-            <div className="space-y-3">
-              {appointmentTypes.map((type) => (
-                <AppointmentTypeItem key={type.id} type={type} />
-              ))}
-            </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-2">
-            <h3 className="font-medium">Buffer Times</h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              Add time before or after appointments to prepare or wrap up
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border rounded-md p-3 space-y-2">
-                <div className="text-sm font-medium">Before appointments</div>
-                <Select 
-                  value={bufferBefore}
-                  onValueChange={(value) => {
-                    setBufferBefore(value);
-                    toast.success(`Buffer time before appointments set to ${value} minutes`);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No buffer</SelectItem>
-                    <SelectItem value="5">5 minutes</SelectItem>
-                    <SelectItem value="10">10 minutes</SelectItem>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="border rounded-md p-3 space-y-2">
-                <div className="text-sm font-medium">After appointments</div>
-                <Select 
-                  value={bufferAfter}
-                  onValueChange={(value) => {
-                    setBufferAfter(value);
-                    toast.success(`Buffer time after appointments set to ${value} minutes`);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No buffer</SelectItem>
-                    <SelectItem value="5">5 minutes</SelectItem>
-                    <SelectItem value="10">10 minutes</SelectItem>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium">Set Your Availability</h3>
+          <p className="text-sm text-gray-500">
+            Configure when you're available for appointments
+          </p>
         </div>
-      </CardContent>
-    </Card>
+        <Button onClick={handleSave}>
+          Save Changes
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        {DAYS_OF_WEEK.map((day, index) => {
+          const slot = getSlotForDay(index);
+          return (
+            <Card key={index}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-20">
+                      <Label className="font-medium">{day}</Label>
+                    </div>
+                    <Switch
+                      checked={slot.isActive}
+                      onCheckedChange={(checked) => handleActiveToggle(index, checked)}
+                    />
+                  </div>
+                  
+                  {slot.isActive && (
+                    <div className="flex items-center space-x-2">
+                      <Label className="text-sm">From:</Label>
+                      <Input
+                        type="time"
+                        value={slot.startTime}
+                        onChange={(e) => handleTimeChange(index, 'startTime', e.target.value)}
+                        className="w-32"
+                      />
+                      <Label className="text-sm">To:</Label>
+                      <Input
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => handleTimeChange(index, 'endTime', e.target.value)}
+                        className="w-32"
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const updatedSlots = DAYS_OF_WEEK.map((_, index) => ({
+                id: `temp-${index}`,
+                dayOfWeek: index,
+                startTime: '09:00',
+                endTime: '17:00',
+                isActive: index >= 1 && index <= 5 // Monday to Friday
+              }));
+              setLocalAvailability(updatedSlots);
+            }}
+            className="w-full"
+          >
+            Set Standard Business Hours (9 AM - 5 PM, Mon-Fri)
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const updatedSlots = DAYS_OF_WEEK.map((_, index) => ({
+                id: `temp-${index}`,
+                dayOfWeek: index,
+                startTime: '09:00',
+                endTime: '17:00',
+                isActive: false
+              }));
+              setLocalAvailability(updatedSlots);
+            }}
+            className="w-full"
+          >
+            Clear All Availability
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
-}
+};

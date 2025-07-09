@@ -1,140 +1,161 @@
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useCalendarStore } from "@/store/useCalendarStore";
-import { Plus } from "lucide-react";
-import { toast } from "sonner";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { v4 as uuidv4 } from "uuid";
+import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Plus } from 'lucide-react';
+import { useCalendarStore } from '@/store/useCalendarStore';
 
-export function AppointmentTypeDialog() {
+export const AppointmentTypeDialog: React.FC = () => {
+  const { addAppointmentType } = useCalendarStore();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [duration, setDuration] = useState("30");
-  const [color, setColor] = useState("blue");
-  const addAppointmentType = useCalendarStore((state) => state.addAppointmentType);
+  const [formData, setFormData] = useState({
+    name: '',
+    duration: 30,
+    description: '',
+    color: '#3B82F6',
+    isActive: true,
+    bufferTime: 15,
+    location: '',
+    price: 0
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!name || !duration) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    const durationNum = parseInt(duration);
-    if (isNaN(durationNum) || durationNum < 15) {
-      toast.error("Duration must be at least 15 minutes");
-      return;
-    }
-
-    const newType = {
-      id: uuidv4(),
-      name,
-      description: description || `${name} appointment type`,
-      duration: durationNum,
-      color: `bg-${color}-500`,
+    addAppointmentType(formData);
+    setFormData({
+      name: '',
+      duration: 30,
+      description: '',
+      color: '#3B82F6',
       isActive: true,
-      locations: ["In-person", "Video call"],
-      bufferTimeBefore: 5,
-      bufferTimeAfter: 5,
-      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
-      isDefault: false
-    };
-
-    addAppointmentType(newType);
-    toast.success("Appointment type created successfully");
-
+      bufferTime: 15,
+      location: '',
+      price: 0
+    });
     setOpen(false);
-    setName("");
-    setDescription("");
-    setDuration("30");
-    setColor("blue");
   };
-
-  const colorOptions = [
-    { value: "blue", label: "Blue" },
-    { value: "green", label: "Green" },
-    { value: "purple", label: "Purple" },
-    { value: "pink", label: "Pink" },
-    { value: "yellow", label: "Yellow" },
-    { value: "red", label: "Red" }
-  ];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Type
+          Add Appointment Type
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Appointment Type</DialogTitle>
-          <DialogDescription>
-            Define a new type of appointment with specific duration and color coding.
-          </DialogDescription>
+          <DialogTitle>Create Appointment Type</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name*</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Discovery Call"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Consultation Call"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Input
+                id="duration"
+                type="number"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                min="5"
+                max="480"
+              />
+            </div>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Input
+            <Textarea
               id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Brief description of this appointment type"
+              rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes)*</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              min="15"
-              step="15"
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="color">Color</Label>
+              <Input
+                id="color"
+                type="color"
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bufferTime">Buffer Time (minutes)</Label>
+              <Input
+                id="bufferTime"
+                type="number"
+                value={formData.bufferTime}
+                onChange={(e) => setFormData({ ...formData, bufferTime: parseInt(e.target.value) })}
+                min="0"
+                max="60"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g., Office, Phone, Zoom"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price">Price ($)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                min="0"
+                step="0.01"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isActive"
+              checked={formData.isActive}
+              onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
             />
+            <Label htmlFor="isActive">Active</Label>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="color">Color</Label>
-            <Select value={color} onValueChange={setColor}>
-              <SelectTrigger id="color">
-                <SelectValue placeholder="Select a color" />
-              </SelectTrigger>
-              <SelectContent>
-                {colorOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className={`mt-2 h-4 w-full rounded bg-${color}-500`} />
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Create Appointment Type</Button>
           </div>
-          <Button type="submit" className="w-full">Create Appointment Type</Button>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
+};

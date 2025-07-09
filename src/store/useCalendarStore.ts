@@ -4,152 +4,215 @@ import { create } from 'zustand';
 export interface CalendarEvent {
   id: string;
   title: string;
-  description: string;
-  start: Date;
-  end: Date;
-  type: 'appointment' | 'meeting' | 'call' | 'task' | 'reminder';
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
-  attendees: string[];
-  location?: string;
-  isRecurring: boolean;
-  recurringRule?: string;
+  description?: string;
+  startTime: Date;
+  endTime: Date;
+  type: 'appointment' | 'task' | 'meeting' | 'call';
   contactId?: string;
-  createdBy: string;
-  color: string;
-  reminders: number[]; // minutes before event
+  contactName?: string;
+  status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  location?: string;
+  notes?: string;
+  reminders?: number[];
+  attendees?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface Calendar {
+export interface AppointmentType {
   id: string;
   name: string;
-  description: string;
+  duration: number;
+  description?: string;
   color: string;
   isActive: boolean;
-  isDefault: boolean;
-  timezone: string;
-  workingHours: {
-    start: string;
-    end: string;
-    days: number[];
-  };
-  bufferTime: number;
-  maxBookingsPerDay: number;
+  bufferTime?: number;
+  location?: string;
+  price?: number;
+  createdAt: Date;
+}
+
+export interface AvailabilitySlot {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
 }
 
 interface CalendarStore {
   events: CalendarEvent[];
-  calendars: Calendar[];
-  selectedCalendar: string;
-  viewMode: 'month' | 'week' | 'day' | 'agenda';
+  appointmentTypes: AppointmentType[];
+  availability: AvailabilitySlot[];
   selectedDate: Date;
-  selectedEvent: CalendarEvent | null;
-  addEvent: (event: Omit<CalendarEvent, 'id'>) => void;
+  viewMode: 'month' | 'week' | 'day';
+  
+  // Actions
+  addEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   deleteEvent: (id: string) => void;
-  addCalendar: (calendar: Omit<Calendar, 'id'>) => void;
-  updateCalendar: (id: string, updates: Partial<Calendar>) => void;
-  deleteCalendar: (id: string) => void;
-  setSelectedCalendar: (id: string) => void;
-  setViewMode: (mode: 'month' | 'week' | 'day' | 'agenda') => void;
   setSelectedDate: (date: Date) => void;
-  setSelectedEvent: (event: CalendarEvent | null) => void;
+  setViewMode: (mode: 'month' | 'week' | 'day') => void;
+  addAppointmentType: (type: Omit<AppointmentType, 'id' | 'createdAt'>) => void;
+  updateAppointmentType: (id: string, updates: Partial<AppointmentType>) => void;
+  deleteAppointmentType: (id: string) => void;
+  updateAvailability: (slots: AvailabilitySlot[]) => void;
   getEventsForDate: (date: Date) => CalendarEvent[];
-  getEventsForDateRange: (start: Date, end: Date) => CalendarEvent[];
+  getEventsForWeek: (startDate: Date) => CalendarEvent[];
+  getEventsForMonth: (year: number, month: number) => CalendarEvent[];
 }
 
 export const useCalendarStore = create<CalendarStore>((set, get) => ({
   events: [
     {
       id: '1',
-      title: 'Sales Call with John Smith',
-      description: 'Discuss premium package requirements',
-      start: new Date(2024, 11, 20, 14, 0),
-      end: new Date(2024, 11, 20, 15, 0),
+      title: 'Sales Call with John Doe',
+      description: 'Initial consultation call',
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 3600000),
       type: 'call',
-      status: 'confirmed',
-      attendees: ['john@example.com'],
       contactId: '1',
-      isRecurring: false,
-      createdBy: 'current-user',
-      color: '#3b82f6',
-      reminders: [15, 60]
+      contactName: 'John Doe',
+      status: 'scheduled',
+      location: 'Phone',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  ],
+  appointmentTypes: [
+    {
+      id: '1',
+      name: 'Consultation Call',
+      duration: 30,
+      description: 'Initial consultation with potential clients',
+      color: '#3B82F6',
+      isActive: true,
+      bufferTime: 15,
+      location: 'Phone/Video',
+      price: 0,
+      createdAt: new Date()
+    }
+  ],
+  availability: [
+    {
+      id: '1',
+      dayOfWeek: 1,
+      startTime: '09:00',
+      endTime: '17:00',
+      isActive: true
     },
     {
       id: '2',
-      title: 'Product Demo',
-      description: 'Demo for XYZ Inc team',
-      start: new Date(2024, 11, 21, 10, 0),
-      end: new Date(2024, 11, 21, 11, 30),
-      type: 'meeting',
-      status: 'scheduled',
-      attendees: ['jane@company.com', 'team@company.com'],
-      location: 'Zoom Meeting',
-      isRecurring: false,
-      createdBy: 'current-user',
-      color: '#10b981',
-      reminders: [30]
+      dayOfWeek: 2,
+      startTime: '09:00',
+      endTime: '17:00',
+      isActive: true
     }
   ],
-  calendars: [
-    {
-      id: 'main',
-      name: 'Main Calendar',
-      description: 'Primary business calendar',
-      color: '#3b82f6',
-      isActive: true,
-      isDefault: true,
-      timezone: 'America/New_York',
-      workingHours: {
-        start: '09:00',
-        end: '17:00',
-        days: [1, 2, 3, 4, 5]
-      },
-      bufferTime: 15,
-      maxBookingsPerDay: 8
-    }
-  ],
-  selectedCalendar: 'main',
-  viewMode: 'month',
   selectedDate: new Date(),
-  selectedEvent: null,
-  addEvent: (event) => set((state) => ({
-    events: [...state.events, { ...event, id: Date.now().toString() }]
-  })),
-  updateEvent: (id, updates) => set((state) => ({
-    events: state.events.map(event =>
-      event.id === id ? { ...event, ...updates } : event
-    )
-  })),
-  deleteEvent: (id) => set((state) => ({
-    events: state.events.filter(event => event.id !== id)
-  })),
-  addCalendar: (calendar) => set((state) => ({
-    calendars: [...state.calendars, { ...calendar, id: Date.now().toString() }]
-  })),
-  updateCalendar: (id, updates) => set((state) => ({
-    calendars: state.calendars.map(calendar =>
-      calendar.id === id ? { ...calendar, ...updates } : calendar
-    )
-  })),
-  deleteCalendar: (id) => set((state) => ({
-    calendars: state.calendars.filter(calendar => calendar.id !== id)
-  })),
-  setSelectedCalendar: (id) => set({ selectedCalendar: id }),
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  setSelectedEvent: (event) => set({ selectedEvent: event }),
+  viewMode: 'month',
+
+  addEvent: (event) => {
+    const newEvent: CalendarEvent = {
+      ...event,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    set(state => ({
+      events: [...state.events, newEvent]
+    }));
+  },
+
+  updateEvent: (id, updates) => {
+    set(state => ({
+      events: state.events.map(event =>
+        event.id === id
+          ? { ...event, ...updates, updatedAt: new Date() }
+          : event
+      )
+    }));
+  },
+
+  deleteEvent: (id) => {
+    set(state => ({
+      events: state.events.filter(event => event.id !== id)
+    }));
+  },
+
+  setSelectedDate: (date) => {
+    set({ selectedDate: date });
+  },
+
+  setViewMode: (mode) => {
+    set({ viewMode: mode });
+  },
+
+  addAppointmentType: (type) => {
+    const newType: AppointmentType = {
+      ...type,
+      id: Date.now().toString(),
+      createdAt: new Date()
+    };
+
+    set(state => ({
+      appointmentTypes: [...state.appointmentTypes, newType]
+    }));
+  },
+
+  updateAppointmentType: (id, updates) => {
+    set(state => ({
+      appointmentTypes: state.appointmentTypes.map(type =>
+        type.id === id ? { ...type, ...updates } : type
+      )
+    }));
+  },
+
+  deleteAppointmentType: (id) => {
+    set(state => ({
+      appointmentTypes: state.appointmentTypes.filter(type => type.id !== id)
+    }));
+  },
+
+  updateAvailability: (slots) => {
+    set({ availability: slots });
+  },
+
   getEventsForDate: (date) => {
     const { events } = get();
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    const nextDate = new Date(targetDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
     return events.filter(event => {
-      const eventDate = new Date(event.start);
-      return eventDate.toDateString() === date.toDateString();
+      const eventStart = new Date(event.startTime);
+      return eventStart >= targetDate && eventStart < nextDate;
     });
   },
-  getEventsForDateRange: (start, end) => {
+
+  getEventsForWeek: (startDate) => {
     const { events } = get();
+    const weekStart = new Date(startDate);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
     return events.filter(event => {
-      const eventStart = new Date(event.start);
-      return eventStart >= start && eventStart <= end;
+      const eventStart = new Date(event.startTime);
+      return eventStart >= weekStart && eventStart < weekEnd;
+    });
+  },
+
+  getEventsForMonth: (year, month) => {
+    const { events } = get();
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    return events.filter(event => {
+      const eventStart = new Date(event.startTime);
+      return eventStart >= monthStart && eventStart <= monthEnd;
     });
   }
 }));
