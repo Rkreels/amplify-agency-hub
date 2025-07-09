@@ -110,7 +110,7 @@ export default function AppointmentTypes() {
               </div>
             ) : (
               filteredTypes.map((type) => (
-                <AppointmentTypeItem key={type.id} type={type} />
+                <AppointmentTypeItem key={type.id} appointmentType={type} />
               ))
             )}
           </div>
