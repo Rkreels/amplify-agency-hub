@@ -1,133 +1,158 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Headphones, X } from 'lucide-react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 interface VoiceTrainingContextType {
   isTrainingMode: boolean;
-  startContextualTraining: (context: string, element?: string) => void;
-  endTraining: () => void;
-  announceFeature: (feature: string, description: string) => void;
-  currentTrainingContext: string;
+  currentFeature: string | null;
+  voiceEnabled: boolean;
+  speechRate: number;
+  speechVolume: number;
+  isCurrentlySpeaking: boolean;
+  startTraining: () => void;
+  stopTraining: () => void;
+  announceFeature: (featureName: string, description: string) => void;
+  startContextualTraining: (context: string) => void;
+  setVoiceEnabled: (enabled: boolean) => void;
+  setSpeechRate: (rate: number) => void;
+  setSpeechVolume: (volume: number) => void;
+  speak: (text: string) => void;
+  stopSpeaking: () => void;
 }
 
-const VoiceTrainingContext = createContext<VoiceTrainingContextType | null>(null);
-
-export function useVoiceTraining() {
-  const context = useContext(VoiceTrainingContext);
-  if (!context) {
-    throw new Error('useVoiceTraining must be used within VoiceTrainingProvider');
-  }
-  return context;
-}
+const VoiceTrainingContext = createContext<VoiceTrainingContextType | undefined>(undefined);
 
 export function VoiceTrainingProvider({ children }: { children: React.ReactNode }) {
   const [isTrainingMode, setIsTrainingMode] = useState(false);
-  const [currentTrainingContext, setCurrentTrainingContext] = useState<string>('');
-  const synthRef = React.useRef<SpeechSynthesis | null>(null);
+  const [currentFeature, setCurrentFeature] = useState<string | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [speechRate, setSpeechRate] = useState(1);
+  const [speechVolume, setSpeechVolume] = useState(0.8);
+  const [isCurrentlySpeaking, setIsCurrentlySpeaking] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    synthRef.current = window.speechSynthesis;
+    const loadVoices = () => {
+      const availableVoices = speechSynthesis.getVoices();
+      setVoices(availableVoices);
+    };
+
+    loadVoices();
+    speechSynthesis.addEventListener('voiceschanged', loadVoices);
+
+    return () => {
+      speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
   }, []);
 
-  const speak = (text: string) => {
-    if (!synthRef.current) return;
-    
-    synthRef.current.cancel();
+  const speak = useCallback((text: string) => {
+    if (!voiceEnabled || !text.trim()) return;
+
+    // Stop any ongoing speech
+    speechSynthesis.cancel();
+
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Use female voice if available
-    const voices = synthRef.current.getVoices();
+    // Try to find a female voice or use the first available voice
     const femaleVoice = voices.find(voice => 
       voice.name.toLowerCase().includes('female') || 
       voice.name.toLowerCase().includes('samantha') ||
-      voice.name.toLowerCase().includes('karen') ||
-      voice.name.toLowerCase().includes('zira')
-    ) || voices[0];
+      voice.name.toLowerCase().includes('zira') ||
+      voice.name.toLowerCase().includes('susan')
+    );
     
     if (femaleVoice) {
       utterance.voice = femaleVoice;
+    } else if (voices.length > 0) {
+      utterance.voice = voices[0];
     }
     
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-    synthRef.current.speak(utterance);
-  };
+    utterance.rate = speechRate;
+    utterance.volume = speechVolume;
+    utterance.pitch = 1.1; // Slightly higher pitch for female voice
+    utterance.lang = 'en-US';
 
-  const startContextualTraining = (context: string, element?: string) => {
-    setIsTrainingMode(true);
-    setCurrentTrainingContext(context);
-    
-    const contextMessages: Record<string, string> = {
-      'contacts': 'Welcome to the Contacts section. This is your customer database where you can manage all your leads, prospects, and customers. You can create new contacts by clicking the "Add Contact" button, edit existing ones by clicking on their name, and organize them using tags and custom fields. Use the search and filter options to find specific contacts quickly.',
-      
-      'dashboard': 'This is your Dashboard overview, your command center for monitoring business performance. Here you can see key metrics like total leads, conversion rates, and revenue. The widgets show recent activities, sales pipeline progress, and upcoming tasks. You can customize this dashboard by adding or removing widgets to focus on the metrics that matter most to your business.',
-      
-      'automation': 'Welcome to Automation, the most powerful feature in GoHighLevel. Here you can create workflows that automatically handle lead nurturing, follow-ups, and customer communications. Start by choosing a trigger like form submission or tag addition, then add actions like sending emails or SMS. Connect them to create sophisticated automation sequences.',
-      
-      'marketing': 'This is the Marketing section where you create and manage all your marketing campaigns. You can build email campaigns using our drag-and-drop editor, send SMS campaigns to your contact lists, and track the performance of all your marketing efforts. Use segments to target specific groups of contacts with personalized messages.',
-      
-      'calendars': 'Welcome to Calendar management. Here you can set up appointment types for different services, configure your availability for each day of the week, and manage booking integrations. Clients can book appointments through your booking page, and you\'ll receive automatic notifications and reminders.',
-      
-      'messaging': 'This is the Messaging hub where you manage all customer communications. The unified inbox shows emails, SMS messages, and social media messages in one place. You can set up automated responses, assign conversations to team members, and track the complete communication history with each contact.',
-      
-      'sites': 'Welcome to Sites and Funnels, your website building toolkit. Here you can create landing pages, sales funnels, and complete websites using our drag-and-drop editor. Choose from professional templates or build from scratch. Add forms to capture leads and integrate them with your automation workflows.',
-      
-      'crm': 'This is your CRM pipeline where you track opportunities and manage your sales process. Create opportunities for qualified leads, set deal values and expected close dates, and move them through pipeline stages as they progress. Use the visual pipeline view to see your sales progress at a glance.',
-      
-      'conversations': 'Welcome to Conversations, your unified communication center. This inbox handles all customer communications across different channels - email, SMS, Facebook Messenger, and more. Each conversation shows the complete history with a contact, and you can respond directly from here.',
-      
-      'phone-system': 'Welcome to the Phone System. Here you can manage call tracking numbers, set up call forwarding, and monitor call analytics. You can record calls for training purposes and integrate phone interactions with your CRM data to get a complete view of customer communications.',
-      
-      'reputation': 'This is Reputation Management where you monitor and improve your online reputation. Track reviews from Google, Facebook, and other platforms automatically. Set up review request campaigns to generate more positive reviews and respond quickly to feedback.',
-      
-      'reporting': 'Welcome to Reporting and Analytics. Here you can track the performance of all your marketing campaigns, sales activities, and business metrics. Create custom reports to analyze what\'s working best and make data-driven decisions to grow your business.',
-      
-      'settings': 'This is the Settings area where you configure your GoHighLevel account. You can manage team members, set up integrations, configure notification preferences, and customize the platform to match your business needs.'
+    utterance.onstart = () => setIsCurrentlySpeaking(true);
+    utterance.onend = () => setIsCurrentlySpeaking(false);
+    utterance.onerror = () => {
+      setIsCurrentlySpeaking(false);
+      console.error('Speech synthesis error');
     };
 
-    const message = contextMessages[context] || `Welcome to the ${context} section. Let me guide you through this feature and explain how to use it effectively for your business.`;
-    speak(message);
-  };
+    speechSynthesis.speak(utterance);
+  }, [voiceEnabled, speechRate, speechVolume, voices]);
 
-  const announceFeature = (feature: string, description: string) => {
-    if (isTrainingMode) {
-      speak(`${feature}. ${description}`);
-    }
-  };
+  const stopSpeaking = useCallback(() => {
+    speechSynthesis.cancel();
+    setIsCurrentlySpeaking(false);
+  }, []);
 
-  const endTraining = () => {
+  const startTraining = useCallback(() => {
+    setIsTrainingMode(true);
+    speak('Voice training mode activated. I will guide you through using this application.');
+  }, [speak]);
+
+  const stopTraining = useCallback(() => {
     setIsTrainingMode(false);
-    setCurrentTrainingContext('');
-    if (synthRef.current) {
-      synthRef.current.cancel();
-    }
+    stopSpeaking();
+    setCurrentFeature(null);
+  }, [stopSpeaking]);
+
+  const announceFeature = useCallback((featureName: string, description: string) => {
+    if (!isTrainingMode && !voiceEnabled) return;
+    
+    setCurrentFeature(featureName);
+    speak(description);
+  }, [isTrainingMode, voiceEnabled, speak]);
+
+  const startContextualTraining = useCallback((context: string) => {
+    const contextualGuidance = {
+      dashboard: 'Welcome to your dashboard. Here you can view key metrics, recent activities, and quick actions. The revenue card shows your total earnings, contacts card displays your customer base, campaigns card tracks active marketing efforts, and appointments card shows upcoming meetings.',
+      contacts: 'This is the contacts page where you manage all your customer relationships. You can add new contacts using the Add Contact button, search existing contacts, filter by status or source, and view detailed contact information including lead scores and interaction history.',
+      conversations: 'The conversations center allows you to manage all your communications in one place. You can view messages from SMS, email, and social media channels, respond to customer inquiries, and track conversation history.',
+      calendar: 'The calendar helps you schedule and manage appointments. You can create new events, set reminders, invite attendees, and view your schedule in different formats including month, week, and day views.',
+      opportunities: 'The opportunities page shows your sales pipeline. You can track deals through different stages, update opportunity values, add notes, and move prospects through your sales process using drag and drop.',
+      marketing: 'Marketing tools allow you to create and manage campaigns. You can build email campaigns, schedule social media posts, track campaign performance, and segment your audience for targeted messaging.',
+      automation: 'Automation workflows help you save time by automating repetitive tasks. You can create triggers, set conditions, and define actions to automatically nurture leads and follow up with prospects.',
+      payments: 'The payments section helps you create invoices, track transactions, and manage your financial operations. You can generate professional invoices, send them to clients, and monitor payment status.',
+      phone: 'The phone system allows you to make and receive calls directly from the platform. Call history is automatically logged, and you can add notes and schedule follow-ups after each call.',
+      'ai-features': 'AI features help enhance your productivity with intelligent automation. You can generate content, get smart recommendations, and use AI-powered chatbots to handle customer inquiries.'
+    };
+
+    const guidance = contextualGuidance[context as keyof typeof contextualGuidance] || 
+      'This section contains various tools and features to help you manage your business effectively.';
+    
+    speak(guidance);
+  }, [speak]);
+
+  const contextValue: VoiceTrainingContextType = {
+    isTrainingMode,
+    currentFeature,
+    voiceEnabled,
+    speechRate,
+    speechVolume,
+    isCurrentlySpeaking,
+    startTraining,
+    stopTraining,
+    announceFeature,
+    startContextualTraining,
+    setVoiceEnabled,
+    setSpeechRate,
+    setSpeechVolume,
+    speak,
+    stopSpeaking
   };
 
   return (
-    <VoiceTrainingContext.Provider 
-      value={{ 
-        isTrainingMode, 
-        startContextualTraining, 
-        endTraining, 
-        announceFeature,
-        currentTrainingContext
-      }}
-    >
+    <VoiceTrainingContext.Provider value={contextValue}>
       {children}
-      
-      {/* Voice Training Overlay */}
-      {isTrainingMode && (
-        <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white p-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
-          <Headphones className="h-4 w-4" />
-          <span className="text-sm font-medium">
-            Voice Training Active - {currentTrainingContext}
-          </span>
-          <Button size="sm" variant="ghost" onClick={endTraining} className="text-white hover:bg-blue-700">
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
     </VoiceTrainingContext.Provider>
   );
+}
+
+export function useVoiceTraining() {
+  const context = useContext(VoiceTrainingContext);
+  if (context === undefined) {
+    throw new Error('useVoiceTraining must be used within a VoiceTrainingProvider');
+  }
+  return context;
 }

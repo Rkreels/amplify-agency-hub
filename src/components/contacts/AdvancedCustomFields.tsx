@@ -1,423 +1,299 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
+import { useContactsStore, type CustomField } from '@/store/useContactsStore';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Save, 
-  Type, 
-  Hash, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  List, 
-  CheckSquare,
-  Link,
-  FileText,
-  Star,
-  Settings,
-  Eye,
-  EyeOff
-} from 'lucide-react';
-import { useContactsStore } from '@/store/useContactsStore';
-
-interface CustomFieldTemplate {
-  id: string;
-  name: string;
-  label: string;
-  type: 'text' | 'number' | 'email' | 'phone' | 'url' | 'date' | 'datetime' | 'textarea' | 'dropdown' | 'checkbox' | 'radio' | 'file' | 'rating';
-  options?: string[];
-  defaultValue?: any;
-  isRequired: boolean;
-  isVisible: boolean;
-  description?: string;
-  validation?: {
-    minLength?: number;
-    maxLength?: number;
-    pattern?: string;
-    min?: number;
-    max?: number;
-  };
-  group?: string;
-  order: number;
-}
 
 export function AdvancedCustomFields() {
-  const { customFieldTemplates, addCustomFieldTemplate } = useContactsStore();
+  const { customFields, addCustomField, updateCustomField, deleteCustomField } = useContactsStore();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingField, setEditingField] = useState<CustomField | null>(null);
   
-  const [fieldTemplates, setFieldTemplates] = useState<CustomFieldTemplate[]>([
-    {
-      id: '1',
-      name: 'industry',
-      label: 'Industry',
-      type: 'dropdown',
-      options: ['Technology', 'Healthcare', 'Finance', 'Education', 'Retail', 'Manufacturing'],
-      isRequired: false,
-      isVisible: true,
-      description: 'Primary industry the contact works in',
-      group: 'Business Information',
-      order: 1
-    },
-    {
-      id: '2',
-      name: 'annual_revenue',
-      label: 'Annual Revenue',
-      type: 'number',
-      validation: { min: 0, max: 10000000000 },
-      isRequired: false,
-      isVisible: true,
-      description: 'Company annual revenue in USD',
-      group: 'Business Information',
-      order: 2
-    },
-    {
-      id: '3',
-      name: 'satisfaction_rating',
-      label: 'Satisfaction Rating',
-      type: 'rating',
-      validation: { min: 1, max: 5 },
-      isRequired: false,
-      isVisible: true,
-      description: 'Customer satisfaction rating',
-      group: 'Feedback',
-      order: 3
-    }
-  ]);
-
-  const [newField, setNewField] = useState<Partial<CustomFieldTemplate>>({
-    type: 'text',
-    isRequired: false,
-    isVisible: true,
-    order: fieldTemplates.length + 1
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'text' as CustomField['type'],
+    options: [] as string[],
+    required: false,
+    order: 0
   });
+  
+  const [newOption, setNewOption] = useState('');
 
-  const [editingField, setEditingField] = useState<string | null>(null);
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: 'text',
+      options: [],
+      required: false,
+      order: 0
+    });
+    setNewOption('');
+    setEditingField(null);
+  };
 
-  const fieldTypes = [
-    { value: 'text', label: 'Single Line Text', icon: Type },
-    { value: 'textarea', label: 'Multi-line Text', icon: FileText },
-    { value: 'number', label: 'Number', icon: Hash },
-    { value: 'email', label: 'Email', icon: Mail },
-    { value: 'phone', label: 'Phone', icon: Phone },
-    { value: 'url', label: 'URL', icon: Link },
-    { value: 'date', label: 'Date', icon: Calendar },
-    { value: 'datetime', label: 'Date & Time', icon: Calendar },
-    { value: 'dropdown', label: 'Dropdown', icon: List },
-    { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
-    { value: 'radio', label: 'Radio Buttons', icon: CheckSquare },
-    { value: 'rating', label: 'Star Rating', icon: Star },
-    { value: 'file', label: 'File Upload', icon: FileText }
-  ];
-
-  const fieldGroups = [
-    'Contact Information',
-    'Business Information',
-    'Personal Details',
-    'Preferences',
-    'Feedback',
-    'Custom'
-  ];
-
-  const handleCreateField = () => {
-    if (!newField.name || !newField.label) {
-      toast.error('Please fill in field name and label');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast.error('Field name is required');
       return;
     }
 
-    if (fieldTemplates.some(f => f.name === newField.name)) {
-      toast.error('Field name already exists');
-      return;
-    }
-
-    const field: CustomFieldTemplate = {
-      id: Date.now().toString(),
-      name: newField.name!,
-      label: newField.label!,
-      type: newField.type!,
-      options: newField.options,
-      defaultValue: newField.defaultValue,
-      isRequired: newField.isRequired!,
-      isVisible: newField.isVisible!,
-      description: newField.description,
-      validation: newField.validation,
-      group: newField.group || 'Custom',
-      order: newField.order!
+    const fieldData = {
+      ...formData,
+      order: editingField?.order || customFields.length
     };
 
-    setFieldTemplates([...fieldTemplates, field]);
-    setNewField({
-      type: 'text',
-      isRequired: false,
-      isVisible: true,
-      order: fieldTemplates.length + 2
+    if (editingField) {
+      updateCustomField(editingField.id, fieldData);
+      toast.success('Custom field updated');
+    } else {
+      addCustomField(fieldData);
+      toast.success('Custom field created');
+    }
+
+    resetForm();
+    setShowCreateDialog(false);
+  };
+
+  const handleEdit = (field: CustomField) => {
+    setEditingField(field);
+    setFormData({
+      name: field.name,
+      type: field.type,
+      options: field.options || [],
+      required: field.required,
+      order: field.order
     });
-    toast.success('Custom field created successfully');
+    setShowCreateDialog(true);
   };
 
-  const handleUpdateField = (fieldId: string, updates: Partial<CustomFieldTemplate>) => {
-    setFieldTemplates(fieldTemplates.map(field =>
-      field.id === fieldId ? { ...field, ...updates } : field
-    ));
-  };
-
-  const handleDeleteField = (fieldId: string) => {
-    setFieldTemplates(fieldTemplates.filter(field => field.id !== fieldId));
-    toast.success('Field deleted successfully');
-  };
-
-  const renderFieldPreview = (field: CustomFieldTemplate) => {
-    const fieldIcon = fieldTypes.find(t => t.value === field.type)?.icon || Type;
-    const IconComponent = fieldIcon;
-
-    switch (field.type) {
-      case 'dropdown':
-        return (
-          <Select disabled>
-            <SelectTrigger>
-              <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-            </SelectTrigger>
-          </Select>
-        );
-      case 'checkbox':
-        return (
-          <div className="flex items-center space-x-2">
-            <Checkbox disabled />
-            <Label>{field.label}</Label>
-          </div>
-        );
-      case 'textarea':
-        return <Textarea disabled placeholder={`Enter ${field.label.toLowerCase()}`} />;
-      case 'rating':
-        return (
-          <div className="flex space-x-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star key={star} className="h-4 w-4 text-gray-300" />
-            ))}
-          </div>
-        );
-      default:
-        return <Input disabled placeholder={`Enter ${field.label.toLowerCase()}`} type={field.type} />;
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this custom field? This will remove it from all contacts.')) {
+      deleteCustomField(id);
+      toast.success('Custom field deleted');
     }
   };
 
-  const groupedFields = fieldTemplates.reduce((acc, field) => {
-    const group = field.group || 'Custom';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(field);
-    return acc;
-  }, {} as Record<string, CustomFieldTemplate[]>);
+  const addOption = () => {
+    if (newOption.trim() && !formData.options.includes(newOption.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        options: [...prev.options, newOption.trim()]
+      }));
+      setNewOption('');
+    }
+  };
+
+  const removeOption = (option: string) => {
+    setFormData(prev => ({
+      ...prev,
+      options: prev.options.filter(opt => opt !== option)
+    }));
+  };
+
+  const getFieldTypeLabel = (type: string) => {
+    const types = {
+      text: 'Text',
+      number: 'Number',
+      email: 'Email',
+      phone: 'Phone',
+      date: 'Date',
+      select: 'Dropdown',
+      multiselect: 'Multi-select'
+    };
+    return types[type as keyof typeof types] || type;
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Advanced Custom Fields</h2>
-          <p className="text-gray-600">Create and manage custom fields for your contacts</p>
+          <h2 className="text-2xl font-bold">Custom Fields</h2>
+          <p className="text-gray-600">
+            Create custom fields to capture additional contact information
+          </p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Create New Field */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Field</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Custom Field
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingField ? 'Edit Custom Field' : 'Create Custom Field'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label>Field Name *</Label>
+                <Label htmlFor="fieldName">Field Name</Label>
                 <Input
-                  value={newField.name || ''}
-                  onChange={(e) => setNewField({ ...newField, name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
-                  placeholder="field_name"
+                  id="fieldName"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Industry, Company Size"
                 />
               </div>
+
               <div>
-                <Label>Display Label *</Label>
-                <Input
-                  value={newField.label || ''}
-                  onChange={(e) => setNewField({ ...newField, label: e.target.value })}
-                  placeholder="Field Label"
-                />
+                <Label>Field Type</Label>
+                <Select 
+                  value={formData.type} 
+                  onValueChange={(value: CustomField['type']) => 
+                    setFormData(prev => ({ ...prev, type: value, options: [] }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="number">Number</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="date">Date</SelectItem>
+                    <SelectItem value="select">Dropdown</SelectItem>
+                    <SelectItem value="multiselect">Multi-select</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
 
-            <div>
-              <Label>Field Type</Label>
-              <Select
-                value={newField.type}
-                onValueChange={(value) => setNewField({ ...newField, type: value as any })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {fieldTypes.map((type) => {
-                    const IconComponent = type.icon;
-                    return (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center">
-                          <IconComponent className="h-4 w-4 mr-2" />
-                          {type.label}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+              {(formData.type === 'select' || formData.type === 'multiselect') && (
+                <div>
+                  <Label>Options</Label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add option"
+                        value={newOption}
+                        onChange={(e) => setNewOption(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
+                      />
+                      <Button type="button" onClick={addOption} size="sm">
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.options.map((option) => (
+                        <Badge key={option} variant="secondary" className="flex items-center gap-1">
+                          {option}
+                          <button
+                            type="button"
+                            onClick={() => removeOption(option)}
+                            className="ml-1 hover:bg-red-100 rounded"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {(newField.type === 'dropdown' || newField.type === 'radio') && (
-              <div>
-                <Label>Options (one per line)</Label>
-                <Textarea
-                  value={newField.options?.join('\n') || ''}
-                  onChange={(e) => setNewField({ 
-                    ...newField, 
-                    options: e.target.value.split('\n').filter(Boolean) 
-                  })}
-                  placeholder="Option 1&#10;Option 2&#10;Option 3"
-                />
-              </div>
-            )}
-
-            <div>
-              <Label>Group</Label>
-              <Select
-                value={newField.group}
-                onValueChange={(value) => setNewField({ ...newField, group: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fieldGroups.map((group) => (
-                    <SelectItem key={group} value={group}>
-                      {group}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Description</Label>
-              <Input
-                value={newField.description || ''}
-                onChange={(e) => setNewField({ ...newField, description: e.target.value })}
-                placeholder="Help text for this field"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={newField.isRequired}
-                  onCheckedChange={(checked) => setNewField({ ...newField, isRequired: !!checked })}
+                <Switch
+                  checked={formData.required}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, required: checked }))}
                 />
                 <Label>Required field</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={newField.isVisible}
-                  onCheckedChange={(checked) => setNewField({ ...newField, isVisible: !!checked })}
-                />
-                <Label>Visible in forms</Label>
-              </div>
-            </div>
 
-            <Button onClick={handleCreateField}>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingField ? 'Update Field' : 'Create Field'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {customFields.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="mx-auto w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+              <Plus className="h-6 w-6 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">No custom fields yet</h3>
+            <p className="text-gray-600 mb-4">
+              Create custom fields to capture additional information about your contacts
+            </p>
+            <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Field
+              Create Your First Custom Field
             </Button>
           </CardContent>
         </Card>
-
-        {/* Field Preview */}
+      ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Field Preview</CardTitle>
+            <CardTitle>Existing Custom Fields</CardTitle>
           </CardHeader>
           <CardContent>
-            {newField.label ? (
-              <div className="space-y-2">
-                <Label>
-                  {newField.label}
-                  {newField.isRequired && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                {newField.description && (
-                  <p className="text-sm text-gray-600">{newField.description}</p>
-                )}
-                {renderFieldPreview(newField as CustomFieldTemplate)}
-              </div>
-            ) : (
-              <p className="text-gray-400 text-center py-8">Configure field to see preview</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Existing Fields */}
-      <div className="space-y-6">
-        {Object.entries(groupedFields).map(([groupName, fields]) => (
-          <Card key={groupName}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                {groupName}
-                <Badge variant="outline">{fields.length} fields</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {fields.sort((a, b) => a.order - b.order).map((field) => {
-                  const fieldIcon = fieldTypes.find(t => t.value === field.type)?.icon || Type;
-                  const IconComponent = fieldIcon;
-                  
-                  return (
-                    <div key={field.id} className="flex items-center justify-between p-3 border rounded">
-                      <div className="flex items-center space-x-3">
-                        <IconComponent className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <h3 className="font-medium">
-                            {field.label}
-                            {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {field.name} • {fieldTypes.find(t => t.value === field.type)?.label}
-                          </p>
-                          {field.description && (
-                            <p className="text-xs text-gray-500">{field.description}</p>
+            <div className="space-y-4">
+              {customFields
+                .sort((a, b) => a.order - b.order)
+                .map((field) => (
+                  <div
+                    key={field.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <GripVertical className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{field.name}</span>
+                          {field.required && (
+                            <Badge variant="outline" className="text-xs">Required</Badge>
                           )}
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="ghost">
-                          {field.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingField(field.id)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDeleteField(field.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <p className="text-sm text-gray-600">
+                          Type: {getFieldTypeLabel(field.type)}
+                          {field.options && field.options.length > 0 && (
+                            <span> • {field.options.length} options</span>
+                          )}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(field)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(field.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

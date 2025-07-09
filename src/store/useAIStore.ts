@@ -4,411 +4,553 @@ import { create } from 'zustand';
 export interface AIConversationResponse {
   id: string;
   conversationId: string;
-  originalMessage: string;
-  aiResponse: string;
+  prompt: string;
+  response: string;
   confidence: number;
-  intent: string;
-  entities: Record<string, any>;
   timestamp: Date;
-  wasHelpful?: boolean;
+  wasUsed: boolean;
+  feedback?: 'helpful' | 'not_helpful';
 }
 
 export interface AIWorkflowAction {
   id: string;
-  type: 'ai_decision' | 'ai_response' | 'ai_content_generation' | 'ai_scoring';
-  config: {
-    prompt?: string;
-    model?: string;
-    parameters?: Record<string, any>;
-  };
-  conditions?: Array<{
-    field: string;
-    operator: string;
-    value: any;
-  }>;
+  workflowId: string;
+  type: 'send_email' | 'send_sms' | 'create_task' | 'update_contact' | 'schedule_followup';
+  conditions: Record<string, any>;
+  parameters: Record<string, any>;
+  isActive: boolean;
+  executionCount: number;
+  lastExecuted?: Date;
 }
 
-export interface AILeadScore {
+export interface LeadScore {
   id: string;
   contactId: string;
   score: number;
-  factors: Array<{
-    factor: string;
-    weight: number;
-    value: any;
-    contribution: number;
-  }>;
+  factors: {
+    engagement: number;
+    demographics: number;
+    behavior: number;
+    firmographic: number;
+  };
+  trend: 'increasing' | 'decreasing' | 'stable';
   lastUpdated: Date;
-  confidence: number;
+  predictions: {
+    conversionProbability: number;
+    timeToConvert: number;
+    valueEstimate: number;
+  };
 }
 
-export interface AIGeneratedContent {
+export interface GeneratedContent {
   id: string;
-  type: 'email' | 'sms' | 'social_post' | 'ad_copy';
+  type: 'email' | 'sms' | 'social_post' | 'ad_copy' | 'blog_post';
   prompt: string;
   content: string;
   variations: string[];
-  tone: string;
+  tone: 'professional' | 'casual' | 'friendly' | 'urgent' | 'promotional';
   audience: string;
-  metrics?: {
-    readability: number;
-    sentiment: number;
-    engagement_prediction: number;
-  };
   createdAt: Date;
+  isUsed: boolean;
+  performance?: {
+    impressions: number;
+    clicks: number;
+    conversions: number;
+  };
 }
 
-export interface AIVoiceAssistant {
+export interface VoiceAssistant {
   id: string;
   name: string;
   voice: string;
   language: string;
   personality: string;
-  features: {
-    appointment_booking: boolean;
-    lead_qualification: boolean;
-    information_gathering: boolean;
-    call_routing: boolean;
-  };
+  instructions: string;
   isActive: boolean;
+  callsHandled: number;
+  averageCallDuration: number;
+  satisfactionScore: number;
+  skills: string[];
 }
 
 export interface AIChatbot {
   id: string;
   name: string;
-  type: 'website' | 'facebook' | 'instagram' | 'whatsapp';
+  platform: 'website' | 'facebook' | 'instagram' | 'whatsapp';
   personality: string;
   knowledgeBase: string[];
-  responses: Record<string, string>;
   isActive: boolean;
-  analytics: {
-    conversations: number;
-    resolution_rate: number;
-    satisfaction_score: number;
-  };
+  conversationsHandled: number;
+  averageResponseTime: number;
+  handoffRate: number;
+  languages: string[];
 }
 
-export interface AIAnalyticsInsight {
+export interface AnalyticsInsight {
   id: string;
-  type: 'trend' | 'anomaly' | 'recommendation' | 'prediction';
+  category: 'performance' | 'trends' | 'opportunities' | 'alerts';
   title: string;
   description: string;
-  data: Record<string, any>;
   confidence: number;
-  impact: 'low' | 'medium' | 'high';
-  actionable: boolean;
+  impact: 'high' | 'medium' | 'low';
+  actionItems: string[];
+  data: Record<string, any>;
   createdAt: Date;
 }
 
-export interface AIAppointmentScheduling {
+export interface AIAppointment {
   id: string;
   contactId: string;
+  scheduledBy: 'ai' | 'manual';
+  confidence: number;
   suggestedTimes: Date[];
-  preferences: {
-    timezone: string;
-    preferred_duration: number;
-    preferred_times: string[];
-    avoid_times: string[];
-  };
-  autoConfirm: boolean;
-  reasoning: string;
+  selectedTime?: Date;
+  status: 'suggested' | 'confirmed' | 'rescheduled' | 'cancelled';
+  aiReasoning: string;
 }
 
-export interface AISocialMediaPost {
+export interface AISocialPost {
   id: string;
   platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
   content: string;
   hashtags: string[];
-  scheduledAt: Date;
-  performance_prediction: {
-    engagement_score: number;
-    reach_estimate: number;
-    best_posting_time: Date;
+  scheduledFor: Date;
+  generatedFrom: string;
+  performance?: {
+    reach: number;
+    engagement: number;
+    clicks: number;
   };
-  generated: boolean;
+  status: 'draft' | 'scheduled' | 'published';
 }
 
-export interface AIReputationResponse {
+export interface ReputationResponse {
   id: string;
   reviewId: string;
-  platform: string;
+  platform: 'google' | 'yelp' | 'facebook' | 'trustpilot';
   originalReview: string;
-  sentiment: 'positive' | 'negative' | 'neutral';
-  aiResponse: string;
-  tone: 'professional' | 'friendly' | 'apologetic' | 'grateful';
-  posted: boolean;
-  reviewerHistory?: Record<string, any>;
+  suggestedResponse: string;
+  tone: 'professional' | 'apologetic' | 'grateful' | 'defensive';
+  isUsed: boolean;
+  createdAt: Date;
 }
 
 interface AIStore {
-  // Conversation Responses
   conversationResponses: AIConversationResponse[];
-  isGeneratingResponse: boolean;
-  
-  // Workflow Automation
   aiWorkflowActions: AIWorkflowAction[];
-  
-  // Lead Scoring
-  leadScores: AILeadScore[];
-  scoringModel: string;
-  
-  // Content Generation
-  generatedContent: AIGeneratedContent[];
+  leadScores: LeadScore[];
+  generatedContent: GeneratedContent[];
+  voiceAssistants: VoiceAssistant[];
+  chatbots: AIChatbot[];
+  analyticsInsights: AnalyticsInsight[];
+  aiAppointments: AIAppointment[];
+  aiSocialPosts: AISocialPost[];
+  reputationResponses: ReputationResponse[];
+  isGeneratingResponse: boolean;
   isGeneratingContent: boolean;
   
-  // Voice Assistants
-  voiceAssistants: AIVoiceAssistant[];
-  activeVoiceCall: string | null;
-  
-  // Chatbots
-  chatbots: AIChatbot[];
-  
-  // Analytics
-  analyticsInsights: AIAnalyticsInsight[];
-  
-  // Appointment Scheduling
-  aiAppointments: AIAppointmentScheduling[];
-  
-  // Social Media
-  aiSocialPosts: AISocialMediaPost[];
-  
-  // Reputation Management
-  reputationResponses: AIReputationResponse[];
-  
   // Actions
-  generateConversationResponse: (message: string, conversationId: string) => Promise<AIConversationResponse>;
-  addAIWorkflowAction: (action: Omit<AIWorkflowAction, 'id'>) => void;
-  updateLeadScore: (contactId: string) => Promise<AILeadScore>;
-  generateContent: (type: string, prompt: string, options?: Record<string, any>) => Promise<AIGeneratedContent>;
-  createVoiceAssistant: (assistant: Omit<AIVoiceAssistant, 'id'>) => void;
+  generateConversationResponse: (conversationId: string, lastMessage: string) => Promise<void>;
+  generateContent: (type: string, prompt: string, tone: string) => Promise<void>;
+  updateLeadScore: (contactId: string) => void;
+  createVoiceAssistant: (assistant: Omit<VoiceAssistant, 'id'>) => void;
+  updateVoiceAssistant: (id: string, updates: Partial<VoiceAssistant>) => void;
   createChatbot: (chatbot: Omit<AIChatbot, 'id'>) => void;
-  generateInsights: (dataType: string, timeframe: string) => Promise<AIAnalyticsInsight[]>;
-  scheduleAppointmentWithAI: (contactId: string, preferences: any) => Promise<AIAppointmentScheduling>;
-  generateSocialMediaPost: (platform: string, topic: string, tone: string) => Promise<AISocialMediaPost>;
-  generateReputationResponse: (reviewId: string, reviewText: string, sentiment: string) => Promise<AIReputationResponse>;
+  updateChatbot: (id: string, updates: Partial<AIChatbot>) => void;
+  generateInsight: (category: string) => void;
+  scheduleAIAppointment: (contactId: string, availableTimes: Date[]) => void;
+  generateSocialPost: (platform: string, topic: string) => void;
+  generateReputationResponse: (reviewId: string, reviewText: string, rating: number) => void;
 }
 
-// Mock implementations for demo purposes
 export const useAIStore = create<AIStore>((set, get) => ({
-  conversationResponses: [],
-  isGeneratingResponse: false,
-  aiWorkflowActions: [],
-  leadScores: [],
-  scoringModel: 'advanced_ml_v2',
-  generatedContent: [],
-  isGeneratingContent: false,
+  conversationResponses: [
+    {
+      id: '1',
+      conversationId: '1',
+      prompt: 'Customer asking about pricing',
+      response: 'Thank you for your interest! Our pricing starts at $99/month for our basic package. Would you like me to schedule a call to discuss your specific needs?',
+      confidence: 0.89,
+      timestamp: new Date(),
+      wasUsed: true,
+      feedback: 'helpful'
+    }
+  ],
+  aiWorkflowActions: [
+    {
+      id: '1',
+      workflowId: 'welcome-sequence',
+      type: 'send_email',
+      conditions: { trigger: 'new_contact' },
+      parameters: { templateId: 'welcome-email', delay: 0 },
+      isActive: true,
+      executionCount: 156,
+      lastExecuted: new Date()
+    }
+  ],
+  leadScores: [
+    {
+      id: '1',
+      contactId: '1',
+      score: 85,
+      factors: {
+        engagement: 90,
+        demographics: 75,
+        behavior: 85,
+        firmographic: 90
+      },
+      trend: 'increasing',
+      lastUpdated: new Date(),
+      predictions: {
+        conversionProbability: 0.78,
+        timeToConvert: 14,
+        valueEstimate: 5000
+      }
+    }
+  ],
+  generatedContent: [
+    {
+      id: '1',
+      type: 'email',
+      prompt: 'Welcome email for new subscribers',
+      content: 'Welcome to our community! We\'re excited to have you on board.',
+      variations: [
+        'Welcome aboard! Thanks for joining our community.',
+        'Thanks for subscribing! We can\'t wait to share amazing content with you.'
+      ],
+      tone: 'friendly',
+      audience: 'new_subscribers',
+      createdAt: new Date(),
+      isUsed: true,
+      performance: {
+        impressions: 1250,
+        clicks: 89,
+        conversions: 12
+      }
+    }
+  ],
   voiceAssistants: [
     {
       id: '1',
       name: 'Sarah - Sales Assistant',
-      voice: 'female_professional',
+      voice: 'female-professional',
       language: 'en-US',
-      personality: 'professional_friendly',
-      features: {
-        appointment_booking: true,
-        lead_qualification: true,
-        information_gathering: true,
-        call_routing: false
-      },
-      isActive: true
+      personality: 'Professional and helpful',
+      instructions: 'Handle inbound sales calls, qualify leads, and schedule appointments',
+      isActive: true,
+      callsHandled: 245,
+      averageCallDuration: 4.2,
+      satisfactionScore: 4.6,
+      skills: ['lead_qualification', 'appointment_scheduling', 'product_information']
     }
   ],
   chatbots: [
     {
       id: '1',
       name: 'Website Assistant',
-      type: 'website',
-      personality: 'helpful_professional',
-      knowledgeBase: ['products', 'pricing', 'support'],
-      responses: {},
+      platform: 'website',
+      personality: 'Helpful and knowledgeable',
+      knowledgeBase: ['FAQ', 'Product Info', 'Pricing'],
       isActive: true,
-      analytics: {
-        conversations: 456,
-        resolution_rate: 85,
-        satisfaction_score: 4.2
-      }
+      conversationsHandled: 1250,
+      averageResponseTime: 0.8,
+      handoffRate: 0.15,
+      languages: ['en', 'es']
     }
   ],
-  analyticsInsights: [],
-  aiAppointments: [],
-  aiSocialPosts: [],
-  reputationResponses: [],
-  activeVoiceCall: null,
+  analyticsInsights: [
+    {
+      id: '1',
+      category: 'opportunities',
+      title: 'High-value leads not followed up',
+      description: 'You have 12 leads with scores above 80 that haven\'t been contacted in 7+ days',
+      confidence: 0.92,
+      impact: 'high',
+      actionItems: [
+        'Schedule follow-up calls with top 5 leads',
+        'Create automated nurture sequence',
+        'Assign leads to sales team'
+      ],
+      data: { affectedLeads: 12, potentialValue: 45000 },
+      createdAt: new Date()
+    }
+  ],
+  aiAppointments: [
+    {
+      id: '1',
+      contactId: '1',
+      scheduledBy: 'ai',
+      confidence: 0.85,
+      suggestedTimes: [
+        new Date('2024-12-25T14:00:00'),
+        new Date('2024-12-25T15:00:00'),
+        new Date('2024-12-26T10:00:00')
+      ],
+      selectedTime: new Date('2024-12-25T14:00:00'),
+      status: 'confirmed',
+      aiReasoning: 'Based on contact\'s timezone and previous meeting preferences'
+    }
+  ],
+  aiSocialPosts: [
+    {
+      id: '1',
+      platform: 'linkedin',
+      content: 'Excited to share our latest insights on digital transformation!',
+      hashtags: ['#DigitalTransformation', '#BusinessGrowth', '#Innovation'],
+      scheduledFor: new Date('2024-12-25T09:00:00'),
+      generatedFrom: 'Recent blog post about digital transformation',
+      status: 'scheduled'
+    }
+  ],
+  reputationResponses: [
+    {
+      id: '1',
+      reviewId: 'google-review-123',
+      platform: 'google',
+      originalReview: 'Great service and fast response time!',
+      suggestedResponse: 'Thank you for your kind words! We\'re thrilled that you had a positive experience with our service.',
+      tone: 'grateful',
+      isUsed: false,
+      createdAt: new Date()
+    }
+  ],
+  isGeneratingResponse: false,
+  isGeneratingContent: false,
 
-  generateConversationResponse: async (message: string, conversationId: string) => {
+  generateConversationResponse: async (conversationId, lastMessage) => {
     set({ isGeneratingResponse: true });
     
     // Simulate AI processing
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const response: AIConversationResponse = {
-      id: Date.now().toString(),
-      conversationId,
-      originalMessage: message,
-      aiResponse: "Thank you for your message! I understand you're interested in our services. Let me connect you with the right person to help you.",
-      confidence: 0.89,
-      intent: 'information_request',
-      entities: { product: 'services', sentiment: 'positive' },
-      timestamp: new Date()
-    };
+    const responses = [
+      "Thank you for reaching out! I'd be happy to help you with that.",
+      "That's a great question. Let me provide you with the information you need.",
+      "I understand your concern. Here's what I recommend...",
+      "Thanks for your interest! Would you like to schedule a call to discuss this further?"
+    ];
     
-    set(state => ({
-      conversationResponses: [...state.conversationResponses, response],
+    const response = responses[Math.floor(Math.random() * responses.length)];
+    
+    set((state) => ({
+      conversationResponses: [...state.conversationResponses, {
+        id: Date.now().toString(),
+        conversationId,
+        prompt: lastMessage,
+        response,
+        confidence: 0.75 + Math.random() * 0.25,
+        timestamp: new Date(),
+        wasUsed: false
+      }],
       isGeneratingResponse: false
     }));
-    
-    return response;
   },
 
-  addAIWorkflowAction: (action) => set(state => ({
-    aiWorkflowActions: [...state.aiWorkflowActions, { ...action, id: Date.now().toString() }]
-  })),
-
-  updateLeadScore: async (contactId: string) => {
-    const score: AILeadScore = {
-      id: Date.now().toString(),
-      contactId,
-      score: Math.floor(Math.random() * 100),
-      factors: [
-        { factor: 'engagement', weight: 0.3, value: 'high', contribution: 25 },
-        { factor: 'demographics', weight: 0.2, value: 'target_match', contribution: 18 },
-        { factor: 'behavior', weight: 0.3, value: 'interested', contribution: 22 },
-        { factor: 'firmographics', weight: 0.2, value: 'good_fit', contribution: 15 }
-      ],
-      lastUpdated: new Date(),
-      confidence: 0.85
-    };
-    
-    set(state => ({
-      leadScores: [...state.leadScores.filter(s => s.contactId !== contactId), score]
-    }));
-    
-    return score;
-  },
-
-  generateContent: async (type: string, prompt: string, options = {}) => {
+  generateContent: async (type, prompt, tone) => {
     set({ isGeneratingContent: true });
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    const content: AIGeneratedContent = {
-      id: Date.now().toString(),
-      type: type as any,
-      prompt,
-      content: "Thank you for your interest in our services! We'd love to help you achieve your goals.",
-      variations: [
-        "We appreciate your interest! Let's discuss how we can help you succeed.",
-        "Thanks for reaching out! We're excited to potentially work with you."
+    const contentTemplates = {
+      email: [
+        "Thank you for your interest in our services. We'd love to help you achieve your goals.",
+        "We're excited to introduce you to our latest features that can transform your business.",
+        "Your success is our priority. Let's schedule some time to discuss your needs."
       ],
-      tone: options.tone || 'professional',
-      audience: options.audience || 'general',
-      metrics: {
-        readability: 85,
-        sentiment: 0.8,
-        engagement_prediction: 72
-      },
-      createdAt: new Date()
+      sms: [
+        "Hi! Thanks for signing up. Reply STOP to opt out.",
+        "Your appointment is confirmed for tomorrow at 2 PM.",
+        "Special offer: 20% off this week only!"
+      ],
+      social_post: [
+        "Excited to share our latest insights with you!",
+        "Here's what we learned about growing your business...",
+        "Monday motivation: Success starts with taking action!"
+      ]
     };
     
-    set(state => ({
-      generatedContent: [...state.generatedContent, content],
+    const templates = contentTemplates[type as keyof typeof contentTemplates] || contentTemplates.email;
+    const content = templates[Math.floor(Math.random() * templates.length)];
+    
+    set((state) => ({
+      generatedContent: [...state.generatedContent, {
+        id: Date.now().toString(),
+        type: type as any,
+        prompt,
+        content,
+        variations: templates.filter(t => t !== content).slice(0, 2),
+        tone: tone as any,
+        audience: 'general',
+        createdAt: new Date(),
+        isUsed: false
+      }],
       isGeneratingContent: false
     }));
-    
-    return content;
   },
 
-  createVoiceAssistant: (assistant) => set(state => ({
+  updateLeadScore: (contactId) => {
+    set((state) => {
+      const existingScore = state.leadScores.find(s => s.contactId === contactId);
+      if (existingScore) {
+        return {
+          leadScores: state.leadScores.map(score =>
+            score.contactId === contactId
+              ? {
+                  ...score,
+                  score: Math.min(100, score.score + Math.floor(Math.random() * 10)),
+                  lastUpdated: new Date()
+                }
+              : score
+          )
+        };
+      } else {
+        return {
+          leadScores: [...state.leadScores, {
+            id: Date.now().toString(),
+            contactId,
+            score: 50 + Math.floor(Math.random() * 50),
+            factors: {
+              engagement: Math.floor(Math.random() * 100),
+              demographics: Math.floor(Math.random() * 100),
+              behavior: Math.floor(Math.random() * 100),
+              firmographic: Math.floor(Math.random() * 100)
+            },
+            trend: Math.random() > 0.5 ? 'increasing' : 'stable',
+            lastUpdated: new Date(),
+            predictions: {
+              conversionProbability: Math.random(),
+              timeToConvert: Math.floor(Math.random() * 30) + 7,
+              valueEstimate: Math.floor(Math.random() * 10000) + 1000
+            }
+          }]
+        };
+      }
+    });
+  },
+
+  createVoiceAssistant: (assistant) => set((state) => ({
     voiceAssistants: [...state.voiceAssistants, { ...assistant, id: Date.now().toString() }]
   })),
 
-  createChatbot: (chatbot) => set(state => ({
+  updateVoiceAssistant: (id, updates) => set((state) => ({
+    voiceAssistants: state.voiceAssistants.map(assistant =>
+      assistant.id === id ? { ...assistant, ...updates } : assistant
+    )
+  })),
+
+  createChatbot: (chatbot) => set((state) => ({
     chatbots: [...state.chatbots, { ...chatbot, id: Date.now().toString() }]
   })),
 
-  generateInsights: async (dataType: string, timeframe: string) => {
-    const insights: AIAnalyticsInsight[] = [
+  updateChatbot: (id, updates) => set((state) => ({
+    chatbots: state.chatbots.map(chatbot =>
+      chatbot.id === id ? { ...chatbot, ...updates } : chatbot
+    )
+  })),
+
+  generateInsight: (category) => {
+    const insights = [
       {
-        id: Date.now().toString(),
-        type: 'trend',
-        title: 'Lead Quality Improvement',
-        description: 'Lead quality has improved by 23% over the last 30 days',
-        data: { improvement: 23, period: '30_days' },
-        confidence: 0.92,
-        impact: 'high',
-        actionable: true,
-        createdAt: new Date()
+        category: 'performance',
+        title: 'Email open rates trending up',
+        description: 'Your email campaigns are performing 15% better this month',
+        impact: 'medium' as const
+      },
+      {
+        category: 'opportunities',
+        title: 'Missed follow-up opportunities',
+        description: 'Several high-value leads haven\'t been contacted recently',
+        impact: 'high' as const
+      },
+      {
+        category: 'trends',
+        title: 'Peak engagement hours identified',
+        description: 'Your audience is most active between 2-4 PM on weekdays',
+        impact: 'medium' as const
       }
     ];
     
-    set(state => ({
-      analyticsInsights: [...state.analyticsInsights, ...insights]
-    }));
+    const insight = insights[Math.floor(Math.random() * insights.length)];
     
-    return insights;
+    set((state) => ({
+      analyticsInsights: [...state.analyticsInsights, {
+        id: Date.now().toString(),
+        category: insight.category as any,
+        title: insight.title,
+        description: insight.description,
+        confidence: 0.7 + Math.random() * 0.3,
+        impact: insight.impact,
+        actionItems: [
+          'Review current strategy',
+          'Implement recommended changes',
+          'Monitor results'
+        ],
+        data: {},
+        createdAt: new Date()
+      }]
+    }));
   },
 
-  scheduleAppointmentWithAI: async (contactId: string, preferences: any) => {
-    const appointment: AIAppointmentScheduling = {
+  scheduleAIAppointment: (contactId, availableTimes) => set((state) => ({
+    aiAppointments: [...state.aiAppointments, {
       id: Date.now().toString(),
       contactId,
-      suggestedTimes: [
-        new Date(Date.now() + 24 * 60 * 60 * 1000),
-        new Date(Date.now() + 48 * 60 * 60 * 1000),
-        new Date(Date.now() + 72 * 60 * 60 * 1000)
-      ],
-      preferences,
-      autoConfirm: false,
-      reasoning: 'Based on your availability and the contact\'s timezone, these times work best.'
-    };
+      scheduledBy: 'ai' as const,
+      confidence: 0.8 + Math.random() * 0.2,
+      suggestedTimes: availableTimes,
+      status: 'suggested' as const,
+      aiReasoning: 'Based on contact preferences and availability patterns'
+    }]
+  })),
+
+  generateSocialPost: (platform, topic) => {
+    const posts = [
+      'Excited to share our latest insights!',
+      'Here\'s what we learned this week...',
+      'Monday motivation for business growth!',
+      'Tips for improving your customer experience'
+    ];
     
-    set(state => ({
-      aiAppointments: [...state.aiAppointments, appointment]
+    set((state) => ({
+      aiSocialPosts: [...state.aiSocialPosts, {
+        id: Date.now().toString(),
+        platform: platform as any,
+        content: posts[Math.floor(Math.random() * posts.length)],
+        hashtags: ['#Business', '#Growth', '#Success'],
+        scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        generatedFrom: topic,
+        status: 'draft' as const
+      }]
     }));
-    
-    return appointment;
   },
 
-  generateSocialMediaPost: async (platform: string, topic: string, tone: string) => {
-    const post: AISocialMediaPost = {
-      id: Date.now().toString(),
-      platform: platform as any,
-      content: `🚀 Exciting news! We're here to help you succeed. ${topic} #business #success`,
-      hashtags: ['business', 'success', 'growth'],
-      scheduledAt: new Date(Date.now() + 60 * 60 * 1000),
-      performance_prediction: {
-        engagement_score: 78,
-        reach_estimate: 1250,
-        best_posting_time: new Date(Date.now() + 2 * 60 * 60 * 1000)
-      },
-      generated: true
-    };
+  generateReputationResponse: (reviewId, reviewText, rating) => {
+    const positiveResponses = [
+      'Thank you for your wonderful review! We\'re thrilled you had a great experience.',
+      'We appreciate your kind words and are glad we could exceed your expectations.',
+      'Thank you for taking the time to share your positive feedback!'
+    ];
     
-    set(state => ({
-      aiSocialPosts: [...state.aiSocialPosts, post]
+    const negativeResponses = [
+      'Thank you for your feedback. We take all concerns seriously and would like to make this right.',
+      'We apologize for not meeting your expectations. Please contact us so we can resolve this.',
+      'We value your feedback and are committed to improving our service.'
+    ];
+    
+    const responses = rating >= 4 ? positiveResponses : negativeResponses;
+    const tone = rating >= 4 ? 'grateful' : 'apologetic';
+    
+    set((state) => ({
+      reputationResponses: [...state.reputationResponses, {
+        id: Date.now().toString(),
+        reviewId,
+        platform: 'google' as const,
+        originalReview: reviewText,
+        suggestedResponse: responses[Math.floor(Math.random() * responses.length)],
+        tone: tone as any,
+        isUsed: false,
+        createdAt: new Date()
+      }]
     }));
-    
-    return post;
-  },
-
-  generateReputationResponse: async (reviewId: string, reviewText: string, sentiment: string) => {
-    const response: AIReputationResponse = {
-      id: Date.now().toString(),
-      reviewId,
-      platform: 'google',
-      originalReview: reviewText,
-      sentiment: sentiment as any,
-      aiResponse: sentiment === 'positive' 
-        ? "Thank you so much for your wonderful review! We're thrilled to hear about your positive experience."
-        : "Thank you for your feedback. We take all reviews seriously and would love to discuss how we can improve your experience.",
-      tone: sentiment === 'positive' ? 'grateful' : 'apologetic',
-      posted: false
-    };
-    
-    set(state => ({
-      reputationResponses: [...state.reputationResponses, response]
-    }));
-    
-    return response;
   }
 }));

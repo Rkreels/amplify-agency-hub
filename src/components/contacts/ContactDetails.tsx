@@ -1,22 +1,26 @@
 
-import { useState } from "react";
-import { useContactsStore, type Contact } from "@/store/useContactsStore";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ContactForm } from "./ContactForm";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
-  PhoneCall, Mail, Building, MapPin, Calendar, Clock, Plus, 
-  Trash2, Edit, CheckCircle, Tag, X
-} from "lucide-react";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+  Mail, 
+  Phone, 
+  Building, 
+  Calendar, 
+  Star,
+  MessageSquare,
+  PhoneCall,
+  Edit,
+  Trash2,
+  Plus,
+  Activity
+} from 'lucide-react';
+import { useContactsStore, type Contact } from '@/store/useContactsStore';
+import { toast } from 'sonner';
 
 interface ContactDetailsProps {
   contact: Contact;
@@ -24,282 +28,238 @@ interface ContactDetailsProps {
 }
 
 export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
-  const { deleteContact, updateContact, availableTags } = useContactsStore();
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [newTag, setNewTag] = useState("");
-  
-  const handleDelete = () => {
-    deleteContact(contact.id);
-    toast.success("Contact deleted successfully");
-    onClose();
-  };
-  
-  const handleAddTag = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTag.trim()) return;
-    
-    // Check if tag already exists
-    if (contact.tags.some(tag => tag.name === newTag.trim())) {
-      toast.error("Tag already exists");
-      return;
+  const { updateContact, deleteContact, customFields } = useContactsStore();
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [newNote, setNewNote] = useState('');
+
+  const handleAddNote = () => {
+    if (newNote.trim()) {
+      const updatedNotes = contact.notes 
+        ? `${contact.notes}\n\n${new Date().toLocaleDateString()}: ${newNote}`
+        : `${new Date().toLocaleDateString()}: ${newNote}`;
+      
+      updateContact(contact.id, { notes: updatedNotes });
+      setNewNote('');
+      setIsAddingNote(false);
+      toast.success('Note added successfully');
     }
-    
-    // Find or create the tag
-    const existingTag = availableTags.find(tag => tag.name === newTag.trim());
-    const tagToAdd = existingTag || {
-      id: Date.now().toString(),
-      name: newTag.trim(),
-      color: '#3b82f6'
-    };
-    
-    // Add the tag
-    updateContact(contact.id, {
-      tags: [...contact.tags, tagToAdd]
-    });
-    
-    setNewTag("");
-    toast.success("Tag added successfully");
-  };
-  
-  const handleRemoveTag = (tagToRemove: string) => {
-    updateContact(contact.id, {
-      tags: contact.tags.filter(tag => tag.name !== tagToRemove)
-    });
-    toast.success("Tag removed");
   };
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return "N/A";
-    return format(new Date(date), "MMM d, yyyy");
+  const handleUpdateScore = () => {
+    const newScore = Math.min(100, contact.leadScore + Math.floor(Math.random() * 20));
+    updateContact(contact.id, { leadScore: newScore });
+    toast.success('Lead score updated');
   };
-  
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this contact?')) {
+      deleteContact(contact.id);
+      toast.success('Contact deleted successfully');
+      onClose();
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'customer': return 'bg-green-100 text-green-800';
+      case 'lead': return 'bg-blue-100 text-blue-800';
+      case 'prospect': return 'bg-yellow-100 text-yellow-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <>
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center space-x-4">
           <Avatar className="h-16 w-16">
             <AvatarImage src={contact.avatar} />
             <AvatarFallback className="text-lg">
-              {contact.firstName.charAt(0) + contact.lastName.charAt(0)}
+              {contact.firstName.charAt(0)}{contact.lastName.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="text-xl font-semibold">{contact.firstName} {contact.lastName}</h2>
-            {contact.company && <p className="text-muted-foreground">{contact.company}</p>}
-            <Badge 
-              variant={contact.status === 'customer' ? 'default' : 
-                      contact.status === 'lead' ? 'secondary' :
-                      contact.status === 'prospect' ? 'outline' : 'destructive'}
-              className="mt-1"
-            >
-              {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
-            </Badge>
+            <h2 className="text-2xl font-bold">
+              {contact.firstName} {contact.lastName}
+            </h2>
+            <p className="text-gray-600">{contact.position}</p>
+            <p className="text-gray-600">{contact.company}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowEditDialog(true)}>
-            <Edit className="h-4 w-4 mr-2" />
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4 mr-1" />
             Edit
           </Button>
-          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-            <Trash2 className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4 mr-1" />
             Delete
           </Button>
         </div>
       </div>
-      
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Contact Information</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{contact.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <PhoneCall className="h-4 w-4 text-muted-foreground" />
-                    <span>{contact.phone}</span>
-                  </div>
-                  {contact.company && (
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span>{contact.company}</span>
-                    </div>
-                  )}
-                </div>
+
+      {/* Status and Tags */}
+      <div className="flex flex-wrap gap-2">
+        <Badge className={getStatusColor(contact.status)}>
+          {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
+        </Badge>
+        {contact.tags.map((tag) => (
+          <Badge key={tag} variant="outline">{tag}</Badge>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Contact Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <Mail className="h-4 w-4 text-gray-500" />
+              <span>{contact.email}</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Phone className="h-4 w-4 text-gray-500" />
+              <span>{contact.phone}</span>
+            </div>
+            {contact.company && (
+              <div className="flex items-center space-x-3">
+                <Building className="h-4 w-4 text-gray-500" />
+                <span>{contact.company}</span>
               </div>
-              
-              {(contact.address || contact.city || contact.state) && (
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Address</h3>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                    <div>
-                      {contact.address && <div>{contact.address}</div>}
-                      {(contact.city || contact.state) && (
-                        <div>
-                          {contact.city}{contact.city && contact.state && ', '}
-                          {contact.state} {contact.zipCode}
-                        </div>
-                      )}
-                      {contact.country && <div>{contact.country}</div>}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {contact.tags.length === 0 ? (
-                    <span className="text-sm text-muted-foreground">No tags</span>
-                  ) : (
-                    contact.tags.map((tag) => (
-                      <Badge key={tag.id} variant="outline" className="flex items-center gap-1">
-                        {tag.name}
-                        <button 
-                          className="ml-1 hover:text-destructive" 
-                          onClick={() => handleRemoveTag(tag.name)}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))
-                  )}
-                </div>
-                <form onSubmit={handleAddTag} className="flex gap-2">
-                  <Input 
-                    placeholder="Add a tag..." 
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    className="h-8"
-                  />
-                  <Button type="submit" size="sm" className="h-8">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </form>
+            )}
+            <div className="flex items-center space-x-3">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <span>Created: {contact.createdAt.toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Activity className="h-4 w-4 text-gray-500" />
+              <span>Source: {contact.source}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lead Score */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Lead Score
+              <Button variant="outline" size="sm" onClick={handleUpdateScore}>
+                <Star className="h-4 w-4 mr-1" />
+                Update
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-4xl font-bold mb-2">{contact.leadScore}</div>
+              <div className="text-sm text-gray-600 mb-4">out of 100</div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full" 
+                  style={{ width: `${contact.leadScore}%` }}
+                />
               </div>
             </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Details</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Date Added</span>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(contact.dateAdded || contact.createdAt)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Last Contacted</span>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(contact.lastContacted || contact.lastActivityAt)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Source</span>
-                    <span>{contact.source || "Not specified"}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Status</span>
-                    <Badge 
-                      variant={contact.status === 'customer' ? 'default' : 
-                              contact.status === 'lead' ? 'secondary' :
-                              contact.status === 'prospect' ? 'outline' : 'destructive'}
-                    >
-                      {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
-                    </Badge>
-                  </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Custom Fields */}
+      {customFields.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Custom Fields</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customFields.map((field) => (
+                <div key={field.id}>
+                  <label className="font-medium text-sm">{field.name}</label>
+                  <p className="text-gray-600">
+                    {contact.customFields[field.id] || 'Not set'}
+                  </p>
                 </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Notes</h3>
-                <div className="border rounded-md p-3 min-h-[100px] text-sm">
-                  {contact.notes || <span className="text-muted-foreground">No notes available</span>}
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="activity">
-          <div className="flex flex-col items-center justify-center py-10">
-            <div className="text-muted-foreground text-center">
-              <p className="mb-2">No activity recorded yet</p>
-              <p>Activities like emails, calls and meetings will appear here</p>
-            </div>
-            <Button className="mt-4">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Activity
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Button className="w-full" onClick={() => toast.success('Email composer opened')}>
+              <Mail className="h-4 w-4 mr-2" />
+              Send Email
+            </Button>
+            <Button className="w-full" onClick={() => toast.success('SMS composer opened')}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send SMS
+            </Button>
+            <Button className="w-full" onClick={() => toast.success('Call initiated')}>
+              <PhoneCall className="h-4 w-4 mr-2" />
+              Call
             </Button>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="notes">
-          <div className="space-y-4">
-            <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-2">Notes</h3>
-              <Textarea 
-                value={contact.notes} 
-                onChange={(e) => updateContact(contact.id, { notes: e.target.value })}
-                placeholder="Add notes about this contact..."
-                className="min-h-[150px]"
+        </CardContent>
+      </Card>
+
+      {/* Notes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            Notes
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsAddingNote(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Note
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isAddingNote && (
+            <div className="mb-4 space-y-2">
+              <Textarea
+                placeholder="Add a note..."
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                rows={3}
               />
-              <div className="flex justify-end mt-2">
-                <Button size="sm" onClick={() => toast.success("Notes saved")}>
-                  Save Notes
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsAddingNote(false)}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleAddNote}>
+                  Save Note
                 </Button>
               </div>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Edit Contact</DialogTitle>
-          </DialogHeader>
-          <ContactForm 
-            contact={contact} 
-            onComplete={() => setShowEditDialog(false)} 
-          />
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {contact.firstName} {contact.lastName}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          )}
+          
+          {contact.notes ? (
+            <div className="whitespace-pre-wrap text-sm text-gray-700">
+              {contact.notes}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm italic">No notes added yet</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
