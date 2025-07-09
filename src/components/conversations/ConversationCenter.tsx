@@ -1,382 +1,464 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  MessageSquare, 
-  Phone, 
-  Mail, 
   Search, 
-  Send, 
+  Phone, 
+  Video, 
+  Mail, 
+  MessageSquare, 
+  MoreVertical,
+  Send,
   Paperclip,
   Smile,
-  MoreVertical,
+  Star,
+  Archive,
+  Trash2,
+  Filter,
+  Plus,
+  PhoneCall,
+  VideoIcon,
   Clock,
-  Check,
-  CheckCheck
-} from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  CheckCheck,
+  User
+} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
   id: string;
-  contactId: string;
-  contactName: string;
-  type: 'sms' | 'email' | 'call' | 'internal';
+  senderId: string;
+  senderName: string;
   content: string;
   timestamp: Date;
-  direction: 'inbound' | 'outbound';
-  status: 'sent' | 'delivered' | 'read' | 'failed';
-  attachments?: string[];
+  type: 'sent' | 'received';
+  channel: 'sms' | 'email' | 'chat' | 'whatsapp' | 'facebook';
+  read: boolean;
 }
 
 interface Conversation {
   id: string;
-  contactId: string;
   contactName: string;
-  contactPhone: string;
   contactEmail: string;
-  lastMessage: Message;
+  contactPhone: string;
+  avatar?: string;
+  lastMessage: string;
+  lastMessageTime: Date;
   unreadCount: number;
+  channel: 'sms' | 'email' | 'chat' | 'whatsapp' | 'facebook';
+  status: 'active' | 'archived' | 'spam';
+  priority: 'high' | 'medium' | 'low';
   tags: string[];
-  assignedTo: string;
+  assignedTo?: string;
 }
 
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    contactId: '1',
-    contactName: 'Sarah Johnson',
-    contactPhone: '+1 (555) 123-4567',
-    contactEmail: 'sarah@example.com',
-    unreadCount: 2,
-    tags: ['VIP', 'Hot Lead'],
-    assignedTo: 'John Doe',
-    lastMessage: {
-      id: '1',
-      contactId: '1',
-      contactName: 'Sarah Johnson',
-      type: 'sms',
-      content: 'Hi, I\'m interested in your services. Can we schedule a call?',
-      timestamp: new Date(Date.now() - 30 * 60 * 1000),
-      direction: 'inbound',
-      status: 'delivered'
-    }
-  },
-  {
-    id: '2',
-    contactId: '2',
-    contactName: 'Michael Brown',
-    contactPhone: '+1 (555) 987-6543',
-    contactEmail: 'michael@example.com',
-    unreadCount: 0,
-    tags: ['Follow-up'],
-    assignedTo: 'Jane Smith',
-    lastMessage: {
-      id: '2',
-      contactId: '2',
-      contactName: 'Michael Brown',
-      type: 'email',
-      content: 'Thank you for the information. I\'ll review and get back to you.',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      direction: 'outbound',
-      status: 'read'
-    }
-  }
-];
-
-const mockMessages: Message[] = [
-  {
-    id: '1',
-    contactId: '1',
-    contactName: 'Sarah Johnson',
-    type: 'sms',
-    content: 'Hi, I saw your ad on Facebook about marketing services.',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    direction: 'inbound',
-    status: 'delivered'
-  },
-  {
-    id: '2',
-    contactId: '1',
-    contactName: 'Sarah Johnson',
-    type: 'sms',
-    content: 'Hi Sarah! Thanks for reaching out. I\'d love to help you with your marketing needs. What specific areas are you looking to improve?',
-    timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
-    direction: 'outbound',
-    status: 'read'
-  },
-  {
-    id: '3',
-    contactId: '1',
-    contactName: 'Sarah Johnson',
-    type: 'sms',
-    content: 'We need help with lead generation and email marketing automation.',
-    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-    direction: 'inbound',
-    status: 'delivered'
-  },
-  {
-    id: '4',
-    contactId: '1',
-    contactName: 'Sarah Johnson',
-    type: 'sms',
-    content: 'Hi, I\'m interested in your services. Can we schedule a call?',
-    timestamp: new Date(Date.now() - 30 * 60 * 1000),
-    direction: 'inbound',
-    status: 'delivered'
-  }
-];
-
 export function ConversationCenter() {
-  const [conversations, setConversations] = useState(mockConversations);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0]);
-  const [messages, setMessages] = useState(mockMessages);
-  const [newMessage, setNewMessage] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.contactName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const conversations: Conversation[] = [
+    {
+      id: '1',
+      contactName: 'Sarah Johnson',
+      contactEmail: 'sarah@example.com',
+      contactPhone: '+1 (555) 123-4567',
+      lastMessage: 'Thanks for the quick response! I\'ll get back to you soon.',
+      lastMessageTime: new Date(Date.now() - 15 * 60 * 1000),
+      unreadCount: 2,
+      channel: 'sms',
+      status: 'active',
+      priority: 'high',
+      tags: ['lead', 'interested'],
+      assignedTo: 'John Doe'
+    },
+    {
+      id: '2',
+      contactName: 'Michael Chen',
+      contactEmail: 'michael@example.com',
+      contactPhone: '+1 (555) 234-5678',
+      lastMessage: 'Can we schedule a call for tomorrow?',
+      lastMessageTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      unreadCount: 0,
+      channel: 'email',
+      status: 'active',
+      priority: 'medium',
+      tags: ['customer', 'support'],
+      assignedTo: 'Jane Smith'
+    },
+    {
+      id: '3',
+      contactName: 'Emily Rodriguez',
+      contactEmail: 'emily@example.com',
+      contactPhone: '+1 (555) 345-6789',
+      lastMessage: 'I\'m interested in your premium package.',
+      lastMessageTime: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      unreadCount: 1,
+      channel: 'whatsapp',
+      status: 'active',
+      priority: 'high',
+      tags: ['lead', 'premium'],
+      assignedTo: 'John Doe'
+    },
+    {
+      id: '4',
+      contactName: 'David Kim',
+      contactEmail: 'david@example.com',
+      contactPhone: '+1 (555) 456-7890',
+      lastMessage: 'Thank you for the excellent service!',
+      lastMessageTime: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      unreadCount: 0,
+      channel: 'facebook',
+      status: 'active',
+      priority: 'low',
+      tags: ['customer', 'satisfied'],
+      assignedTo: 'Jane Smith'
+    }
+  ];
 
-  const conversationMessages = messages.filter(msg => 
-    msg.contactId === selectedConversation?.contactId
-  );
+  const messages: Record<string, Message[]> = {
+    '1': [
+      {
+        id: '1',
+        senderId: 'sarah',
+        senderName: 'Sarah Johnson',
+        content: 'Hi! I\'m interested in your services. Can you tell me more about your pricing?',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        type: 'received',
+        channel: 'sms',
+        read: true
+      },
+      {
+        id: '2',
+        senderId: 'me',
+        senderName: 'You',
+        content: 'Hi Sarah! I\'d be happy to help you with that. We have several packages available...',
+        timestamp: new Date(Date.now() - 90 * 60 * 1000),
+        type: 'sent',
+        channel: 'sms',
+        read: true
+      },
+      {
+        id: '3',
+        senderId: 'sarah',
+        senderName: 'Sarah Johnson',
+        content: 'That sounds great! Can we schedule a call to discuss this further?',
+        timestamp: new Date(Date.now() - 30 * 60 * 1000),
+        type: 'received',
+        channel: 'sms',
+        read: true
+      },
+      {
+        id: '4',
+        senderId: 'sarah',
+        senderName: 'Sarah Johnson',
+        content: 'Thanks for the quick response! I\'ll get back to you soon.',
+        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+        type: 'received',
+        channel: 'sms',
+        read: false
+      }
+    ]
+  };
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'sms': return MessageSquare;
+      case 'email': return Mail;
+      case 'whatsapp': return MessageSquare;
+      case 'facebook': return MessageSquare;
+      default: return MessageSquare;
+    }
+  };
+
+  const getChannelColor = (channel: string) => {
+    switch (channel) {
+      case 'sms': return 'bg-blue-100 text-blue-800';
+      case 'email': return 'bg-green-100 text-green-800';
+      case 'whatsapp': return 'bg-green-100 text-green-800';
+      case 'facebook': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor(diff / (1000 * 60));
+
+    if (hours > 24) {
+      return date.toLocaleDateString();
+    } else if (hours > 0) {
+      return `${hours}h ago`;
+    } else if (minutes > 0) {
+      return `${minutes}m ago`;
+    } else {
+      return 'Just now';
+    }
+  };
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      contactId: selectedConversation.contactId,
-      contactName: selectedConversation.contactName,
-      type: 'sms',
-      content: newMessage,
-      timestamp: new Date(),
-      direction: 'outbound',
-      status: 'sent'
-    };
-
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-  };
-
-  const getMessageStatusIcon = (status: Message['status']) => {
-    switch (status) {
-      case 'sent': return <Check className="h-3 w-3" />;
-      case 'delivered': return <CheckCheck className="h-3 w-3" />;
-      case 'read': return <CheckCheck className="h-3 w-3 text-blue-500" />;
-      case 'failed': return <Clock className="h-3 w-3 text-red-500" />;
+    if (newMessage.trim() && selectedConversation) {
+      // Add message logic here
+      setNewMessage("");
     }
   };
 
-  const getMessageTypeColor = (type: Message['type']) => {
-    switch (type) {
-      case 'sms': return 'bg-green-100 text-green-800';
-      case 'email': return 'bg-blue-100 text-blue-800';
-      case 'call': return 'bg-purple-100 text-purple-800';
-      case 'internal': return 'bg-gray-100 text-gray-800';
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = conv.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         conv.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    switch (activeTab) {
+      case 'unread':
+        return matchesSearch && conv.unreadCount > 0;
+      case 'high':
+        return matchesSearch && conv.priority === 'high';
+      case 'archived':
+        return matchesSearch && conv.status === 'archived';
+      default:
+        return matchesSearch && conv.status === 'active';
     }
-  };
+  });
+
+  const selectedConv = conversations.find(c => c.id === selectedConversation);
+  const conversationMessages = selectedConversation ? messages[selectedConversation] || [] : [];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversationMessages]);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-background rounded-lg border">
-      {/* Conversations List */}
-      <div className="w-1/3 border-r flex flex-col">
+    <div className="flex h-[calc(100vh-200px)] bg-background">
+      {/* Sidebar - Conversations List */}
+      <div className="w-80 border-r bg-card">
         <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Conversations</h2>
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm">
+                <Filter className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
-                selectedConversation?.id === conversation.id ? 'bg-muted' : ''
-              }`}
-              onClick={() => setSelectedConversation(conversation)}
-            >
-              <div className="flex items-start space-x-3">
-                <Avatar>
-                  <AvatarFallback>
-                    {conversation.contactName.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium truncate">{conversation.contactName}</h3>
-                    <span className="text-xs text-muted-foreground">
-                      {conversation.lastMessage.timestamp.toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate mt-1">
-                    {conversation.lastMessage.content}
-                  </p>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex gap-1">
-                      <Badge className={getMessageTypeColor(conversation.lastMessage.type)}>
-                        {conversation.lastMessage.type.toUpperCase()}
-                      </Badge>
-                      {conversation.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full grid grid-cols-4 m-2">
+            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+            <TabsTrigger value="unread" className="text-xs">Unread</TabsTrigger>
+            <TabsTrigger value="high" className="text-xs">High</TabsTrigger>
+            <TabsTrigger value="archived" className="text-xs">Archived</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-2">
+            {filteredConversations.map((conversation) => {
+              const ChannelIcon = getChannelIcon(conversation.channel);
+              
+              return (
+                <div
+                  key={conversation.id}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedConversation === conversation.id 
+                      ? 'bg-primary/10 border-primary/20 border' 
+                      : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => setSelectedConversation(conversation.id)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={conversation.avatar} />
+                      <AvatarFallback>
+                        {conversation.contactName.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-medium text-sm truncate">
+                          {conversation.contactName}
+                        </h4>
+                        <div className="flex items-center space-x-1">
+                          <Badge className={`${getChannelColor(conversation.channel)} text-xs`}>
+                            <ChannelIcon className="h-3 w-3 mr-1" />
+                            {conversation.channel}
+                          </Badge>
+                          {conversation.unreadCount > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              {conversation.unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground truncate mb-2">
+                        {conversation.lastMessage}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1">
+                          <Badge variant="outline" className={`${getPriorityColor(conversation.priority)} text-xs`}>
+                            {conversation.priority}
+                          </Badge>
+                          {conversation.tags.map(tag => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTime(conversation.lastMessageTime)}
+                        </span>
+                      </div>
                     </div>
-                    {conversation.unreadCount > 0 && (
-                      <Badge className="bg-red-500 text-white">
-                        {conversation.unreadCount}
-                      </Badge>
-                    )}
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
       </div>
 
-      {/* Message Thread */}
+      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {selectedConversation ? (
+        {selectedConv ? (
           <>
-            {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarFallback>
-                    {selectedConversation.contactName.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium">{selectedConversation.contactName}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedConversation.contactPhone} • {selectedConversation.contactEmail}
-                  </p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button size="sm" variant="outline">
-                  <Phone className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="outline">
-                  <Mail className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="outline">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {conversationMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
-                      message.direction === 'outbound'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString()}
-                      </span>
-                      {message.direction === 'outbound' && (
-                        <div className="opacity-70">
-                          {getMessageStatusIcon(message.status)}
-                        </div>
+            {/* Chat Header */}
+            <div className="p-4 border-b bg-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={selectedConv.avatar} />
+                    <AvatarFallback>
+                      {selectedConv.contactName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">{selectedConv.contactName}</h3>
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                      <span>{selectedConv.contactEmail}</span>
+                      <span>•</span>
+                      <span>{selectedConv.contactPhone}</span>
+                      {selectedConv.assignedTo && (
+                        <>
+                          <span>•</span>
+                          <span>Assigned to {selectedConv.assignedTo}</span>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
-              ))}
+                
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm">
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Video className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Star className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Archive className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            {/* Message Input */}
-            <div className="p-4 border-t">
-              <Tabs defaultValue="sms">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="sms">SMS</TabsTrigger>
-                  <TabsTrigger value="email">Email</TabsTrigger>
-                  <TabsTrigger value="internal">Internal Note</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="sms">
-                  <div className="flex space-x-2">
-                    <div className="flex-1 relative">
-                      <Textarea
-                        placeholder="Type your message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        className="min-h-[60px] resize-none"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                      />
-                      <div className="absolute bottom-2 left-2 flex space-x-1">
-                        <Button size="sm" variant="ghost">
-                          <Paperclip className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Smile className="h-4 w-4" />
-                        </Button>
+            {/* Messages */}
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {conversationMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.type === 'sent' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-xs lg:max-w-md ${
+                      message.type === 'sent' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    } rounded-lg p-3`}>
+                      <p className="text-sm">{message.content}</p>
+                      <div className={`flex items-center justify-between mt-2 text-xs ${
+                        message.type === 'sent' 
+                          ? 'text-primary-foreground/70' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        <span>{formatTime(message.timestamp)}</span>
+                        {message.type === 'sent' && (
+                          <CheckCheck className="h-3 w-3" />
+                        )}
                       </div>
                     </div>
-                    <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                      <Send className="h-4 w-4" />
-                    </Button>
                   </div>
-                </TabsContent>
-                
-                <TabsContent value="email">
-                  <div className="space-y-4">
-                    <Input placeholder="Subject" />
-                    <Textarea
-                      placeholder="Compose your email..."
-                      className="min-h-[120px]"
-                    />
-                    <Button>Send Email</Button>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="internal">
-                  <div className="space-y-4">
-                    <Textarea
-                      placeholder="Add internal note..."
-                      className="min-h-[80px]"
-                    />
-                    <Button>Add Note</Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Message Input */}
+            <div className="p-4 border-t bg-card">
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" size="sm">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Input
+                  placeholder="Type your message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  className="flex-1"
+                />
+                <Button variant="ghost" size="sm">
+                  <Smile className="h-4 w-4" />
+                </Button>
+                <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium">Select a conversation</h3>
-              <p className="text-muted-foreground">Choose a conversation to start messaging</p>
+              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
+              <p className="text-muted-foreground">Choose a conversation from the sidebar to start messaging</p>
             </div>
           </div>
         )}

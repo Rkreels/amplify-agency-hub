@@ -1,416 +1,513 @@
 
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { 
+  Zap, 
+  Plus, 
   Play, 
   Pause, 
-  Plus, 
-  Zap, 
+  Settings, 
   Mail, 
   MessageSquare, 
-  Phone, 
-  Clock, 
-  Filter,
+  Phone,
+  Calendar,
   Users,
-  Settings,
+  Target,
+  Clock,
+  BarChart3,
+  Edit,
+  Trash2,
+  Copy,
   Save,
-  Eye
-} from 'lucide-react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+  Download,
+  Upload
+} from "lucide-react";
 
-interface WorkflowStep {
+interface WorkflowNode {
   id: string;
   type: 'trigger' | 'action' | 'condition' | 'delay';
   title: string;
   description: string;
-  icon: React.ReactNode;
   config: Record<string, any>;
-  connections: string[];
+  position: { x: number; y: number };
 }
 
 interface Workflow {
   id: string;
   name: string;
   description: string;
-  isActive: boolean;
-  trigger: WorkflowStep;
-  steps: WorkflowStep[];
+  status: 'active' | 'paused' | 'draft';
+  trigger: string;
+  nodes: WorkflowNode[];
   stats: {
-    enrolled: number;
+    triggered: number;
     completed: number;
-    failed: number;
+    active: number;
   };
+  createdAt: string;
+  updatedAt: string;
 }
 
-const triggerTypes = [
+const initialWorkflows: Workflow[] = [
   {
-    id: 'contact_added',
-    title: 'Contact Added',
-    description: 'When a new contact is added',
-    icon: <Users className="h-4 w-4" />
+    id: '1',
+    name: 'Lead Nurturing Campaign',
+    description: 'Automated email sequence for new leads',
+    status: 'active',
+    trigger: 'New Lead Added',
+    nodes: [],
+    stats: { triggered: 245, completed: 198, active: 47 },
+    createdAt: '2024-01-15',
+    updatedAt: '2024-01-20'
   },
   {
-    id: 'form_submitted',
-    title: 'Form Submitted',
-    description: 'When a form is submitted',
-    icon: <Filter className="h-4 w-4" />
+    id: '2',
+    name: 'Appointment Reminders',
+    description: 'SMS and email reminders for scheduled appointments',
+    status: 'active',
+    trigger: 'Appointment Scheduled',
+    nodes: [],
+    stats: { triggered: 156, completed: 142, active: 14 },
+    createdAt: '2024-01-10',
+    updatedAt: '2024-01-22'
   },
   {
-    id: 'tag_added',
-    title: 'Tag Added',
-    description: 'When a tag is added to contact',
-    icon: <Badge className="h-4 w-4" />
+    id: '3',
+    name: 'Customer Follow-up',
+    description: 'Post-purchase follow-up sequence',
+    status: 'paused',
+    trigger: 'Purchase Completed',
+    nodes: [],
+    stats: { triggered: 89, completed: 76, active: 0 },
+    createdAt: '2024-01-08',
+    updatedAt: '2024-01-18'
   }
+];
+
+const triggerTypes = [
+  { id: 'contact_created', name: 'Contact Created', icon: Users },
+  { id: 'form_submitted', name: 'Form Submitted', icon: Target },
+  { id: 'email_opened', name: 'Email Opened', icon: Mail },
+  { id: 'appointment_scheduled', name: 'Appointment Scheduled', icon: Calendar },
+  { id: 'tag_added', name: 'Tag Added', icon: Target },
+  { id: 'purchase_made', name: 'Purchase Made', icon: Target }
 ];
 
 const actionTypes = [
-  {
-    id: 'send_email',
-    title: 'Send Email',
-    description: 'Send an email to the contact',
-    icon: <Mail className="h-4 w-4" />
-  },
-  {
-    id: 'send_sms',
-    title: 'Send SMS',
-    description: 'Send an SMS to the contact',
-    icon: <MessageSquare className="h-4 w-4" />
-  },
-  {
-    id: 'make_call',
-    title: 'Make Call',
-    description: 'Make a phone call',
-    icon: <Phone className="h-4 w-4" />
-  },
-  {
-    id: 'add_delay',
-    title: 'Add Delay',
-    description: 'Wait for a specified time',
-    icon: <Clock className="h-4 w-4" />
-  }
+  { id: 'send_email', name: 'Send Email', icon: Mail },
+  { id: 'send_sms', name: 'Send SMS', icon: MessageSquare },
+  { id: 'add_tag', name: 'Add Tag', icon: Target },
+  { id: 'create_task', name: 'Create Task', icon: Clock },
+  { id: 'send_notification', name: 'Send Notification', icon: Target },
+  { id: 'update_contact', name: 'Update Contact', icon: Users }
 ];
 
-const mockWorkflow: Workflow = {
-  id: '1',
-  name: 'Welcome Series',
-  description: 'Automated welcome sequence for new contacts',
-  isActive: true,
-  trigger: {
-    id: 'trigger_1',
-    type: 'trigger',
-    title: 'Contact Added',
-    description: 'When a new contact is added',
-    icon: <Users className="h-4 w-4" />,
-    config: {},
-    connections: ['step_1']
-  },
-  steps: [
-    {
-      id: 'step_1',
-      type: 'action',
-      title: 'Send Welcome Email',
-      description: 'Send welcome email immediately',
-      icon: <Mail className="h-4 w-4" />,
-      config: { template: 'welcome_email' },
-      connections: ['step_2']
-    },
-    {
-      id: 'step_2',
-      type: 'delay',
-      title: 'Wait 1 Day',
-      description: 'Wait 24 hours',
-      icon: <Clock className="h-4 w-4" />,
-      config: { delay: 24, unit: 'hours' },
-      connections: ['step_3']
-    },
-    {
-      id: 'step_3',
-      type: 'action',
-      title: 'Send Follow-up SMS',
-      description: 'Send follow-up SMS message',
-      icon: <MessageSquare className="h-4 w-4" />,
-      config: { message: 'Thanks for joining! How can we help?' },
-      connections: []
-    }
-  ],
-  stats: {
-    enrolled: 245,
-    completed: 189,
-    failed: 12
-  }
-};
-
 export function WorkflowBuilder() {
-  const [workflow, setWorkflow] = useState(mockWorkflow);
-  const [selectedStep, setSelectedStep] = useState<WorkflowStep | null>(null);
-  const [showTriggerPanel, setShowTriggerPanel] = useState(false);
-  const [showActionPanel, setShowActionPanel] = useState(false);
+  const [workflows, setWorkflows] = useState(initialWorkflows);
+  const [activeTab, setActiveTab] = useState("workflows");
+  const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
+  const [showNewWorkflow, setShowNewWorkflow] = useState(false);
+  const [builderMode, setBuilderMode] = useState(false);
 
-  const handleDragEnd = useCallback((result: any) => {
-    if (!result.destination) return;
-
-    const items = Array.from(workflow.steps);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setWorkflow(prev => ({ ...prev, steps: items }));
-  }, [workflow.steps]);
-
-  const addStep = (type: any) => {
-    const newStep: WorkflowStep = {
-      id: `step_${Date.now()}`,
-      type: 'action',
-      title: type.title,
-      description: type.description,
-      icon: type.icon,
-      config: {},
-      connections: []
-    };
-
-    setWorkflow(prev => ({
-      ...prev,
-      steps: [...prev.steps, newStep]
-    }));
-    setShowActionPanel(false);
-  };
-
-  const toggleWorkflow = () => {
-    setWorkflow(prev => ({ ...prev, isActive: !prev.isActive }));
-  };
-
-  const getStepColor = (type: WorkflowStep['type']) => {
-    switch (type) {
-      case 'trigger': return 'border-green-500 bg-green-50';
-      case 'action': return 'border-blue-500 bg-blue-50';
-      case 'condition': return 'border-yellow-500 bg-yellow-50';
-      case 'delay': return 'border-purple-500 bg-purple-50';
-      default: return 'border-gray-500 bg-gray-50';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'draft': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const toggleWorkflowStatus = (workflowId: string) => {
+    setWorkflows(prev => prev.map(workflow => 
+      workflow.id === workflowId 
+        ? { ...workflow, status: workflow.status === 'active' ? 'paused' : 'active' }
+        : workflow
+    ));
+  };
+
+  const workflowStats = {
+    total: workflows.length,
+    active: workflows.filter(w => w.status === 'active').length,
+    totalTriggered: workflows.reduce((sum, w) => sum + w.stats.triggered, 0),
+    totalCompleted: workflows.reduce((sum, w) => sum + w.stats.completed, 0)
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Workflow Builder</h2>
-          <p className="text-muted-foreground">Create and manage automated workflows</p>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Zap className="h-8 w-8 text-primary" />
+            Automation Workflows
+          </h1>
+          <p className="text-muted-foreground">Create and manage automated workflows for your business</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center gap-2">
           <Button variant="outline">
-            <Eye className="h-4 w-4 mr-2" />
-            Preview
+            <Upload className="h-4 w-4 mr-2" />
+            Import
           </Button>
           <Button variant="outline">
-            <Save className="h-4 w-4 mr-2" />
-            Save
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
           </Button>
-          <Button
-            onClick={toggleWorkflow}
-            variant={workflow.isActive ? "destructive" : "default"}
-          >
-            {workflow.isActive ? (
-              <>
-                <Pause className="h-4 w-4 mr-2" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                Activate
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Workflow Canvas */}
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>{workflow.name}</CardTitle>
-                  <p className="text-muted-foreground">{workflow.description}</p>
-                </div>
-                <Badge variant={workflow.isActive ? "default" : "secondary"}>
-                  {workflow.isActive ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Trigger */}
-              <div className="flex items-center space-x-4">
-                <div className={`p-4 rounded-lg border-2 ${getStepColor('trigger')} min-w-[200px]`}>
-                  <div className="flex items-center space-x-2 mb-2">
-                    {workflow.trigger.icon}
-                    <h3 className="font-medium">{workflow.trigger.title}</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{workflow.trigger.description}</p>
-                </div>
-                <div className="h-0.5 w-8 bg-gray-300" />
-              </div>
-
-              {/* Steps */}
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="workflow-steps">
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="space-y-4"
-                    >
-                      {workflow.steps.map((step, index) => (
-                        <Draggable key={step.id} draggableId={step.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className="flex items-center space-x-4"
-                            >
-                              <div 
-                                className={`p-4 rounded-lg border-2 cursor-pointer transition-all min-w-[200px] ${
-                                  getStepColor(step.type)
-                                } ${
-                                  selectedStep?.id === step.id ? 'ring-2 ring-primary' : ''
-                                } ${
-                                  snapshot.isDragging ? 'shadow-lg' : ''
-                                }`}
-                                onClick={() => setSelectedStep(step)}
-                              >
-                                <div className="flex items-center space-x-2 mb-2">
-                                  {step.icon}
-                                  <h3 className="font-medium">{step.title}</h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground">{step.description}</p>
-                              </div>
-                              {index < workflow.steps.length - 1 && (
-                                <div className="h-0.5 w-8 bg-gray-300" />
-                              )}
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-
-              {/* Add Step Button */}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowActionPanel(true)}
-              >
+          <Dialog open={showNewWorkflow} onOpenChange={setShowNewWorkflow}>
+            <DialogTrigger asChild>
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Step
+                Create Workflow
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Create New Workflow</DialogTitle>
+              </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Enrolled</p>
-                  <p className="text-2xl font-bold">{workflow.stats.enrolled}</p>
+                  <label className="text-sm font-medium">Workflow Name</label>
+                  <Input placeholder="Enter workflow name" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">{workflow.stats.completed}</p>
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea placeholder="Describe what this workflow does" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Failed</p>
-                  <p className="text-2xl font-bold text-red-600">{workflow.stats.failed}</p>
+                  <label className="text-sm font-medium">Trigger</label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select trigger event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {triggerTypes.map(trigger => (
+                        <SelectItem key={trigger.id} value={trigger.id}>
+                          {trigger.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Success Rate</p>
-                  <p className="text-xl font-bold">
-                    {Math.round((workflow.stats.completed / workflow.stats.enrolled) * 100)}%
-                  </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Start Active</span>
+                  <Switch />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowNewWorkflow(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => setShowNewWorkflow(false)}>
+                    Create & Build
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => setShowTriggerPanel(true)}
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                Change Trigger
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => setShowActionPanel(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Action
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Action Panel */}
-          {showActionPanel && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Add Action</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {actionTypes.map((action) => (
-                  <Button
-                    key={action.id}
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => addStep(action)}
-                  >
-                    {action.icon}
-                    <span className="ml-2">{action.title}</span>
-                  </Button>
-                ))}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setShowActionPanel(false)}
-                >
-                  Cancel
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Workflows</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{workflowStats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Workflows</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{workflowStats.active}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Triggered</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{workflowStats.totalTriggered}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round((workflowStats.totalCompleted / workflowStats.totalTriggered) * 100)}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="workflows">Workflows</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="workflows" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {workflows.map((workflow) => (
+              <Card key={workflow.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="h-5 w-5 text-primary" />
+                      <Badge className={getStatusColor(workflow.status)}>
+                        {workflow.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Button variant="ghost" size="sm">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <CardTitle className="text-lg">{workflow.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{workflow.description}</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                    <span>Trigger: {workflow.trigger}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-semibold text-blue-600">
+                        {workflow.stats.triggered}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Triggered</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-green-600">
+                        {workflow.stats.completed}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Completed</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-orange-600">
+                        {workflow.stats.active}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Active</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      Updated {workflow.updatedAt}
+                    </span>
+                    <Button
+                      variant={workflow.status === 'active' ? 'outline' : 'default'}
+                      size="sm"
+                      onClick={() => toggleWorkflowStatus(workflow.id)}
+                    >
+                      {workflow.status === 'active' ? (
+                        <>
+                          <Pause className="h-4 w-4 mr-1" />
+                          Pause
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-1" />
+                          Activate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                name: 'Welcome Email Series',
+                description: 'Automated welcome sequence for new subscribers',
+                category: 'Email Marketing',
+                uses: 1250
+              },
+              {
+                name: 'Abandoned Cart Recovery',
+                description: 'Recover abandoned carts with targeted emails',
+                category: 'E-commerce',
+                uses: 890
+              },
+              {
+                name: 'Lead Scoring',
+                description: 'Automatically score leads based on behavior',
+                category: 'Lead Management',
+                uses: 567
+              },
+              {
+                name: 'Appointment Reminders',
+                description: 'Send SMS and email reminders for appointments',
+                category: 'Scheduling',
+                uses: 2100
+              },
+              {
+                name: 'Customer Feedback',
+                description: 'Collect feedback after service completion',
+                category: 'Customer Service',
+                uses: 450
+              },
+              {
+                name: 'Birthday Campaign',
+                description: 'Send birthday wishes and special offers',
+                category: 'Customer Retention',
+                uses: 780
+              }
+            ].map((template, index) => (
+              <Card key={index} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{template.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{template.description}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between mb-4">
+                    <Badge variant="outline">{template.category}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {template.uses} uses
+                    </span>
+                  </div>
+                  <Button className="w-full">Use Template</Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Workflow Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {workflows.map((workflow) => (
+                    <div key={workflow.id} className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">{workflow.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {workflow.stats.completed}/{workflow.stats.triggered} completed
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold">
+                          {Math.round((workflow.stats.completed / workflow.stats.triggered) * 100)}%
+                        </div>
+                        <div className="text-sm text-muted-foreground">completion</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Trigger Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {triggerTypes.slice(0, 4).map((trigger, index) => (
+                    <div key={trigger.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <trigger.icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{trigger.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold">
+                          {Math.floor(Math.random() * 100) + 50}
+                        </div>
+                        <div className="text-sm text-muted-foreground">triggers</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Automation Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span>Enable Automation</span>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Send Error Notifications</span>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Debug Mode</span>
+                  <Switch />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Auto-retry Failed Actions</span>
+                  <Switch defaultChecked />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Limits & Quotas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Monthly Workflow Executions</span>
+                  <span className="font-semibold">2,450 / 10,000</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Active Workflows</span>
+                  <span className="font-semibold">{workflowStats.active} / 50</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Email Actions</span>
+                  <span className="font-semibold">1,240 / 5,000</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>SMS Actions</span>
+                  <span className="font-semibold">890 / 2,000</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
