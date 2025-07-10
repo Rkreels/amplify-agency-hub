@@ -76,7 +76,7 @@ export function ContactForm({ contact, onComplete }: ContactFormProps) {
             placeholder="Enter first name"
           />
           {errors.firstName && (
-            <p className="text-sm text-red-600">{errors.firstName.message}</p>
+            <p className="text-sm text-red-600">{errors.firstName.message?.toString()}</p>
           )}
         </div>
         
@@ -88,7 +88,7 @@ export function ContactForm({ contact, onComplete }: ContactFormProps) {
             placeholder="Enter last name"
           />
           {errors.lastName && (
-            <p className="text-sm text-red-600">{errors.lastName.message}</p>
+            <p className="text-sm text-red-600">{errors.lastName.message?.toString()}</p>
           )}
         </div>
       </div>
@@ -108,7 +108,7 @@ export function ContactForm({ contact, onComplete }: ContactFormProps) {
           placeholder="Enter email address"
         />
         {errors.email && (
-          <p className="text-sm text-red-600">{errors.email.message}</p>
+          <p className="text-sm text-red-600">{errors.email.message?.toString()}</p>
         )}
       </div>
 

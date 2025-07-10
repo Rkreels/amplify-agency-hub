@@ -314,8 +314,17 @@ export function CalendarView() {
           <EventForm
             event={editingEvent}
             onComplete={handleCloseDialog}
-            onDelete={editingEvent ? () => handleDeleteEvent(editingEvent.id) : undefined}
           />
+          {editingEvent && (
+            <div className="flex justify-end pt-4">
+              <Button 
+                variant="destructive" 
+                onClick={() => handleDeleteEvent(editingEvent.id)}
+              >
+                Delete Event
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
