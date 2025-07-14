@@ -1,37 +1,37 @@
 
-import { MainNav } from "./MainNav";
-import { Sidebar } from "./Sidebar";
-import { useVoiceTraining } from "@/components/voice/VoiceTrainingProvider";
-import { useEffect } from "react";
+import React from 'react';
+import { Sidebar } from './Sidebar';
+import { MainNav } from './MainNav';
+import { UserAccountNav } from './UserAccountNav';
+import { SubAccountSwitcher } from './SubAccountSwitcher';
+import { useSubAccountSync } from '@/hooks/useSubAccountSync';
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { startContextualTraining } = useVoiceTraining();
+interface AppLayoutProps {
+  children: React.ReactNode;
+}
 
-  useEffect(() => {
-    // Auto-start contextual training when entering a new section
-    const currentPath = window.location.pathname;
-    const context = currentPath.split('/')[1] || 'dashboard';
-    
-    // Optional: Auto-start training for new users (you can add user preference logic here)
-    const hasSeenTraining = localStorage.getItem(`voice-training-${context}`);
-    if (!hasSeenTraining) {
-      setTimeout(() => {
-        startContextualTraining(context);
-        localStorage.setItem(`voice-training-${context}`, 'true');
-      }, 2000);
-    }
-  }, [startContextualTraining]);
+export function AppLayout({ children }: AppLayoutProps) {
+  // Sync store data with sub-account changes
+  useSubAccountSync();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex flex-1">
-        <div className="hidden md:block w-64 bg-[#1A1F2C] text-white">
-          <Sidebar />
-        </div>
-        <div className="flex flex-1 flex-col">
-          <MainNav />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
-        </div>
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <header className="flex items-center justify-between px-6 py-4 bg-white border-b">
+          <div className="flex items-center gap-4">
+            <div className="w-64">
+              <SubAccountSwitcher />
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <MainNav />
+            <UserAccountNav />
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

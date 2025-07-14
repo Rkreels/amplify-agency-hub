@@ -1,5 +1,6 @@
 
 import { create } from 'zustand';
+import { useSubAccount } from '@/contexts/SubAccountContext';
 
 export type ContactStatus = 'lead' | 'customer' | 'prospect' | 'inactive';
 export type ContactSource = 'website' | 'referral' | 'social' | 'ads' | 'phone' | 'email';
@@ -33,6 +34,7 @@ export interface Contact {
   assignedTo?: string;
   leadScore: number;
   lifecycle: string;
+  subAccountId?: string;
 }
 
 interface ContactsStore {
@@ -55,46 +57,76 @@ interface ContactsStore {
   updateCustomField: (id: string, updates: Partial<CustomField>) => void;
   deleteCustomField: (id: string) => void;
   getFilteredContacts: () => Contact[];
+  loadSubAccountContacts: (subAccountId: string) => void;
 }
 
-export const useContactsStore = create<ContactsStore>((set, get) => ({
-  contacts: [
+// Base contacts for different sub-accounts
+const baseContacts: Record<string, Contact[]> = {
+  'agency-main': [
     {
       id: '1',
       firstName: 'John',
       lastName: 'Smith',
-      email: 'john@example.com',
+      email: 'john@agency.com',
       phone: '+1-555-0123',
-      company: 'ABC Corp',
+      company: 'Agency Corp',
       position: 'CEO',
-      status: 'lead',
+      status: 'customer',
       source: 'website',
-      tags: ['hot-lead', 'enterprise'],
-      notes: 'Interested in premium package',
+      tags: ['vip', 'enterprise'],
+      notes: 'Main agency contact',
       customFields: {},
       createdAt: new Date('2024-01-15'),
       updatedAt: new Date(),
-      leadScore: 85,
-      lifecycle: 'Marketing Qualified Lead'
-    },
+      leadScore: 95,
+      lifecycle: 'Customer',
+      subAccountId: 'agency-main'
+    }
+  ],
+  'client-realestate': [
     {
       id: '2',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      email: 'jane@company.com',
+      firstName: 'Mike',
+      lastName: 'Wilson',
+      email: 'mike@realestate.com',
       phone: '+1-555-0124',
-      company: 'XYZ Inc',
-      status: 'customer',
+      company: 'Premium Real Estate',
+      status: 'prospect',
       source: 'referral',
-      tags: ['vip'],
-      notes: 'Existing customer, renewal due next month',
+      tags: ['hot-lead'],
+      notes: 'Looking for property management software',
       customFields: {},
       createdAt: new Date('2024-02-01'),
       updatedAt: new Date(),
-      leadScore: 95,
-      lifecycle: 'Customer'
+      leadScore: 80,
+      lifecycle: 'Marketing Qualified Lead',
+      subAccountId: 'client-realestate'
     }
   ],
+  'client-fitness': [
+    {
+      id: '3',
+      firstName: 'David',
+      lastName: 'Lee',
+      email: 'david@fitlife.com',
+      phone: '+1-555-0125',
+      company: 'FitLife Gym',
+      status: 'lead',
+      source: 'social',
+      tags: ['fitness', 'membership'],
+      notes: 'Interested in personal training',
+      customFields: {},
+      createdAt: new Date('2024-02-10'),
+      updatedAt: new Date(),
+      leadScore: 65,
+      lifecycle: 'New Lead',
+      subAccountId: 'client-fitness'
+    }
+  ]
+};
+
+export const useContactsStore = create<ContactsStore>((set, get) => ({
+  contacts: baseContacts['agency-main'] || [],
   customFields: [
     {
       id: '1',
@@ -118,6 +150,12 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
   statusFilter: '',
   sourceFilter: '',
   tagFilter: '',
+
+  loadSubAccountContacts: (subAccountId: string) => {
+    const subAccountContacts = baseContacts[subAccountId] || [];
+    set({ contacts: subAccountContacts });
+  },
+
   addContact: (contact) => set((state) => ({
     contacts: [...state.contacts, {
       ...contact,
@@ -126,30 +164,37 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
       updatedAt: new Date()
     }]
   })),
+
   updateContact: (id, updates) => set((state) => ({
     contacts: state.contacts.map(contact =>
       contact.id === id ? { ...contact, ...updates, updatedAt: new Date() } : contact
     )
   })),
+
   deleteContact: (id) => set((state) => ({
     contacts: state.contacts.filter(contact => contact.id !== id)
   })),
+
   setSelectedContact: (contact) => set({ selectedContact: contact }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setStatusFilter: (status) => set({ statusFilter: status }),
   setSourceFilter: (source) => set({ sourceFilter: source }),
   setTagFilter: (tag) => set({ tagFilter: tag }),
+
   addCustomField: (field) => set((state) => ({
     customFields: [...state.customFields, { ...field, id: Date.now().toString() }]
   })),
+
   updateCustomField: (id, updates) => set((state) => ({
     customFields: state.customFields.map(field =>
       field.id === id ? { ...field, ...updates } : field
     )
   })),
+
   deleteCustomField: (id) => set((state) => ({
     customFields: state.customFields.filter(field => field.id !== id)
   })),
+
   getFilteredContacts: () => {
     const { contacts, searchQuery, statusFilter, sourceFilter, tagFilter } = get();
     return contacts.filter(contact => {

@@ -46,7 +46,11 @@ export function ContactForm({ contact, onComplete }: ContactFormProps) {
       const contactData = {
         ...data,
         tags: data.tags ? data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean) : [],
-        avatar: contact?.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&random=${Math.random()}`
+        avatar: contact?.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&random=${Math.random()}`,
+        source: contact?.source || 'website',
+        customFields: contact?.customFields || {},
+        leadScore: contact?.leadScore || 0,
+        lifecycle: contact?.lifecycle || 'New Lead'
       };
 
       if (contact) {
