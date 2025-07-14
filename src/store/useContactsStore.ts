@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { toast } from 'sonner';
 
@@ -19,7 +20,7 @@ export interface Contact {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  phone?: string;
   company?: string;
   position?: string;
   address?: {

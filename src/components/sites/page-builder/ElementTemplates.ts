@@ -1,5 +1,5 @@
 
-import { Type, Image, Square, Button as ButtonIcon, Video, Minus, MoreHorizontal } from 'lucide-react';
+import { Type, Image, Square, RectangleHorizontal, Video, Minus, MoreHorizontal } from 'lucide-react';
 import { Element, ElementTemplate } from './types';
 
 export const elementTemplates: ElementTemplate[] = [
@@ -38,7 +38,7 @@ export const elementTemplates: ElementTemplate[] = [
   {
     type: 'button',
     label: 'Button',
-    icon: ButtonIcon,
+    icon: RectangleHorizontal,
     template: {
       type: 'button',
       content: 'Click me',
