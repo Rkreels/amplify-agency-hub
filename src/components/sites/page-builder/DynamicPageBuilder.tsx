@@ -31,24 +31,16 @@ import {
 } from 'lucide-react';
 import { ElementRenderer } from './ElementRenderer';
 import { EnhancedElementTemplates } from './EnhancedElementTemplates';
-import { Element } from './types';
+import { Element, Layer, Position, Size } from './types';
 import { toast } from 'sonner';
-
-interface Layer {
-  id: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  elements: string[];
-}
 
 export function DynamicPageBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
   const [layers, setLayers] = useState<Layer[]>([
-    { id: 'layer-1', name: 'Background', visible: true, locked: false, elements: [] },
-    { id: 'layer-2', name: 'Content', visible: true, locked: false, elements: [] },
-    { id: 'layer-3', name: 'Overlay', visible: true, locked: false, elements: [] }
+    { id: 'layer-1', name: 'Background', visible: true, locked: false, elements: [], zIndex: 1 },
+    { id: 'layer-2', name: 'Content', visible: true, locked: false, elements: [], zIndex: 2 },
+    { id: 'layer-3', name: 'Overlay', visible: true, locked: false, elements: [], zIndex: 3 }
   ]);
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeTab, setActiveTab] = useState('elements');
@@ -65,10 +57,12 @@ export function DynamicPageBuilder() {
     {
       id: 'hero-section',
       name: 'Hero Section',
+      description: 'A hero section with title, subtitle and CTA',
+      category: 'sections',
       elements: [
         {
           id: 'hero-bg',
-          type: 'container',
+          type: 'container' as const,
           position: { x: 0, y: 0 },
           size: { width: 100, height: 500 },
           styles: {
@@ -85,7 +79,7 @@ export function DynamicPageBuilder() {
         },
         {
           id: 'hero-title',
-          type: 'heading',
+          type: 'heading' as const,
           position: { x: 0, y: 0 },
           size: { width: 100, height: 80 },
           styles: {
@@ -100,7 +94,7 @@ export function DynamicPageBuilder() {
         },
         {
           id: 'hero-subtitle',
-          type: 'text',
+          type: 'text' as const,
           position: { x: 0, y: 80 },
           size: { width: 100, height: 40 },
           styles: {
@@ -115,7 +109,7 @@ export function DynamicPageBuilder() {
         },
         {
           id: 'hero-cta',
-          type: 'button',
+          type: 'button' as const,
           position: { x: 0, y: 120 },
           size: { width: 200, height: 50 },
           styles: {
@@ -131,14 +125,14 @@ export function DynamicPageBuilder() {
           content: 'Get Started Now',
           parent: 'hero-bg'
         }
-      ]
+      ] as Element[]
     },
     {
       id: 'feature-grid',
       name: 'Feature Grid',
-      elements: [
-        // Feature grid elements would be defined here
-      ]
+      description: 'A grid of features with icons',
+      category: 'sections',
+      elements: [] as Element[]
     }
   ];
 
@@ -197,7 +191,7 @@ export function DynamicPageBuilder() {
     const template = templates.find(t => t.id === templateId);
     if (!template) return;
 
-    setElements(template.elements as Element[]);
+    setElements(template.elements);
     toast.success(`${template.name} template loaded`);
   }, []);
 
@@ -251,6 +245,7 @@ export function DynamicPageBuilder() {
               <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <h5 className="font-medium mb-2">{template.name}</h5>
+                  <p className="text-sm text-gray-600 mb-3">{template.description}</p>
                   <Button size="sm" onClick={() => loadTemplate(template.id)}>
                     Load Template
                   </Button>

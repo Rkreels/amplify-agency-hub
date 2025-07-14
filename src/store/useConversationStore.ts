@@ -19,6 +19,7 @@ export interface Conversation {
   contactName: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactAvatar?: string;
   channel: 'email' | 'sms' | 'whatsapp' | 'facebook' | 'instagram' | 'webchat' | 'phone';
   messages: Message[];
   unreadCount: number;
@@ -28,6 +29,7 @@ export interface Conversation {
   tags: string[];
   priority: 'low' | 'medium' | 'high' | 'urgent';
   source: string;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,10 +37,14 @@ export interface Conversation {
 interface ConversationStore {
   conversations: Conversation[];
   selectedConversation: Conversation | null;
+  selectedConversationId: string | null;
   isLoading: boolean;
   searchQuery: string;
   filterStatus: string;
   filterChannel: string;
+  channelFilter: string;
+  statusFilter: string;
+  isTyping: boolean;
   sortBy: 'recent' | 'oldest' | 'priority' | 'unread';
   
   // CRUD Operations
@@ -49,6 +55,7 @@ interface ConversationStore {
   
   // Message Operations
   sendMessage: (conversationId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  addMessage: (conversationId: string, message: Omit<Message, 'id'>) => Promise<void>;
   updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => Promise<void>;
   deleteMessage: (conversationId: string, messageId: string) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
@@ -57,11 +64,16 @@ interface ConversationStore {
   setSearchQuery: (query: string) => void;
   setFilterStatus: (status: string) => void;
   setFilterChannel: (channel: string) => void;
+  setChannelFilter: (channel: string) => void;
+  setStatusFilter: (status: string) => void;
+  setTyping: (typing: boolean) => void;
   setSortBy: (sort: 'recent' | 'oldest' | 'priority' | 'unread') => void;
   getFilteredConversations: () => Conversation[];
   
   // Selection
-  setSelectedConversation: (conversation: Conversation | null) => void;
+  setSelectedConversation: (conversationId: string | null) => void;
+  getSelectedConversation: () => Conversation | null;
+  addConversation: (conversation: Omit<Conversation, 'id'>) => void;
   
   // Bulk Operations
   bulkUpdateStatus: (ids: string[], status: Conversation['status']) => Promise<void>;
@@ -82,6 +94,7 @@ const generateMockConversations = (): Conversation[] => [
     contactName: 'Sarah Johnson',
     contactEmail: 'sarah@example.com',
     contactPhone: '+1234567890',
+    contactAvatar: '/placeholder.svg',
     channel: 'email',
     messages: [
       {
@@ -108,6 +121,7 @@ const generateMockConversations = (): Conversation[] => [
     tags: ['lead', 'interested'],
     priority: 'high',
     source: 'website',
+    notes: 'Interested in premium services',
     createdAt: new Date(Date.now() - 86400000),
     updatedAt: new Date(Date.now() - 3000000)
   },
@@ -116,6 +130,7 @@ const generateMockConversations = (): Conversation[] => [
     contactId: 'contact-2',
     contactName: 'Mike Chen',
     contactEmail: 'mike@example.com',
+    contactAvatar: '/placeholder.svg',
     channel: 'webchat',
     messages: [
       {
@@ -141,15 +156,18 @@ const generateMockConversations = (): Conversation[] => [
 export const useConversationStore = create<ConversationStore>((set, get) => ({
   conversations: generateMockConversations(),
   selectedConversation: null,
+  selectedConversationId: null,
   isLoading: false,
   searchQuery: '',
-  filterStatus: '',
-  filterChannel: '',
+  filterStatus: 'all',
+  filterChannel: 'all',
+  channelFilter: 'all',
+  statusFilter: 'all',
+  isTyping: false,
   sortBy: 'recent',
 
   loadConversations: async () => {
     set({ isLoading: true });
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     set({ 
       conversations: generateMockConversations(),
@@ -164,6 +182,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       contactName: data.contactName || 'Unknown Contact',
       contactEmail: data.contactEmail,
       contactPhone: data.contactPhone,
+      contactAvatar: data.contactAvatar,
       channel: data.channel || 'webchat',
       messages: data.messages || [],
       unreadCount: 0,
@@ -173,6 +192,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       tags: data.tags || [],
       priority: data.priority || 'medium',
       source: data.source || 'manual',
+      notes: data.notes,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -204,7 +224,10 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       conversations: state.conversations.filter(conv => conv.id !== id),
       selectedConversation: state.selectedConversation?.id === id 
         ? null 
-        : state.selectedConversation
+        : state.selectedConversation,
+      selectedConversationId: state.selectedConversationId === id 
+        ? null 
+        : state.selectedConversationId
     }));
     
     toast.success('Conversation deleted');
@@ -240,7 +263,6 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
         : state.selectedConversation
     }));
 
-    // Simulate message delivery
     setTimeout(() => {
       set(state => ({
         conversations: state.conversations.map(conv =>
@@ -257,6 +279,35 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
         )
       }));
     }, 1000);
+  },
+
+  addMessage: async (conversationId, messageData) => {
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      ...messageData
+    };
+
+    set(state => ({
+      conversations: state.conversations.map(conv =>
+        conv.id === conversationId
+          ? {
+              ...conv,
+              messages: [...conv.messages, newMessage],
+              lastMessageAt: new Date(),
+              updatedAt: new Date(),
+              unreadCount: messageData.sender === 'user' ? conv.unreadCount + 1 : conv.unreadCount
+            }
+          : conv
+      ),
+      selectedConversation: state.selectedConversation?.id === conversationId
+        ? {
+            ...state.selectedConversation,
+            messages: [...state.selectedConversation.messages, newMessage],
+            lastMessageAt: new Date(),
+            updatedAt: new Date()
+          }
+        : state.selectedConversation
+    }));
   },
 
   updateMessage: async (conversationId, messageId, updates) => {
@@ -302,6 +353,9 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setFilterStatus: (status) => set({ filterStatus: status }),
   setFilterChannel: (channel) => set({ filterChannel: channel }),
+  setChannelFilter: (channel) => set({ channelFilter: channel }),
+  setStatusFilter: (status) => set({ statusFilter: status }),
+  setTyping: (typing) => set({ isTyping: typing }),
   setSortBy: (sort) => set({ sortBy: sort }),
 
   getFilteredConversations: () => {
@@ -311,16 +365,15 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       if (searchQuery && !conv.contactName.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
-      if (filterStatus && conv.status !== filterStatus) {
+      if (filterStatus && filterStatus !== 'all' && conv.status !== filterStatus) {
         return false;
       }
-      if (filterChannel && conv.channel !== filterChannel) {
+      if (filterChannel && filterChannel !== 'all' && conv.channel !== filterChannel) {
         return false;
       }
       return true;
     });
 
-    // Sort conversations
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'recent':
@@ -340,11 +393,38 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     return filtered;
   },
 
-  setSelectedConversation: (conversation) => {
-    set({ selectedConversation: conversation });
+  setSelectedConversation: (conversationId) => {
+    const conversation = conversationId 
+      ? get().conversations.find(c => c.id === conversationId) || null
+      : null;
+    
+    set({ 
+      selectedConversation: conversation,
+      selectedConversationId: conversationId 
+    });
+    
     if (conversation && conversation.unreadCount > 0) {
       get().markAsRead(conversation.id);
     }
+  },
+
+  getSelectedConversation: () => {
+    return get().selectedConversation;
+  },
+
+  addConversation: (conversation) => {
+    const newConversation: Conversation = {
+      ...conversation,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    set(state => ({
+      conversations: [newConversation, ...state.conversations]
+    }));
+    
+    toast.success('Conversation added successfully');
   },
 
   bulkUpdateStatus: async (ids, status) => {
@@ -373,25 +453,21 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
 
   bulkDelete: async (ids) => {
     set(state => ({
-      conversations: state.conversations.filter(conv => !ids.includes(conv.id)),
-      selectedConversation: ids.includes(state.selectedConversation?.id || '')
-        ? null
-        : state.selectedConversation
+      conversations: state.conversations.filter(conv => !ids.includes(conv.id))
     }));
     
     toast.success(`${ids.length} conversations deleted`);
   },
 
   startTyping: (conversationId) => {
-    // Real-time typing indicator logic
-    console.log(`User started typing in conversation ${conversationId}`);
+    set({ isTyping: true });
   },
 
   stopTyping: (conversationId) => {
-    console.log(`User stopped typing in conversation ${conversationId}`);
+    set({ isTyping: false });
   },
 
   updatePresence: (conversationId, isOnline) => {
-    console.log(`Presence updated for conversation ${conversationId}: ${isOnline}`);
+    // Implementation for presence updates
   }
 }));

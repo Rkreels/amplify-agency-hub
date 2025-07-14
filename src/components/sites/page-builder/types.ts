@@ -1,64 +1,51 @@
 
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
 export interface Element {
   id: string;
-  type: 'text' | 'image' | 'button' | 'container' | 'form' | 'heading' | 'video' | 'divider' | 'spacer' | 'icon' | 'testimonial' | 'pricing' | 'countdown' | 'social' | 'map' | 'input';
-  content?: string;
-  src?: string;
-  alt?: string;
-  href?: string;
-  target?: '_blank' | '_self';
-  styles?: {
-    [key: string]: string;
+  type: 'text' | 'heading' | 'button' | 'image' | 'container' | 'form' | 'video' | 'divider' | 'spacer';
+  position: Position;
+  size: Size;
+  styles: Record<string, any>;
+  content: string;
+  children?: string[];
+  parent?: string;
+  layerId?: string;
+  locked?: boolean;
+  hidden?: boolean;
+  animation?: {
+    type: string;
+    duration: number;
+    delay: number;
   };
-  props?: {
-    [key: string]: any;
-    level?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-    src?: string;
-    alt?: string;
-    href?: string;
-    target?: '_blank' | '_self';
-    placeholder?: string;
-    required?: boolean;
-    type?: string;
+  responsive?: {
+    mobile: Partial<Element>;
+    tablet: Partial<Element>;
   };
-  attributes?: {
-    [key: string]: any;
-    type?: string;
-    placeholder?: string;
-    name?: string;
-    required?: boolean;
-  };
-  children?: Element[];
 }
 
-export interface Page {
+export interface Layer {
   id: string;
-  title: string;
-  slug: string;
-  elements: Element[];
-  settings: {
-    title: string;
-    description: string;
-    keywords: string;
-  };
-  isPublished: boolean;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  elements: string[];
+  zIndex: number;
 }
 
-export interface ElementTemplate {
-  type: string;
-  label: string;
-  icon: any;
-  template: Element;
-}
-
-export interface PageBuilderState {
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
   elements: Element[];
-  selectedElement: Element | null;
-  history: Element[][];
-  historyIndex: number;
-  zoom: number;
-  viewMode: 'desktop' | 'tablet' | 'mobile';
-  previewMode: boolean;
-  gridEnabled: boolean;
-  snapToGrid: boolean;
+  thumbnail?: string;
 }

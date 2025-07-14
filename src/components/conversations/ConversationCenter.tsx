@@ -133,7 +133,7 @@ export function ConversationCenter() {
         const autoReply: Omit<Message, 'id'> = {
           content: 'Thanks for your message! I\'ll get back to you shortly.',
           timestamp: new Date(),
-          sender: 'contact',
+          sender: 'agent',
           type: 'text',
           status: 'delivered'
         };
@@ -168,7 +168,10 @@ export function ConversationCenter() {
       lastMessageAt: new Date(),
       status: 'active',
       tags: [],
-      notes: ''
+      priority: 'medium',
+      source: 'manual',
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     addConversation(newConversation);
@@ -212,7 +215,7 @@ export function ConversationCenter() {
   };
 
   const ConversationItem = ({ conversation }: { conversation: Conversation }) => {
-    const ChannelIcon = channelIcons[conversation.channel];
+    const ChannelIcon = channelIcons[conversation.channel as keyof typeof channelIcons] || MessageSquare;
     const lastMessage = conversation.messages[conversation.messages.length - 1];
     
     return (
@@ -230,7 +233,7 @@ export function ConversationCenter() {
                 {conversation.contactName.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            <ChannelIcon className={`h-4 w-4 absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 ${channelColors[conversation.channel]}`} />
+            <ChannelIcon className={`h-4 w-4 absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 ${channelColors[conversation.channel as keyof typeof channelColors] || 'text-gray-500'}`} />
           </div>
           
           <div className="flex-1 min-w-0">
@@ -405,7 +408,7 @@ export function ConversationCenter() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="snoozed">Snoozed</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
@@ -437,8 +440,8 @@ export function ConversationCenter() {
                   <div>
                     <h3 className="font-semibold">{selectedConversation.contactName}</h3>
                     <div className="flex items-center text-sm text-muted-foreground">
-                      {React.createElement(channelIcons[selectedConversation.channel], {
-                        className: `h-4 w-4 mr-1 ${channelColors[selectedConversation.channel]}`
+                      {React.createElement(channelIcons[selectedConversation.channel as keyof typeof channelIcons] || MessageSquare, {
+                        className: `h-4 w-4 mr-1 ${channelColors[selectedConversation.channel as keyof typeof channelColors] || 'text-gray-500'}`
                       })}
                       {selectedConversation.channel.toUpperCase()}
                       {isTyping && (
