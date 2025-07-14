@@ -1,468 +1,442 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React, { useState, useCallback } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { 
   Plus, 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
   DollarSign, 
-  Calendar,
-  User,
-  Phone,
-  Mail,
+  Calendar, 
+  User, 
+  Building, 
+  Phone, 
+  Mail, 
+  MoreVertical,
   Edit,
   Trash2,
-  Target
+  Copy,
+  Eye,
+  Filter,
+  Search,
+  Settings
 } from 'lucide-react';
-import { useOpportunityStore } from '@/store/useOpportunityStore';
 import { toast } from 'sonner';
 
-interface NewOpportunityData {
-  name: string;
+interface Opportunity {
+  id: string;
+  title: string;
   company: string;
-  contactPerson: string;
-  email: string;
-  phone: string;
+  contact: {
+    name: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
+  };
   value: number;
-  stage: string;
   probability: number;
-  expectedCloseDate: string;
+  stage: string;
+  expectedCloseDate: Date;
   source: string;
   assignedTo: string;
   tags: string[];
   notes: string;
+  activities: Array<{
+    id: string;
+    type: string;
+    description: string;
+    date: Date;
+    user: string;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface PipelineStage {
+  id: string;
+  name: string;
+  color: string;
+  probability: number;
+  opportunities: Opportunity[];
 }
 
 export function OpportunityPipeline() {
-  const {
-    opportunities,
-    pipelines,
-    selectedPipeline,
-    searchQuery,
-    filters,
-    addOpportunity,
-    updateOpportunity,
-    deleteOpportunity,
-    moveOpportunity,
-    addActivity,
-    setSelectedPipeline,
-    setSearchQuery,
-    setFilters,
-    getOpportunitiesByStage,
-    getTotalValue
-  } = useOpportunityStore();
+  const [stages, setStages] = useState<PipelineStage[]>([
+    {
+      id: 'lead',
+      name: 'Lead',
+      color: 'bg-gray-500',
+      probability: 10,
+      opportunities: [
+        {
+          id: 'opp-1',
+          title: 'Website Redesign Project',
+          company: 'TechCorp Inc.',
+          contact: {
+            name: 'Sarah Johnson',
+            email: 'sarah@techcorp.com',
+            phone: '+1234567890'
+          },
+          value: 15000,
+          probability: 10,
+          stage: 'lead',
+          expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          source: 'Website',
+          assignedTo: 'John Doe',
+          tags: ['web-design', 'high-value'],
+          notes: 'Initial interest shown in complete website overhaul',
+          activities: [],
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          updatedAt: new Date()
+        }
+      ]
+    },
+    {
+      id: 'qualified',
+      name: 'Qualified',
+      color: 'bg-blue-500',
+      probability: 25,
+      opportunities: [
+        {
+          id: 'opp-2',
+          title: 'CRM Implementation',
+          company: 'StartupXYZ',
+          contact: {
+            name: 'Mike Chen',
+            email: 'mike@startupxyz.com'
+          },
+          value: 25000,
+          probability: 25,
+          stage: 'qualified',
+          expectedCloseDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+          source: 'Referral',
+          assignedTo: 'Jane Smith',
+          tags: ['crm', 'startup'],
+          notes: 'Budget confirmed, decision makers identified',
+          activities: [],
+          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+          updatedAt: new Date()
+        }
+      ]
+    },
+    {
+      id: 'proposal',
+      name: 'Proposal',
+      color: 'bg-yellow-500',
+      probability: 50,
+      opportunities: [
+        {
+          id: 'opp-3',
+          title: 'Mobile App Development',
+          company: 'RetailCo',
+          contact: {
+            name: 'Lisa Wang',
+            email: 'lisa@retailco.com'
+          },
+          value: 50000,
+          probability: 50,
+          stage: 'proposal',
+          expectedCloseDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+          source: 'Cold Outreach',
+          assignedTo: 'Bob Wilson',
+          tags: ['mobile', 'retail'],
+          notes: 'Proposal submitted, awaiting feedback',
+          activities: [],
+          createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
+          updatedAt: new Date()
+        }
+      ]
+    },
+    {
+      id: 'negotiation',
+      name: 'Negotiation',
+      color: 'bg-orange-500',
+      probability: 75,
+      opportunities: []
+    },
+    {
+      id: 'closed-won',
+      name: 'Closed Won',
+      color: 'bg-green-500',
+      probability: 100,
+      opportunities: []
+    },
+    {
+      id: 'closed-lost',
+      name: 'Closed Lost',
+      color: 'bg-red-500',
+      probability: 0,
+      opportunities: []
+    }
+  ]);
 
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedOpportunity, setSelectedOpportunity] = useState<any>(null);
-  const [newOpportunityData, setNewOpportunityData] = useState<NewOpportunityData>({
-    name: '',
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('');
+
+  const [newOpportunity, setNewOpportunity] = useState({
+    title: '',
     company: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    value: 0,
-    stage: 'qualification',
-    probability: 25,
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    value: '',
+    probability: '',
+    stage: 'lead',
     expectedCloseDate: '',
-    source: 'website',
-    assignedTo: 'Sarah Johnson',
-    tags: [],
+    source: '',
+    assignedTo: '',
     notes: ''
   });
 
-  const currentPipeline = pipelines.find(p => p.id === selectedPipeline);
+  const handleDragEnd = useCallback((result: DropResult) => {
+    const { destination, source, draggableId } = result;
 
-  const handleCreateOpportunity = () => {
-    if (!newOpportunityData.name.trim() || !newOpportunityData.company.trim()) {
-      toast.error('Name and Company are required');
+    // If dropped outside a droppable area
+    if (!destination) return;
+
+    // If dropped in the same position
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
       return;
     }
 
-    const newOpportunity = {
-      ...newOpportunityData,
-      expectedCloseDate: new Date(newOpportunityData.expectedCloseDate || Date.now()),
-      tags: newOpportunityData.tags.filter(tag => tag.trim()),
-      activities: []
+    setStages(prev => {
+      const newStages = [...prev];
+      
+      // Find source and destination stages
+      const sourceStage = newStages.find(stage => stage.id === source.droppableId);
+      const destStage = newStages.find(stage => stage.id === destination.droppableId);
+      
+      if (!sourceStage || !destStage) return prev;
+
+      // Remove opportunity from source stage
+      const [movedOpportunity] = sourceStage.opportunities.splice(source.index, 1);
+      
+      // Update opportunity stage and probability
+      const updatedOpportunity = {
+        ...movedOpportunity,
+        stage: destination.droppableId,
+        probability: destStage.probability,
+        updatedAt: new Date()
+      };
+
+      // Add opportunity to destination stage
+      destStage.opportunities.splice(destination.index, 0, updatedOpportunity);
+
+      toast.success(`Opportunity moved to ${destStage.name}`);
+      return newStages;
+    });
+  }, []);
+
+  const createOpportunity = () => {
+    if (!newOpportunity.title || !newOpportunity.company || !newOpportunity.contactEmail) {
+      toast.error('Please fill in required fields');
+      return;
+    }
+
+    const opportunity: Opportunity = {
+      id: `opp-${Date.now()}`,
+      title: newOpportunity.title,
+      company: newOpportunity.company,
+      contact: {
+        name: newOpportunity.contactName,
+        email: newOpportunity.contactEmail,
+        phone: newOpportunity.contactPhone
+      },
+      value: parseFloat(newOpportunity.value) || 0,
+      probability: parseInt(newOpportunity.probability) || 10,
+      stage: newOpportunity.stage,
+      expectedCloseDate: new Date(newOpportunity.expectedCloseDate),
+      source: newOpportunity.source,
+      assignedTo: newOpportunity.assignedTo,
+      tags: [],
+      notes: newOpportunity.notes,
+      activities: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
-    addOpportunity(newOpportunity);
-    setNewOpportunityData({
-      name: '',
+    setStages(prev => 
+      prev.map(stage => 
+        stage.id === newOpportunity.stage
+          ? { ...stage, opportunities: [...stage.opportunities, opportunity] }
+          : stage
+      )
+    );
+
+    // Reset form
+    setNewOpportunity({
+      title: '',
       company: '',
-      contactPerson: '',
-      email: '',
-      phone: '',
-      value: 0,
-      stage: 'qualification',
-      probability: 25,
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+      value: '',
+      probability: '',
+      stage: 'lead',
       expectedCloseDate: '',
-      source: 'website',
-      assignedTo: 'Sarah Johnson',
-      tags: [],
+      source: '',
+      assignedTo: '',
       notes: ''
     });
-    setShowCreateDialog(false);
-    toast.success('Opportunity created successfully');
+
+    setIsCreateDialogOpen(false);
+    toast.success('Opportunity created successfully!');
   };
 
-  const handleUpdateOpportunity = () => {
-    if (!selectedOpportunity) return;
-
-    updateOpportunity(selectedOpportunity.id, {
-      ...newOpportunityData,
-      expectedCloseDate: new Date(newOpportunityData.expectedCloseDate),
-      tags: newOpportunityData.tags.filter(tag => tag.trim())
-    });
-    setShowEditDialog(false);
-    setSelectedOpportunity(null);
-    toast.success('Opportunity updated successfully');
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
-  const handleDeleteOpportunity = (opportunityId: string) => {
-    deleteOpportunity(opportunityId);
-    toast.success('Opportunity deleted successfully');
+  const getTotalValue = () => {
+    return stages.reduce((total, stage) => 
+      total + stage.opportunities.reduce((stageTotal, opp) => stageTotal + opp.value, 0), 0
+    );
   };
 
-  const handleEditOpportunity = (opportunity: any) => {
-    setSelectedOpportunity(opportunity);
-    setNewOpportunityData({
-      name: opportunity.name,
-      company: opportunity.company,
-      contactPerson: opportunity.contactPerson,
-      email: opportunity.email,
-      phone: opportunity.phone,
-      value: opportunity.value,
-      stage: opportunity.stage,
-      probability: opportunity.probability,
-      expectedCloseDate: opportunity.expectedCloseDate.toISOString().split('T')[0],
-      source: opportunity.source,
-      assignedTo: opportunity.assignedTo,
-      tags: opportunity.tags,
-      notes: opportunity.notes
-    });
-    setShowEditDialog(true);
+  const getWeightedValue = () => {
+    return stages.reduce((total, stage) => 
+      total + stage.opportunities.reduce((stageTotal, opp) => 
+        stageTotal + (opp.value * opp.probability / 100), 0
+      ), 0
+    );
   };
-
-  const handleStageChange = (opportunityId: string, newStage: string) => {
-    moveOpportunity(opportunityId, newStage);
-    toast.success('Opportunity moved successfully');
-  };
-
-  const handleAddActivity = (opportunityId: string, activityType: 'call' | 'email' | 'meeting' | 'note' | 'task') => {
-    const activity = {
-      type: activityType,
-      title: `${activityType.charAt(0).toUpperCase() + activityType.slice(1)} activity`,
-      description: `New ${activityType} activity added`,
-      timestamp: new Date(),
-      completedBy: 'Current User'
-    };
-    addActivity(opportunityId, activity);
-    toast.success(`${activityType} activity added`);
-  };
-
-  const OpportunityCard = ({ opportunity }: { opportunity: any }) => (
-    <Card className="mb-3 cursor-pointer hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <CardTitle className="text-sm font-medium">{opportunity.name}</CardTitle>
-            <CardDescription className="text-xs">{opportunity.company}</CardDescription>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleEditOpportunity(opportunity)}
-            >
-              <Edit className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeleteOpportunity(opportunity.id)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-green-600">
-              ${opportunity.value.toLocaleString()}
-            </span>
-            <Badge variant="outline" className="text-xs">
-              {opportunity.probability}%
-            </Badge>
-          </div>
-          
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <User className="h-3 w-3" />
-            <span>{opportunity.contactPerson}</span>
-          </div>
-          
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span>{opportunity.expectedCloseDate.toLocaleDateString()}</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs">
-              {opportunity.source}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {opportunity.assignedTo}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-1 mt-2">
-            {opportunity.tags.slice(0, 2).map((tag: string, index: number) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-            {opportunity.tags.length > 2 && (
-              <Badge variant="outline" className="text-xs">
-                +{opportunity.tags.length - 2}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex space-x-1 mt-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleAddActivity(opportunity.id, 'call')}
-              className="flex-1 text-xs"
-            >
-              <Phone className="h-3 w-3 mr-1" />
-              Call
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleAddActivity(opportunity.id, 'email')}
-              className="flex-1 text-xs"
-            >
-              <Mail className="h-3 w-3 mr-1" />
-              Email
-            </Button>
-          </div>
-
-          <Select
-            value={opportunity.stage}
-            onValueChange={(value) => handleStageChange(opportunity.id, value)}
-          >
-            <SelectTrigger className="w-full h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currentPipeline?.stages.map((stage) => (
-                <SelectItem key={stage.id} value={stage.id}>
-                  {stage.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Opportunities</h1>
-          <p className="text-muted-foreground">
-            Manage your sales pipeline and track deal progress
-          </p>
+          <h1 className="text-3xl font-bold">Opportunity Pipeline</h1>
+          <p className="text-muted-foreground">Track and manage your sales opportunities</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        
+        <div className="flex flex-wrap gap-2">
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Opportunity
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Opportunity</DialogTitle>
-                <DialogDescription>
-                  Add a new opportunity to your sales pipeline
-                </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Opportunity Name *</Label>
+                  <Label htmlFor="title">Title *</Label>
                   <Input
-                    id="name"
-                    value={newOpportunityData.name}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter opportunity name"
+                    id="title"
+                    value={newOpportunity.title}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, title: e.target.value}))}
+                    placeholder="Website Redesign Project"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company">Company *</Label>
                   <Input
                     id="company"
-                    value={newOpportunityData.company}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, company: e.target.value }))}
-                    placeholder="Enter company name"
+                    value={newOpportunity.company}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, company: e.target.value}))}
+                    placeholder="TechCorp Inc."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactPerson">Contact Person</Label>
+                  <Label htmlFor="contactName">Contact Name</Label>
                   <Input
-                    id="contactPerson"
-                    value={newOpportunityData.contactPerson}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, contactPerson: e.target.value }))}
-                    placeholder="Enter contact person"
+                    id="contactName"
+                    value={newOpportunity.contactName}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, contactName: e.target.value}))}
+                    placeholder="John Doe"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="contactEmail">Contact Email *</Label>
                   <Input
-                    id="email"
+                    id="contactEmail"
                     type="email"
-                    value={newOpportunityData.email}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="Enter email"
+                    value={newOpportunity.contactEmail}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, contactEmail: e.target.value}))}
+                    placeholder="john@example.com"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={newOpportunityData.phone}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Enter phone number"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="value">Value</Label>
+                  <Label htmlFor="value">Value ($)</Label>
                   <Input
                     id="value"
                     type="number"
-                    value={newOpportunityData.value}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, value: Number(e.target.value) }))}
-                    placeholder="Enter opportunity value"
+                    value={newOpportunity.value}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, value: e.target.value}))}
+                    placeholder="15000"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="stage">Stage</Label>
-                  <Select
-                    value={newOpportunityData.stage}
-                    onValueChange={(value) => setNewOpportunityData(prev => ({ ...prev, stage: value }))}
-                  >
+                  <Select value={newOpportunity.stage} onValueChange={(value) => setNewOpportunity(prev => ({...prev, stage: value}))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {currentPipeline?.stages.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          {stage.name}
-                        </SelectItem>
+                      {stages.map(stage => (
+                        <SelectItem key={stage.id} value={stage.id}>{stage.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="probability">Probability (%)</Label>
-                  <Input
-                    id="probability"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newOpportunityData.probability}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, probability: Number(e.target.value) }))}
-                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="expectedCloseDate">Expected Close Date</Label>
                   <Input
                     id="expectedCloseDate"
                     type="date"
-                    value={newOpportunityData.expectedCloseDate}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, expectedCloseDate: e.target.value }))}
+                    value={newOpportunity.expectedCloseDate}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, expectedCloseDate: e.target.value}))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="source">Source</Label>
-                  <Select
-                    value={newOpportunityData.source}
-                    onValueChange={(value) => setNewOpportunityData(prev => ({ ...prev, source: value }))}
-                  >
+                  <Select value={newOpportunity.source} onValueChange={(value) => setNewOpportunity(prev => ({...prev, source: value}))}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="website">Website</SelectItem>
                       <SelectItem value="referral">Referral</SelectItem>
-                      <SelectItem value="social">Social Media</SelectItem>
-                      <SelectItem value="ads">Advertisements</SelectItem>
-                      <SelectItem value="phone">Phone</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="cold-outreach">Cold Outreach</SelectItem>
+                      <SelectItem value="social-media">Social Media</SelectItem>
+                      <SelectItem value="event">Event</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="assignedTo">Assigned To</Label>
-                  <Select
-                    value={newOpportunityData.assignedTo}
-                    onValueChange={(value) => setNewOpportunityData(prev => ({ ...prev, assignedTo: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
-                      <SelectItem value="Mike Wilson">Mike Wilson</SelectItem>
-                      <SelectItem value="Emma Davis">Emma Davis</SelectItem>
-                      <SelectItem value="John Smith">John Smith</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tags">Tags (comma separated)</Label>
-                  <Input
-                    id="tags"
-                    value={newOpportunityData.tags.join(', ')}
-                    onChange={(e) => setNewOpportunityData(prev => ({ 
-                      ...prev, 
-                      tags: e.target.value.split(',').map(tag => tag.trim()) 
-                    }))}
-                    placeholder="Enter tags"
-                  />
                 </div>
                 <div className="col-span-2 space-y-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea
                     id="notes"
-                    value={newOpportunityData.notes}
-                    onChange={(e) => setNewOpportunityData(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Enter notes"
-                    rows={3}
+                    value={newOpportunity.notes}
+                    onChange={(e) => setNewOpportunity(prev => ({...prev, notes: e.target.value}))}
+                    placeholder="Additional notes about this opportunity..."
                   />
                 </div>
               </div>
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateOpportunity}>
+                <Button onClick={createOpportunity}>
                   Create Opportunity
                 </Button>
               </div>
@@ -471,321 +445,146 @@ export function OpportunityPipeline() {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search opportunities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={filters.assignedTo} onValueChange={(value) => setFilters({ assignedTo: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Assignees" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Assignees</SelectItem>
-                <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
-                <SelectItem value="Mike Wilson">Mike Wilson</SelectItem>
-                <SelectItem value="Emma Davis">Emma Davis</SelectItem>
-                <SelectItem value="John Smith">John Smith</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filters.source} onValueChange={(value) => setFilters({ source: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Sources" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="website">Website</SelectItem>
-                <SelectItem value="referral">Referral</SelectItem>
-                <SelectItem value="social">Social Media</SelectItem>
-                <SelectItem value="ads">Advertisements</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => {
-              setSearchQuery('');
-              setFilters({ stage: '', assignedTo: '', source: '', valueRange: [0, 100000] });
-            }}>
-              <Filter className="h-4 w-4 mr-2" />
-              Clear Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pipeline Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Pipeline Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Opportunities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{opportunities.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${getTotalValue().toLocaleString()}
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Pipeline Value</p>
+                <p className="text-2xl font-bold">{formatCurrency(getTotalValue())}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Deals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {opportunities.filter(o => !['closed-won', 'closed-lost'].includes(o.stage)).length}
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Weighted Pipeline</p>
+                <p className="text-2xl font-bold">{formatCurrency(getWeightedValue())}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Won This Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {opportunities.filter(o => o.stage === 'closed-won').length}
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <Building className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Opportunities</p>
+                <p className="text-2xl font-bold">
+                  {stages.reduce((total, stage) => total + stage.opportunities.length, 0)}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Pipeline Board */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Sales Pipeline</h2>
-          <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {pipelines.map((pipeline) => (
-                <SelectItem key={pipeline.id} value={pipeline.id}>
-                  {pipeline.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {currentPipeline?.stages.map((stage) => {
-            const stageOpportunities = getOpportunitiesByStage(stage.id);
-            const stageValue = stageOpportunities.reduce((sum, opp) => sum + opp.value, 0);
-            
-            return (
-              <div key={stage.id} className="space-y-3">
-                <div className="bg-card rounded-lg p-3 border">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-sm" style={{ color: stage.color }}>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex gap-6 overflow-x-auto pb-4">
+          {stages.map((stage) => (
+            <div key={stage.id} className="min-w-80 flex-shrink-0">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${stage.color}`} />
                       {stage.name}
-                    </h3>
-                    <Badge variant="outline" className="text-xs">
-                      {stageOpportunities.length}
-                    </Badge>
+                      <Badge variant="secondary">{stage.opportunities.length}</Badge>
+                    </CardTitle>
+                    <div className="text-sm text-muted-foreground">
+                      {formatCurrency(stage.opportunities.reduce((sum, opp) => sum + opp.value, 0))}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    ${stageValue.toLocaleString()}
-                  </div>
-                </div>
-                
-                <div className="space-y-2 min-h-[200px]">
-                  {stageOpportunities.map((opportunity) => (
-                    <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                </CardHeader>
+                <Droppable droppableId={stage.id}>
+                  {(provided, snapshot) => (
+                    <CardContent
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`space-y-3 min-h-96 ${
+                        snapshot.isDraggingOver ? 'bg-muted/50' : ''
+                      }`}
+                    >
+                      {stage.opportunities.map((opportunity, index) => (
+                        <Draggable
+                          key={opportunity.id}
+                          draggableId={opportunity.id}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <Card
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`cursor-pointer transition-all hover:shadow-md ${
+                                snapshot.isDragging ? 'rotate-3 shadow-lg' : ''
+                              }`}
+                              onClick={() => setSelectedOpportunity(opportunity)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-start">
+                                    <h4 className="font-semibold text-sm line-clamp-2">
+                                      {opportunity.title}
+                                    </h4>
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                      <MoreVertical className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Building className="h-3 w-3" />
+                                      {opportunity.company}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                      <Avatar className="h-6 w-6">
+                                        <AvatarImage src={opportunity.contact.avatar} />
+                                        <AvatarFallback className="text-xs">
+                                          {opportunity.contact.name.split(' ').map(n => n[0]).join('')}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-sm">{opportunity.contact.name}</span>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-semibold text-green-600">
+                                        {formatCurrency(opportunity.value)}
+                                      </span>
+                                      <span className="text-sm text-muted-foreground">
+                                        {opportunity.probability}%
+                                      </span>
+                                    </div>
+                                    
+                                    <Progress value={opportunity.probability} className="h-1" />
+                                    
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                      <span>Close: {opportunity.expectedCloseDate.toLocaleDateString()}</span>
+                                      <span>{opportunity.source}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </CardContent>
+                  )}
+                </Droppable>
+              </Card>
+            </div>
+          ))}
         </div>
-      </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Opportunity</DialogTitle>
-            <DialogDescription>
-              Update opportunity information
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Opportunity Name *</Label>
-              <Input
-                id="name"
-                value={newOpportunityData.name}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter opportunity name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Company *</Label>
-              <Input
-                id="company"
-                value={newOpportunityData.company}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, company: e.target.value }))}
-                placeholder="Enter company name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contactPerson">Contact Person</Label>
-              <Input
-                id="contactPerson"
-                value={newOpportunityData.contactPerson}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, contactPerson: e.target.value }))}
-                placeholder="Enter contact person"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newOpportunityData.email}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Enter email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={newOpportunityData.phone}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="Enter phone number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="value">Value</Label>
-              <Input
-                id="value"
-                type="number"
-                value={newOpportunityData.value}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, value: Number(e.target.value) }))}
-                placeholder="Enter opportunity value"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="stage">Stage</Label>
-              <Select
-                value={newOpportunityData.stage}
-                onValueChange={(value) => setNewOpportunityData(prev => ({ ...prev, stage: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentPipeline?.stages.map((stage) => (
-                    <SelectItem key={stage.id} value={stage.id}>
-                      {stage.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="probability">Probability (%)</Label>
-              <Input
-                id="probability"
-                type="number"
-                min="0"
-                max="100"
-                value={newOpportunityData.probability}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, probability: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expectedCloseDate">Expected Close Date</Label>
-              <Input
-                id="expectedCloseDate"
-                type="date"
-                value={newOpportunityData.expectedCloseDate}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, expectedCloseDate: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="source">Source</Label>
-              <Select
-                value={newOpportunityData.source}
-                onValueChange={(value) => setNewOpportunityData(prev => ({ ...prev, source: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="website">Website</SelectItem>
-                  <SelectItem value="referral">Referral</SelectItem>
-                  <SelectItem value="social">Social Media</SelectItem>
-                  <SelectItem value="ads">Advertisements</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="assignedTo">Assigned To</Label>
-              <Select
-                value={newOpportunityData.assignedTo}
-                onValueChange={(value) => setNewOpportunityData(prev => ({ ...prev, assignedTo: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
-                  <SelectItem value="Mike Wilson">Mike Wilson</SelectItem>
-                  <SelectItem value="Emma Davis">Emma Davis</SelectItem>
-                  <SelectItem value="John Smith">John Smith</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags (comma separated)</Label>
-              <Input
-                id="tags"
-                value={newOpportunityData.tags.join(', ')}
-                onChange={(e) => setNewOpportunityData(prev => ({ 
-                  ...prev, 
-                  tags: e.target.value.split(',').map(tag => tag.trim()) 
-                }))}
-                placeholder="Enter tags"
-              />
-            </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={newOpportunityData.notes}
-                onChange={(e) => setNewOpportunityData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Enter notes"
-                rows={3}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateOpportunity}>
-              Update Opportunity
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      </DragDropContext>
     </div>
   );
 }
