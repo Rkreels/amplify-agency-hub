@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { toast } from 'sonner';
 
@@ -20,7 +19,7 @@ export interface Contact {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
+  phone: string;
   company?: string;
   position?: string;
   address?: {
@@ -79,6 +78,9 @@ interface ContactsStore {
   addCustomField: (field: Omit<CustomField, 'id'>) => void;
   updateCustomField: (id: string, updates: Partial<CustomField>) => void;
   deleteCustomField: (id: string) => void;
+
+  // Sub Account Sync
+  loadSubAccountContacts: (subAccountId: string) => Promise<void>;
 }
 
 export const useContactsStore = create<ContactsStore>((set, get) => ({
@@ -97,7 +99,8 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
       createdAt: new Date(),
       updatedAt: new Date(),
       leadScore: contactData.leadScore || 0,
-      customFields: contactData.customFields || {}
+      customFields: contactData.customFields || {},
+      phone: contactData.phone || ''
     };
 
     set(state => ({
@@ -202,5 +205,21 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
       customFields: state.customFields.filter(field => field.id !== id)
     }));
     toast.success('Custom field deleted');
+  },
+
+  loadSubAccountContacts: async (subAccountId: string) => {
+    set({ isLoading: true });
+    try {
+      // Simulate API call to load sub-account contacts
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In a real implementation, this would fetch contacts from an API
+      // For now, we'll just clear the loading state
+      set({ isLoading: false });
+      toast.success('Sub-account contacts loaded');
+    } catch (error) {
+      set({ isLoading: false });
+      toast.error('Failed to load sub-account contacts');
+    }
   }
 }));

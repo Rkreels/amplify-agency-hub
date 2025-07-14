@@ -129,8 +129,9 @@ export function ContactManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Statuses</SelectItem>
-                <SelectItem value="lead">Lead</SelectItem>
-                <SelectItem value="prospect">Prospect</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="contacted">Contacted</SelectItem>
+                <SelectItem value="qualified">Qualified</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
@@ -143,10 +144,11 @@ export function ContactManagement() {
                 <SelectItem value="">All Sources</SelectItem>
                 <SelectItem value="website">Website</SelectItem>
                 <SelectItem value="referral">Referral</SelectItem>
-                <SelectItem value="social">Social Media</SelectItem>
-                <SelectItem value="ads">Advertisements</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="social-media">Social Media</SelectItem>
+                <SelectItem value="advertisement">Advertisement</SelectItem>
+                <SelectItem value="event">Event</SelectItem>
+                <SelectItem value="cold-outreach">Cold Outreach</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={() => {
@@ -177,7 +179,7 @@ export function ContactManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {contacts.filter(c => c.status === 'lead' || c.status === 'qualified').length}
+              {contacts.filter(c => c.status === 'qualified').length}
             </div>
           </CardContent>
         </Card>
@@ -257,8 +259,8 @@ export function ContactManagement() {
                     <div className="text-right">
                       <Badge variant={
                         contact.status === 'customer' ? 'default' :
-                        contact.status === 'lead' || contact.status === 'qualified' ? 'secondary' :
-                        contact.status === 'prospect' || contact.status === 'contacted' ? 'outline' : 'destructive'
+                        contact.status === 'qualified' ? 'secondary' :
+                        contact.status === 'contacted' ? 'outline' : 'destructive'
                       }>
                         {contact.status}
                       </Badge>
@@ -335,7 +337,8 @@ export function ContactManagement() {
                 ...selectedContact,
                 lastContact: selectedContact.lastContactedAt || new Date(),
                 totalValue: selectedContact.leadScore * 100,
-                activities: []
+                activities: [],
+                phone: selectedContact.phone || ''
               }}
               onComplete={() => {
                 setShowEditForm(false);
@@ -353,7 +356,8 @@ export function ContactManagement() {
             ...selectedContact,
             lastContact: selectedContact.lastContactedAt || new Date(),
             totalValue: selectedContact.leadScore * 100,
-            activities: []
+            activities: [],
+            phone: selectedContact.phone || ''
           }}
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}

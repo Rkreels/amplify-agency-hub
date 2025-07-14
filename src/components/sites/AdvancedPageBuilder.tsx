@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,13 +94,15 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     const newElement: Element = {
       id: `element-${Date.now()}`,
       type: element.type || 'text',
+      position: element.position || { x: 0, y: 0 },
+      size: element.size || { width: 200, height: 100 },
       content: element.content || '',
+      styles: element.styles || {},
       src: element.src,
       alt: element.alt,
       href: element.href,
       target: element.target,
       children: element.children || [],
-      styles: element.styles || {},
       attributes: element.attributes || {},
     };
 
@@ -124,7 +125,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
           return { ...element, ...updates };
         }
         if (element.children) {
-          return { ...element, children: updateElementRecursive(element.children) };
+          return { ...element, children: updateElementRecursive(element.children as any[]) };
         }
         return element;
       });
@@ -145,7 +146,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       return elements.filter(element => {
         if (element.id === elementId) return false;
         if (element.children) {
-          element.children = removeElementRecursive(element.children);
+          element.children = removeElementRecursive(element.children as any[]) as string[];
         }
         return true;
       });
@@ -168,7 +169,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
       for (const element of elements) {
         if (element.id === elementId) return element;
         if (element.children) {
-          const found = findElement(element.children);
+          const found = findElement(element.children as any[]);
           if (found) return found;
         }
       }
@@ -181,7 +182,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     const duplicateElementRecursive = (el: Element): Element => ({
       ...el,
       id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      children: el.children?.map(duplicateElementRecursive),
+      children: (el.children as any[])?.map(duplicateElementRecursive),
     });
 
     const duplicatedElement = duplicateElementRecursive(element);
