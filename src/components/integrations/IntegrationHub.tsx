@@ -37,7 +37,8 @@ import {
   ExternalLink,
   Trash2,
   Edit,
-  RefreshCw
+  RefreshCw,
+  Share
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -240,7 +241,7 @@ export function IntegrationHub() {
       crm: Users,
       analytics: BarChart3,
       payment: CreditCard,
-      social: Share2,
+      social: Share,
       productivity: Calendar
     };
     return icons[category] || Settings;

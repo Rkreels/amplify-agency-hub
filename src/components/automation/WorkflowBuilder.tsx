@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -257,7 +258,7 @@ export function WorkflowBuilder() {
       remove_tag: Tag,
       wait: Timer,
       create_task: Calendar,
-      update_contact: User
+      update_contact: Users
     };
     return icons[type] || Zap;
   };

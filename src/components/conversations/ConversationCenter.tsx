@@ -150,17 +150,20 @@ export function ConversationCenter() {
       return;
     }
 
+    const initialMessages = newConversationData.initialMessage ? [{
+      id: Date.now().toString(),
+      content: newConversationData.initialMessage,
+      timestamp: new Date(),
+      sender: 'user' as const,
+      type: 'text' as const,
+      status: 'sent' as const
+    }] : [];
+
     const newConversation: Omit<Conversation, 'id'> = {
       contactId: Date.now().toString(),
       contactName: newConversationData.contactName,
       channel: newConversationData.channel,
-      messages: newConversationData.initialMessage ? [{
-        content: newConversationData.initialMessage,
-        timestamp: new Date(),
-        sender: 'user',
-        type: 'text',
-        status: 'sent'
-      }] : [],
+      messages: initialMessages,
       unreadCount: 0,
       lastMessageAt: new Date(),
       status: 'active',
