@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -33,13 +34,7 @@ export function AddContactDialog({ trigger, isOpen, onOpenChange }: AddContactDi
     phone: '',
     company: '',
     position: '',
-    address: {
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: ''
-    },
+    address: '',
     website: '',
     socialMedia: {
       linkedin: '',
@@ -116,13 +111,7 @@ export function AddContactDialog({ trigger, isOpen, onOpenChange }: AddContactDi
         phone: '',
         company: '',
         position: '',
-        address: {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          country: ''
-        },
+        address: '',
         website: '',
         socialMedia: {
           linkedin: '',
@@ -266,55 +255,15 @@ export function AddContactDialog({ trigger, isOpen, onOpenChange }: AddContactDi
                   <CardTitle className="text-lg">Contact Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="street">Street Address</Label>
-                      <Input
-                        id="street"
-                        value={formData.address.street}
-                        onChange={(e) => handleInputChange('address.street', e.target.value)}
-                        placeholder="123 Main St"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.address.city}
-                        onChange={(e) => handleInputChange('address.city', e.target.value)}
-                        placeholder="New York"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        value={formData.address.state}
-                        onChange={(e) => handleInputChange('address.state', e.target.value)}
-                        placeholder="NY"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zipCode">ZIP Code</Label>
-                      <Input
-                        id="zipCode"
-                        value={formData.address.zipCode}
-                        onChange={(e) => handleInputChange('address.zipCode', e.target.value)}
-                        placeholder="10001"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="country">Country</Label>
-                      <Input
-                        id="country"
-                        value={formData.address.country}
-                        onChange={(e) => handleInputChange('address.country', e.target.value)}
-                        placeholder="United States"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Full Address</Label>
+                    <Textarea
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="123 Main St, New York, NY 10001, United States"
+                      rows={3}
+                    />
                   </div>
 
                   <div className="space-y-2">
