@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,15 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
   const handleDeleteElement = (id: string) => {
     setElements(elements.filter(el => el.id !== id));
     setSelectedElement(el => el?.id === id ? null : el);
+  };
+
+  const handleDuplicateElement = (element: Element) => {
+    const duplicated: Element = {
+      ...element,
+      id: Date.now().toString(),
+      position: { x: element.position.x + 20, y: element.position.y + 20 }
+    };
+    setElements([...elements, duplicated]);
   };
 
   const handlePageSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -275,7 +285,14 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
                             }}
                             onClick={() => handleSelectElement(element)}
                           >
-                            <ElementRenderer element={element} />
+                            <ElementRenderer 
+                              element={element} 
+                              isSelected={selectedElement?.id === element.id}
+                              onElementClick={handleSelectElement}
+                              onUpdateElement={handleUpdateElement}
+                              onDeleteElement={handleDeleteElement}
+                              onDuplicateElement={handleDuplicateElement}
+                            />
                           </div>
                         )}
                       </Draggable>
@@ -290,7 +307,12 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
       </div>
       <div className="col-span-1">
         {selectedElement ? (
-          <DesignPanel element={selectedElement} onUpdate={handleUpdateElement} onDelete={handleDeleteElement} />
+          <DesignPanel 
+            selectedElement={selectedElement} 
+            onUpdateElement={handleUpdateElement} 
+            onDuplicateElement={handleDuplicateElement}
+            onDeleteElement={handleDeleteElement} 
+          />
         ) : (
           <Card>
             <CardHeader>

@@ -23,13 +23,7 @@ export interface Contact {
   phone?: string;
   company?: string;
   position?: string;
-  address?: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
+  address?: string;
   website?: string;
   socialMedia?: {
     linkedin: string;
