@@ -51,8 +51,8 @@ export function ContactManagement() {
     const csvContent = [
       ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Status', 'Source'],
       ...contacts.map(contact => [
-        contact.firstName,
-        contact.lastName,
+        contact.firstName || contact.name.split(' ')[0] || '',
+        contact.lastName || contact.name.split(' ')[1] || '',
         contact.email,
         contact.phone || '',
         contact.company || '',
@@ -177,7 +177,7 @@ export function ContactManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {contacts.filter(c => c.status === 'lead').length}
+              {contacts.filter(c => c.status === 'lead' || c.status === 'qualified').length}
             </div>
           </CardContent>
         </Card>
@@ -235,12 +235,12 @@ export function ContactManagement() {
                     <Avatar>
                       <AvatarImage src={contact.avatar} />
                       <AvatarFallback>
-                        {contact.firstName[0]}{contact.lastName[0]}
+                        {contact.firstName?.charAt(0) || contact.name.charAt(0)}{contact.lastName?.charAt(0) || contact.name.charAt(1)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="font-medium">
-                        {contact.firstName} {contact.lastName}
+                        {contact.firstName && contact.lastName ? `${contact.firstName} ${contact.lastName}` : contact.name}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {contact.email}
@@ -257,8 +257,8 @@ export function ContactManagement() {
                     <div className="text-right">
                       <Badge variant={
                         contact.status === 'customer' ? 'default' :
-                        contact.status === 'lead' ? 'secondary' :
-                        contact.status === 'prospect' ? 'outline' : 'destructive'
+                        contact.status === 'lead' || contact.status === 'qualified' ? 'secondary' :
+                        contact.status === 'prospect' || contact.status === 'contacted' ? 'outline' : 'destructive'
                       }>
                         {contact.status}
                       </Badge>
@@ -333,7 +333,7 @@ export function ContactManagement() {
             <ContactForm
               contact={{
                 ...selectedContact,
-                lastContact: selectedContact.lastContactDate || new Date(),
+                lastContact: selectedContact.lastContactedAt || new Date(),
                 totalValue: selectedContact.leadScore * 100,
                 activities: []
               }}
@@ -351,7 +351,7 @@ export function ContactManagement() {
         <ContactDetailsModal
           contact={{
             ...selectedContact,
-            lastContact: selectedContact.lastContactDate || new Date(),
+            lastContact: selectedContact.lastContactedAt || new Date(),
             totalValue: selectedContact.leadScore * 100,
             activities: []
           }}

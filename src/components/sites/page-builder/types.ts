@@ -30,6 +30,13 @@ export interface Element {
     mobile: Partial<Element>;
     tablet: Partial<Element>;
   };
+  // Additional properties for various element types
+  src?: string; // for images
+  alt?: string; // for images
+  href?: string; // for links/buttons
+  target?: string; // for links
+  attributes?: Record<string, any>; // for custom attributes
+  props?: Record<string, any>; // for component props
 }
 
 export interface Layer {
@@ -48,4 +55,17 @@ export interface Template {
   category: string;
   elements: Element[];
   thumbnail?: string;
+}
+
+export interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  elements: Element[];
+  settings: {
+    title: string;
+    description: string;
+    keywords: string;
+  };
+  isPublished: boolean;
 }

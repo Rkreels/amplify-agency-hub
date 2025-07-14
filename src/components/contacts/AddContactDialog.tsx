@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -48,8 +47,8 @@ export function AddContactDialog({ trigger, isOpen, onOpenChange }: AddContactDi
       facebook: ''
     },
     notes: '',
-    source: '',
-    status: 'new'
+    source: '' as ContactSource | '',
+    status: 'new' as ContactStatus
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -92,6 +91,8 @@ export function AddContactDialog({ trigger, isOpen, onOpenChange }: AddContactDi
     try {
       await addContact({
         name: `${formData.firstName} ${formData.lastName}`.trim(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         company: formData.company,
@@ -100,9 +101,11 @@ export function AddContactDialog({ trigger, isOpen, onOpenChange }: AddContactDi
         website: formData.website,
         socialMedia: formData.socialMedia,
         notes: formData.notes,
-        source: formData.source,
-        status: formData.status as any,
-        tags
+        source: formData.source as ContactSource,
+        status: formData.status,
+        tags,
+        leadScore: 0,
+        customFields: {}
       });
 
       // Reset form

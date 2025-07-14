@@ -3,11 +3,22 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 
 export type ContactSource = 'website' | 'referral' | 'social-media' | 'advertisement' | 'event' | 'cold-outreach' | 'other';
-export type ContactStatus = 'new' | 'contacted' | 'qualified' | 'customer' | 'inactive';
+export type ContactStatus = 'new' | 'contacted' | 'qualified' | 'customer' | 'inactive' | 'lead' | 'prospect';
+
+export interface CustomField {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'email' | 'phone' | 'date' | 'select' | 'multiselect';
+  options?: string[];
+  required: boolean;
+  order: number;
+}
 
 export interface Contact {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
   company?: string;
@@ -33,6 +44,8 @@ export interface Contact {
   updatedAt: Date;
   lastContactedAt?: Date;
   avatar?: string;
+  leadScore: number;
+  customFields: Record<string, any>;
 }
 
 interface ContactsStore {
@@ -42,6 +55,7 @@ interface ContactsStore {
   statusFilter: string;
   sourceFilter: string;
   isLoading: boolean;
+  customFields: CustomField[];
 
   // CRUD Operations
   addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -60,6 +74,11 @@ interface ContactsStore {
   // Bulk Operations
   bulkUpdateStatus: (ids: string[], status: ContactStatus) => Promise<void>;
   bulkDelete: (ids: string[]) => Promise<void>;
+
+  // Custom Fields
+  addCustomField: (field: Omit<CustomField, 'id'>) => void;
+  updateCustomField: (id: string, updates: Partial<CustomField>) => void;
+  deleteCustomField: (id: string) => void;
 }
 
 export const useContactsStore = create<ContactsStore>((set, get) => ({
@@ -69,13 +88,16 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
   statusFilter: 'all',
   sourceFilter: 'all',
   isLoading: false,
+  customFields: [],
 
   addContact: async (contactData) => {
     const newContact: Contact = {
       ...contactData,
       id: Date.now().toString(),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      leadScore: contactData.leadScore || 0,
+      customFields: contactData.customFields || {}
     };
 
     set(state => ({
@@ -153,5 +175,32 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
     }));
     
     toast.success(`${ids.length} contacts deleted`);
+  },
+
+  addCustomField: (fieldData) => {
+    const newField: CustomField = {
+      ...fieldData,
+      id: `field-${Date.now()}`
+    };
+    set(state => ({
+      customFields: [...state.customFields, newField]
+    }));
+    toast.success('Custom field added');
+  },
+
+  updateCustomField: (id, updates) => {
+    set(state => ({
+      customFields: state.customFields.map(field =>
+        field.id === id ? { ...field, ...updates } : field
+      )
+    }));
+    toast.success('Custom field updated');
+  },
+
+  deleteCustomField: (id) => {
+    set(state => ({
+      customFields: state.customFields.filter(field => field.id !== id)
+    }));
+    toast.success('Custom field deleted');
   }
 }));

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -103,19 +102,19 @@ export function ContactDetails({ contact, onClose }: ContactDetailsProps) {
           <Avatar className="h-16 w-16">
             <AvatarImage src={contact.avatar} />
             <AvatarFallback className="text-lg">
-              {contact.firstName.charAt(0) + contact.lastName.charAt(0)}
+              {contact.firstName?.charAt(0) || contact.name.charAt(0)}{contact.lastName?.charAt(0) || contact.name.charAt(1)}
             </AvatarFallback>
           </Avatar>
           
           <div>
             <h2 className="text-2xl font-bold">
-              {contact.firstName} {contact.lastName}
+              {contact.firstName && contact.lastName ? `${contact.firstName} ${contact.lastName}` : contact.name}
             </h2>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={
                 contact.status === 'customer' ? 'default' :
-                contact.status === 'lead' ? 'secondary' :
-                contact.status === 'prospect' ? 'outline' : 'destructive'
+                contact.status === 'lead' || contact.status === 'qualified' ? 'secondary' :
+                contact.status === 'prospect' || contact.status === 'contacted' ? 'outline' : 'destructive'
               }>
                 {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
               </Badge>
