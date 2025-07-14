@@ -1,36 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { 
   Plus, 
   Search, 
-  Filter,
-  Edit,
-  Copy,
-  Trash2,
-  Play,
-  Pause,
+  Filter, 
+  MoreHorizontal, 
   Mail,
   MessageSquare,
   Share2,
@@ -38,38 +20,26 @@ import {
   Users,
   TrendingUp,
   Calendar,
+  Play,
+  Pause,
+  Edit,
+  Trash2,
+  Copy,
   BarChart3,
   Eye,
-  MousePointer,
-  UserMinus
+  MousePointer
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { useMarketingStore, type Campaign } from '@/store/useMarketingStore';
-import { useVoiceTraining } from '@/components/voice/VoiceTrainingProvider';
 import { toast } from 'sonner';
 
-const campaignTypeColors = {
-  email: 'text-blue-600',
-  sms: 'text-green-600',
-  social: 'text-purple-600',
-  ads: 'text-orange-600'
-};
-
-const campaignTypeIcons = {
-  email: Mail,
-  sms: MessageSquare,
-  social: Share2,
-  ads: Target
-};
-
-const performanceData = [
-  { month: 'Jan', sent: 4500, opened: 1800, clicked: 360 },
-  { month: 'Feb', sent: 5200, opened: 2100, clicked: 420 },
-  { month: 'Mar', sent: 4800, opened: 1920, clicked: 384 },
-  { month: 'Apr', sent: 6100, opened: 2440, clicked: 488 },
-  { month: 'May', sent: 5500, opened: 2200, clicked: 440 },
-  { month: 'Jun', sent: 6700, opened: 2680, clicked: 536 },
-];
+interface NewCampaignData {
+  name: string;
+  type: 'email' | 'sms' | 'social' | 'ads';
+  audience: string;
+  subject?: string;
+  content: string;
+  scheduledDate?: string;
+}
 
 export function MarketingHub() {
   const {
@@ -89,173 +59,131 @@ export function MarketingHub() {
     getFilteredCampaigns
   } = useMarketingStore();
 
-  const { announceFeature } = useVoiceTraining();
-  const [isCreating, setIsCreating] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
-  const [newCampaign, setNewCampaign] = useState({
+  const [newCampaignData, setNewCampaignData] = useState<NewCampaignData>({
     name: '',
-    type: 'email' as const,
-    status: 'draft' as const,
-    audience: '',
+    type: 'email',
+    audience: 'All Contacts',
     subject: '',
     content: '',
-    scheduledDate: undefined as Date | undefined,
-    stats: { sent: 0, delivered: 0, opened: 0, clicked: 0, unsubscribed: 0 }
+    scheduledDate: ''
   });
 
-  useEffect(() => {
-    announceFeature(
-      'Marketing Hub',
-      'Create and manage marketing campaigns across email, SMS, social media, and ads. Track performance metrics, schedule campaigns, and analyze results to optimize your marketing efforts.'
-    );
-  }, [announceFeature]);
-
   const handleCreateCampaign = () => {
-    if (!newCampaign.name || !newCampaign.audience) {
-      toast.error('Please fill in required fields');
+    if (!newCampaignData.name.trim() || !newCampaignData.content.trim()) {
+      toast.error('Name and content are required');
       return;
     }
 
+    const newCampaign = {
+      ...newCampaignData,
+      status: 'draft' as const,
+      scheduledDate: newCampaignData.scheduledDate ? new Date(newCampaignData.scheduledDate) : undefined,
+      stats: {
+        sent: 0,
+        delivered: 0,
+        opened: 0,
+        clicked: 0,
+        unsubscribed: 0
+      }
+    };
+
     addCampaign(newCampaign);
-    setNewCampaign({
+    setNewCampaignData({
       name: '',
       type: 'email',
-      status: 'draft',
-      audience: '',
+      audience: 'All Contacts',
       subject: '',
       content: '',
-      scheduledDate: undefined,
-      stats: { sent: 0, delivered: 0, opened: 0, clicked: 0, unsubscribed: 0 }
+      scheduledDate: ''
     });
-    setIsCreating(false);
+    setShowCreateDialog(false);
     toast.success('Campaign created successfully');
   };
 
-  const handleToggleStatus = (campaign: Campaign) => {
-    const newStatus = campaign.status === 'active' ? 'paused' : 'active';
-    updateCampaign(campaign.id, { status: newStatus });
-    toast.success(`Campaign ${newStatus === 'active' ? 'activated' : 'paused'}`);
+  const handleEditCampaign = (campaign: Campaign) => {
+    setEditingCampaign(campaign);
+    setNewCampaignData({
+      name: campaign.name,
+      type: campaign.type,
+      audience: campaign.audience,
+      subject: campaign.subject || '',
+      content: campaign.content,
+      scheduledDate: campaign.scheduledDate?.toISOString().split('T')[0] || ''
+    });
+    setShowEditDialog(true);
   };
 
-  const handleDuplicate = (campaign: Campaign) => {
-    duplicateCampaign(campaign.id);
+  const handleUpdateCampaign = () => {
+    if (!editingCampaign) return;
+
+    updateCampaign(editingCampaign.id, {
+      ...newCampaignData,
+      scheduledDate: newCampaignData.scheduledDate ? new Date(newCampaignData.scheduledDate) : undefined
+    });
+    setShowEditDialog(false);
+    setEditingCampaign(null);
+    toast.success('Campaign updated successfully');
+  };
+
+  const handleDeleteCampaign = (campaignId: string) => {
+    deleteCampaign(campaignId);
+    toast.success('Campaign deleted successfully');
+  };
+
+  const handleDuplicateCampaign = (campaignId: string) => {
+    duplicateCampaign(campaignId);
     toast.success('Campaign duplicated successfully');
   };
 
-  const handleDelete = (campaign: Campaign) => {
-    if (confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
-      deleteCampaign(campaign.id);
-      toast.success('Campaign deleted successfully');
-    }
+  const handleLaunchCampaign = (campaignId: string) => {
+    updateCampaign(campaignId, { 
+      status: 'active',
+      scheduledDate: new Date()
+    });
+    toast.success('Campaign launched successfully');
   };
 
-  const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
-    const TypeIcon = campaignTypeIcons[campaign.type];
-    const openRate = campaign.stats.sent > 0 ? (campaign.stats.opened / campaign.stats.sent * 100).toFixed(1) : '0';
-    const clickRate = campaign.stats.opened > 0 ? (campaign.stats.clicked / campaign.stats.opened * 100).toFixed(1) : '0';
+  const handlePauseCampaign = (campaignId: string) => {
+    updateCampaign(campaignId, { status: 'paused' });
+    toast.success('Campaign paused');
+  };
+
+  const getStatusBadge = (status: Campaign['status']) => {
+    const variants = {
+      draft: 'secondary',
+      scheduled: 'outline',
+      active: 'default',
+      paused: 'destructive',
+      completed: 'default'
+    } as const;
     
-    return (
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <TypeIcon className={`h-5 w-5 ${campaignTypeColors[campaign.type]}`} />
-              </div>
-              <div>
-                <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Badge variant="outline" className="text-xs">
-                    {campaign.type.toUpperCase()}
-                  </Badge>
-                  <Badge 
-                    variant={
-                      campaign.status === 'active' ? 'default' : 
-                      campaign.status === 'scheduled' ? 'secondary' : 
-                      campaign.status === 'completed' ? 'outline' : 'destructive'
-                    }
-                  >
-                    {campaign.status}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleToggleStatus(campaign)}
-              >
-                {campaign.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            <span className="font-medium">Audience:</span> {campaign.audience}
-          </div>
-          
-          {campaign.subject && (
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium">Subject:</span> {campaign.subject}
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <div className="text-xl font-bold">{campaign.stats.sent.toLocaleString()}</div>
-              <div className="text-xs text-muted-foreground">Sent</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-blue-600">{openRate}%</div>
-              <div className="text-xs text-muted-foreground">Open Rate</div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <div className="text-xl font-bold text-green-600">{campaign.stats.clicked}</div>
-              <div className="text-xs text-muted-foreground">Clicks</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-orange-600">{clickRate}%</div>
-              <div className="text-xs text-muted-foreground">Click Rate</div>
-            </div>
-          </div>
-          
-          <div className="flex justify-between items-center pt-2 border-t">
-            <div className="text-xs text-muted-foreground">
-              Updated {campaign.updatedAt.toLocaleDateString()}
-            </div>
-            <div className="flex space-x-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditingCampaign(campaign)}
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDuplicate(campaign)}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(campaign)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <Badge variant={variants[status]}>{status}</Badge>;
+  };
+
+  const getTypeIcon = (type: Campaign['type']) => {
+    const icons = {
+      email: Mail,
+      sms: MessageSquare,
+      social: Share2,
+      ads: Target
+    };
+    const Icon = icons[type];
+    return <Icon className="h-4 w-4" />;
+  };
+
+  const filteredCampaigns = getFilteredCampaigns();
+
+  const stats = {
+    totalCampaigns: campaigns.length,
+    activeCampaigns: campaigns.filter(c => c.status === 'active').length,
+    totalSent: campaigns.reduce((sum, c) => sum + c.stats.sent, 0),
+    totalOpened: campaigns.reduce((sum, c) => sum + c.stats.opened, 0),
+    avgOpenRate: campaigns.length > 0 
+      ? Math.round((campaigns.reduce((sum, c) => sum + (c.stats.sent > 0 ? (c.stats.opened / c.stats.sent) * 100 : 0), 0) / campaigns.length))
+      : 0
   };
 
   return (
@@ -263,24 +191,20 @@ export function MarketingHub() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Marketing Hub</h1>
+          <h1 className="text-3xl font-bold">Marketing Hub</h1>
           <p className="text-muted-foreground">
-            Create, manage, and analyze your marketing campaigns
+            Create, manage, and track your marketing campaigns
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Analytics
-          </Button>
-          <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <div className="flex items-center gap-2">
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Campaign
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Campaign</DialogTitle>
                 <DialogDescription>
@@ -288,19 +212,22 @@ export function MarketingHub() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="campaign-name">Campaign Name *</Label>
-                  <Input
-                    id="campaign-name"
-                    value={newCampaign.name}
-                    onChange={(e) => setNewCampaign({...newCampaign, name: e.target.value})}
-                    placeholder="Welcome Email Series"
-                  />
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="campaign-type">Type</Label>
-                    <Select value={newCampaign.type} onValueChange={(value: any) => setNewCampaign({...newCampaign, type: value})}>
+                    <Label htmlFor="name">Campaign Name *</Label>
+                    <Input
+                      id="name"
+                      value={newCampaignData.name}
+                      onChange={(e) => setNewCampaignData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter campaign name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Campaign Type</Label>
+                    <Select
+                      value={newCampaignData.type}
+                      onValueChange={(value) => setNewCampaignData(prev => ({ ...prev, type: value as any }))}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -312,234 +239,416 @@ export function MarketingHub() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="campaign-audience">Audience *</Label>
+                    <Label htmlFor="audience">Target Audience</Label>
+                    <Select
+                      value={newCampaignData.audience}
+                      onValueChange={(value) => setNewCampaignData(prev => ({ ...prev, audience: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="All Contacts">All Contacts</SelectItem>
+                        <SelectItem value="New Subscribers">New Subscribers</SelectItem>
+                        <SelectItem value="VIP Customers">VIP Customers</SelectItem>
+                        <SelectItem value="Prospects">Prospects</SelectItem>
+                        <SelectItem value="Inactive Users">Inactive Users</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="scheduledDate">Schedule Date (Optional)</Label>
                     <Input
-                      id="campaign-audience"
-                      value={newCampaign.audience}
-                      onChange={(e) => setNewCampaign({...newCampaign, audience: e.target.value})}
-                      placeholder="All Subscribers"
+                      id="scheduledDate"
+                      type="datetime-local"
+                      value={newCampaignData.scheduledDate}
+                      onChange={(e) => setNewCampaignData(prev => ({ ...prev, scheduledDate: e.target.value }))}
                     />
                   </div>
                 </div>
-                {newCampaign.type === 'email' && (
+
+                {newCampaignData.type === 'email' && (
                   <div className="space-y-2">
-                    <Label htmlFor="campaign-subject">Subject Line</Label>
+                    <Label htmlFor="subject">Subject Line</Label>
                     <Input
-                      id="campaign-subject"
-                      value={newCampaign.subject}
-                      onChange={(e) => setNewCampaign({...newCampaign, subject: e.target.value})}
-                      placeholder="Welcome to our community!"
+                      id="subject"
+                      value={newCampaignData.subject}
+                      onChange={(e) => setNewCampaignData(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Enter email subject"
                     />
                   </div>
                 )}
+
                 <div className="space-y-2">
-                  <Label htmlFor="campaign-content">Content</Label>
+                  <Label htmlFor="content">Content *</Label>
                   <Textarea
-                    id="campaign-content"
-                    value={newCampaign.content}
-                    onChange={(e) => setNewCampaign({...newCampaign, content: e.target.value})}
-                    placeholder="Enter your campaign content..."
-                    rows={4}
+                    id="content"
+                    value={newCampaignData.content}
+                    onChange={(e) => setNewCampaignData(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Enter campaign content"
+                    rows={6}
                   />
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setIsCreating(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateCampaign}>
-                    Create Campaign
-                  </Button>
-                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateCampaign}>
+                  Create Campaign
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
+      {/* Statistics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Total Campaigns
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalCampaigns}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Play className="h-4 w-4 mr-2" />
+              Active Campaigns
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.activeCampaigns}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Total Sent
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalSent.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Eye className="h-4 w-4 mr-2" />
+              Total Opened
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalOpened.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Avg Open Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.avgOpenRate}%</div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search campaigns..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
-            <SelectItem value="email">Email</SelectItem>
-            <SelectItem value="sms">SMS</SelectItem>
-            <SelectItem value="social">Social Media</SelectItem>
-            <SelectItem value="ads">Advertisements</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Marketing Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Campaigns</p>
-                <p className="text-2xl font-bold">{campaigns.length}</p>
-              </div>
-              <Target className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sent</p>
-                <p className="text-2xl font-bold">
-                  {campaigns.reduce((acc, c) => acc + c.stats.sent, 0).toLocaleString()}
-                </p>
-              </div>
-              <Mail className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg. Open Rate</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {campaigns.length > 0 ? (
-                    campaigns.reduce((acc, c) => acc + (c.stats.sent > 0 ? c.stats.opened / c.stats.sent : 0), 0) / campaigns.length * 100
-                  ).toFixed(1) : '0'}%
-                </p>
-              </div>
-              <Eye className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Clicks</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {campaigns.reduce((acc, c) => acc + c.stats.clicked, 0).toLocaleString()}
-                </p>
-              </div>
-              <MousePointer className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Performance Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Campaign Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={performanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="sent" fill="#3b82f6" name="Sent" />
-              <Bar dataKey="opened" fill="#10b981" name="Opened" />
-              <Bar dataKey="clicked" fill="#f59e0b" name="Clicked" />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search campaigns..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="social">Social Media</SelectItem>
+                <SelectItem value="ads">Advertisements</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => {
+              setSearchQuery('');
+              setTypeFilter('');
+              setStatusFilter('');
+            }}>
+              <Filter className="h-4 w-4 mr-2" />
+              Clear Filters
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Campaigns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {getFilteredCampaigns().map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
-        ))}
-      </div>
+      {/* Campaigns List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Campaigns ({filteredCampaigns.length})</CardTitle>
+          <CardDescription>
+            Manage your marketing campaigns
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredCampaigns.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No campaigns found</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setShowCreateDialog(true)}
+                >
+                  Create your first campaign
+                </Button>
+              </div>
+            ) : (
+              filteredCampaigns.map((campaign) => (
+                <div
+                  key={campaign.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2 bg-muted rounded-lg">
+                      {getTypeIcon(campaign.type)}
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-medium">{campaign.name}</h3>
+                        {getStatusBadge(campaign.status)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {campaign.type.toUpperCase()} • {campaign.audience}
+                      </div>
+                      {campaign.subject && (
+                        <div className="text-sm text-muted-foreground">
+                          Subject: {campaign.subject}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Created: {campaign.createdAt.toLocaleDateString()}
+                        {campaign.scheduledDate && (
+                          <> • Scheduled: {campaign.scheduledDate.toLocaleDateString()}</>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    {/* Campaign Stats */}
+                    <div className="text-right text-sm">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="font-medium">{campaign.stats.sent}</div>
+                          <div className="text-muted-foreground text-xs">Sent</div>
+                        </div>
+                        <div>
+                          <div className="font-medium">{campaign.stats.opened}</div>
+                          <div className="text-muted-foreground text-xs">Opened</div>
+                        </div>
+                        <div>
+                          <div className="font-medium">{campaign.stats.clicked}</div>
+                          <div className="text-muted-foreground text-xs">Clicked</div>
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            {campaign.stats.sent > 0 
+                              ? Math.round((campaign.stats.opened / campaign.stats.sent) * 100)
+                              : 0}%
+                          </div>
+                          <div className="text-muted-foreground text-xs">Open Rate</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-2">
+                      {campaign.status === 'draft' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleLaunchCampaign(campaign.id)}
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          Launch
+                        </Button>
+                      )}
+                      {campaign.status === 'active' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePauseCampaign(campaign.id)}
+                        >
+                          <Pause className="h-4 w-4 mr-1" />
+                          Pause
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditCampaign(campaign)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDuplicateCampaign(campaign.id)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteCampaign(campaign.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Edit Campaign Dialog */}
-      {editingCampaign && (
-        <Dialog open={!!editingCampaign} onOpenChange={() => setEditingCampaign(null)}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Edit Campaign</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Campaign</DialogTitle>
+            <DialogDescription>
+              Update campaign information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Campaign Name</Label>
+                <Label htmlFor="name">Campaign Name *</Label>
                 <Input
-                  id="edit-name"
-                  value={editingCampaign.name}
-                  onChange={(e) => setEditingCampaign({...editingCampaign, name: e.target.value})}
+                  id="name"
+                  value={newCampaignData.name}
+                  onChange={(e) => setNewCampaignData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter campaign name"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select 
-                  value={editingCampaign.status} 
-                  onValueChange={(value: any) => setEditingCampaign({...editingCampaign, status: value})}
+                <Label htmlFor="type">Campaign Type</Label>
+                <Select
+                  value={newCampaignData.type}
+                  onValueChange={(value) => setNewCampaignData(prev => ({ ...prev, type: value as any }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="paused">Paused</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                    <SelectItem value="social">Social Media</SelectItem>
+                    <SelectItem value="ads">Advertisements</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="audience">Target Audience</Label>
+                <Select
+                  value={newCampaignData.audience}
+                  onValueChange={(value) => setNewCampaignData(prev => ({ ...prev, audience: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All Contacts">All Contacts</SelectItem>
+                    <SelectItem value="New Subscribers">New Subscribers</SelectItem>
+                    <SelectItem value="VIP Customers">VIP Customers</SelectItem>
+                    <SelectItem value="Prospects">Prospects</SelectItem>
+                    <SelectItem value="Inactive Users">Inactive Users</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-content">Content</Label>
-                <Textarea
-                  id="edit-content"
-                  value={editingCampaign.content}
-                  onChange={(e) => setEditingCampaign({...editingCampaign, content: e.target.value})}
-                  rows={4}
+                <Label htmlFor="scheduledDate">Schedule Date (Optional)</Label>
+                <Input
+                  id="scheduledDate"
+                  type="datetime-local"
+                  value={newCampaignData.scheduledDate}
+                  onChange={(e) => setNewCampaignData(prev => ({ ...prev, scheduledDate: e.target.value }))}
                 />
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setEditingCampaign(null)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {
-                  updateCampaign(editingCampaign.id, editingCampaign);
-                  setEditingCampaign(null);
-                  toast.success('Campaign updated successfully');
-                }}>
-                  Save Changes
-                </Button>
-              </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+
+            {newCampaignData.type === 'email' && (
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject Line</Label>
+                <Input
+                  id="subject"
+                  value={newCampaignData.subject}
+                  onChange={(e) => setNewCampaignData(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Enter email subject"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="content">Content *</Label>
+              <Textarea
+                id="content"
+                value={newCampaignData.content}
+                onChange={(e) => setNewCampaignData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Enter campaign content"
+                rows={6}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateCampaign}>
+              Update Campaign
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -151,8 +151,8 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     const { conversations, searchQuery, channelFilter, statusFilter } = get();
     return conversations.filter(conv => {
       if (searchQuery && !conv.contactName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (channelFilter && conv.channel !== channelFilter) return false;
-      if (statusFilter && conv.status !== statusFilter) return false;
+      if (channelFilter && channelFilter !== 'all' && conv.channel !== channelFilter) return false;
+      if (statusFilter && statusFilter !== 'all' && conv.status !== statusFilter) return false;
       return true;
     });
   },

@@ -33,11 +33,15 @@ import {
   CheckCheck,
   Mic,
   Image,
-  FileText
+  FileText,
+  Plus,
+  Settings,
+  Trash2
 } from 'lucide-react';
 import { useConversationStore, type Conversation, type Message } from '@/store/useConversationStore';
 import { useVoiceTraining } from '@/components/voice/VoiceTrainingProvider';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const channelIcons = {
   sms: MessageSquare,
@@ -73,12 +77,21 @@ export function ConversationCenter() {
     setStatusFilter,
     setTyping,
     getFilteredConversations,
-    getSelectedConversation
+    getSelectedConversation,
+    addConversation,
+    updateConversation,
+    deleteConversation
   } = useConversationStore();
 
   const { announceFeature } = useVoiceTraining();
   const [messageText, setMessageText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
+  const [newConversationData, setNewConversationData] = useState({
+    contactName: '',
+    channel: 'sms' as const,
+    initialMessage: ''
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedConversation = getSelectedConversation();
 
@@ -131,6 +144,44 @@ export function ConversationCenter() {
     toast.success('Message sent');
   };
 
+  const handleCreateConversation = () => {
+    if (!newConversationData.contactName.trim()) {
+      toast.error('Contact name is required');
+      return;
+    }
+
+    const newConversation: Omit<Conversation, 'id'> = {
+      contactId: Date.now().toString(),
+      contactName: newConversationData.contactName,
+      channel: newConversationData.channel,
+      messages: newConversationData.initialMessage ? [{
+        content: newConversationData.initialMessage,
+        timestamp: new Date(),
+        sender: 'user',
+        type: 'text',
+        status: 'sent'
+      }] : [],
+      unreadCount: 0,
+      lastMessageAt: new Date(),
+      status: 'active',
+      tags: [],
+      notes: ''
+    };
+
+    addConversation(newConversation);
+    setNewConversationData({ contactName: '', channel: 'sms', initialMessage: '' });
+    setShowNewConversationDialog(false);
+    toast.success('New conversation created');
+  };
+
+  const handleDeleteConversation = (conversationId: string) => {
+    deleteConversation(conversationId);
+    if (selectedConversationId === conversationId) {
+      setSelectedConversation(null);
+    }
+    toast.success('Conversation deleted');
+  };
+
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation.id);
     if (conversation.unreadCount > 0) {
@@ -147,6 +198,13 @@ export function ConversationCenter() {
   const handleVideoCall = () => {
     if (selectedConversation) {
       toast.success(`Starting video call with ${selectedConversation.contactName}...`);
+    }
+  };
+
+  const handleArchiveConversation = () => {
+    if (selectedConversationId) {
+      updateConversation(selectedConversationId, { status: 'closed' });
+      toast.success('Conversation archived');
     }
   };
 
@@ -184,6 +242,16 @@ export function ConversationCenter() {
                 <span className="text-xs text-muted-foreground">
                   {lastMessage?.timestamp.toLocaleTimeString()}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteConversation(conversation.id);
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </div>
             </div>
             
@@ -246,7 +314,58 @@ export function ConversationCenter() {
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Conversations</h2>
-            <Badge variant="outline">{getFilteredConversations().length}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{getFilteredConversations().length}</Badge>
+              <Dialog open={showNewConversationDialog} onOpenChange={setShowNewConversationDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>New Conversation</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Input
+                        placeholder="Contact name"
+                        value={newConversationData.contactName}
+                        onChange={(e) => setNewConversationData(prev => ({ ...prev, contactName: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Select
+                        value={newConversationData.channel}
+                        onValueChange={(value) => setNewConversationData(prev => ({ ...prev, channel: value as any }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="facebook">Facebook</SelectItem>
+                          <SelectItem value="instagram">Instagram</SelectItem>
+                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="webchat">Web Chat</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Textarea
+                        placeholder="Initial message (optional)"
+                        value={newConversationData.initialMessage}
+                        onChange={(e) => setNewConversationData(prev => ({ ...prev, initialMessage: e.target.value }))}
+                      />
+                    </div>
+                    <Button onClick={handleCreateConversation} className="w-full">
+                      Create Conversation
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
           
           <div className="space-y-3">
@@ -266,7 +385,7 @@ export function ConversationCenter() {
                   <SelectValue placeholder="All Channels" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Channels</SelectItem>
+                  <SelectItem value="all">All Channels</SelectItem>
                   <SelectItem value="sms">SMS</SelectItem>
                   <SelectItem value="email">Email</SelectItem>
                   <SelectItem value="facebook">Facebook</SelectItem>
@@ -281,7 +400,7 @@ export function ConversationCenter() {
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
@@ -340,7 +459,7 @@ export function ConversationCenter() {
                   <Button variant="outline" size="sm" onClick={handleVideoCall}>
                     <Video className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleArchiveConversation}>
                     <Archive className="h-4 w-4" />
                   </Button>
                 </div>
