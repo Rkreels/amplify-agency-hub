@@ -1,13 +1,6 @@
 
 import { Type, Image, Square, Button as ButtonIcon, Video, Minus, MoreHorizontal } from 'lucide-react';
-import { Element } from './types';
-
-export interface ElementTemplate {
-  type: string;
-  label: string;
-  icon: any;
-  template: Partial<Element>;
-}
+import { Element, ElementTemplate } from './types';
 
 export const elementTemplates: ElementTemplate[] = [
   {

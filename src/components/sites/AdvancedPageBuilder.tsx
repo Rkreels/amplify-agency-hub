@@ -124,8 +124,8 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
         if (element.id === elementId) {
           return { ...element, ...updates };
         }
-        if (element.children) {
-          return { ...element, children: updateElementRecursive(element.children as any[]) };
+        if (element.children && element.children.length > 0) {
+          return { ...element, children: updateElementRecursive(element.children) };
         }
         return element;
       });
@@ -145,8 +145,8 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     const removeElementRecursive = (elements: Element[]): Element[] => {
       return elements.filter(element => {
         if (element.id === elementId) return false;
-        if (element.children) {
-          element.children = removeElementRecursive(element.children as any[]) as string[];
+        if (element.children && element.children.length > 0) {
+          element.children = removeElementRecursive(element.children);
         }
         return true;
       });
@@ -168,8 +168,8 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     const findElement = (elements: Element[]): Element | null => {
       for (const element of elements) {
         if (element.id === elementId) return element;
-        if (element.children) {
-          const found = findElement(element.children as any[]);
+        if (element.children && element.children.length > 0) {
+          const found = findElement(element.children);
           if (found) return found;
         }
       }
@@ -182,7 +182,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     const duplicateElementRecursive = (el: Element): Element => ({
       ...el,
       id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      children: (el.children as any[])?.map(duplicateElementRecursive),
+      children: el.children?.map(duplicateElementRecursive),
     });
 
     const duplicatedElement = duplicateElementRecursive(element);

@@ -16,7 +16,7 @@ export interface Element {
   size: Size;
   styles: Record<string, any>;
   content: string;
-  children?: string[];
+  children?: Element[];
   parent?: string;
   layerId?: string;
   locked?: boolean;
@@ -68,4 +68,11 @@ export interface Page {
     keywords: string;
   };
   isPublished: boolean;
+}
+
+export interface ElementTemplate {
+  type: string;
+  label: string;
+  icon: any;
+  template: Partial<Element>;
 }
