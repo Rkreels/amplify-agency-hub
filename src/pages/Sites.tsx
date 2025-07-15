@@ -22,6 +22,7 @@ import { TemplatePreview } from '@/components/sites/templates/TemplatePreview';
 import { SiteAnalytics } from '@/components/sites/analytics/SiteAnalytics';
 import { GlobalSiteSettings } from '@/components/sites/settings/GlobalSiteSettings';
 import { FunctionalPageBuilder } from '@/components/sites/page-builder/FunctionalPageBuilder';
+import { useSearchParams } from 'react-router-dom';
 
 interface Site {
   id: string;
@@ -35,11 +36,16 @@ interface Site {
 }
 
 export default function Sites() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [showPageBuilder, setShowPageBuilder] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Check if we should show the page builder
+  const showPageBuilder = searchParams.get('builder') === 'true';
+  const siteId = searchParams.get('siteId') || 'new';
+  const templateId = searchParams.get('templateId') || undefined;
 
   // Sample sites data
   const [sites, setSites] = useState<Site[]>([
@@ -78,29 +84,24 @@ export default function Sites() {
   );
 
   const handleCreateSite = () => {
-    setShowPageBuilder(true);
-    setSelectedTemplate(null);
+    setSearchParams({ builder: 'true', siteId: 'new' });
   };
 
   const handleUseTemplate = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    setShowPageBuilder(true);
+    setSearchParams({ builder: 'true', siteId: 'new', templateId });
   };
 
   const handleEditSite = (site: Site) => {
-    setSelectedSite(site);
-    setShowPageBuilder(true);
-    setSelectedTemplate(site.template || null);
+    setSearchParams({ builder: 'true', siteId: site.id, templateId: site.template || '' });
   };
 
+  // Show page builder in full screen
   if (showPageBuilder) {
     return (
-      <div className="h-screen">
-        <FunctionalPageBuilder 
-          siteId={selectedSite?.id || 'new'} 
-          templateId={selectedTemplate || undefined}
-        />
-      </div>
+      <FunctionalPageBuilder 
+        siteId={siteId} 
+        templateId={templateId}
+      />
     );
   }
 
@@ -111,7 +112,7 @@ export default function Sites() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Sites & Funnels</h2>
           <p className="text-muted-foreground">
-            Create high-converting websites and funnels
+            Create high-converting websites and funnels with our powerful page builder
           </p>
         </div>
         <Button onClick={handleCreateSite} className="bg-blue-600 hover:bg-blue-700">

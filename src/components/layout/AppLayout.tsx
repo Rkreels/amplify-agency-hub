@@ -5,6 +5,7 @@ import { MainNav } from './MainNav';
 import { UserAccountNav } from './UserAccountNav';
 import { SubAccountSwitcher } from './SubAccountSwitcher';
 import { useSubAccountSync } from '@/hooks/useSubAccountSync';
+import { useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,20 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   // Sync store data with sub-account changes
   useSubAccountSync();
+  const location = useLocation();
+  
+  // Check if we're in the page builder
+  const isPageBuilder = location.pathname.includes('/page-builder') || 
+                       location.search.includes('builder=true');
+
+  if (isPageBuilder) {
+    // Full screen mode for page builder
+    return (
+      <div className="h-screen bg-background">
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background">
