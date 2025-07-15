@@ -58,6 +58,14 @@ export const DragDropCanvas = forwardRef<HTMLDivElement, DragDropCanvasProps>(
       }
     };
 
+    const getCanvasWidthNumber = () => {
+      switch (deviceView) {
+        case 'mobile': return 375;
+        case 'tablet': return 768;
+        default: return 1200;
+      }
+    };
+
     const getCanvasMaxWidth = () => {
       switch (deviceView) {
         case 'mobile': return '375px';
@@ -223,7 +231,7 @@ export const DragDropCanvas = forwardRef<HTMLDivElement, DragDropCanvasProps>(
               <>
                 {/* Horizontal Ruler */}
                 <div className="absolute top-0 left-0 right-0 h-6 bg-gray-200 border-b border-gray-300 flex items-end text-xs text-gray-600 z-30">
-                  {Array.from({ length: Math.ceil((typeof getCanvasWidth() === 'string' ? 1200 : getCanvasWidth()) / 50) }, (_, i) => (
+                  {Array.from({ length: Math.ceil(getCanvasWidthNumber() / 50) }, (_, i) => (
                     <div
                       key={i}
                       className="absolute border-l border-gray-400"
