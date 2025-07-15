@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,11 @@ import { toast } from 'sonner';
 import { useSitesStore, Site } from '@/store/useSitesStore';
 import { SiteForm } from '@/components/sites/SiteForm';
 import { SiteDetails } from '@/components/sites/SiteDetails';
-import { EnhancedPageBuilder } from '@/components/sites/page-builder/EnhancedPageBuilder';
+import { ComprehensivePageBuilder } from '@/components/sites/page-builder/ComprehensivePageBuilder';
 import { EnhancedFunnelBuilder } from '@/components/sites/EnhancedFunnelBuilder';
+import { TemplateLibrary } from '@/components/sites/templates/TemplateLibrary';
+import { SiteAnalytics } from '@/components/sites/analytics/SiteAnalytics';
+import { GlobalSiteSettings } from '@/components/sites/settings/GlobalSiteSettings';
 import { 
   Dialog, 
   DialogContent, 
@@ -56,6 +60,8 @@ export default function Sites() {
   const [showSiteDetails, setShowSiteDetails] = useState(false);
   const [showPageBuilder, setShowPageBuilder] = useState(false);
   const [showFunnelBuilder, setShowFunnelBuilder] = useState(false);
+  const [showTemplatePreview, setShowTemplatePreview] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
   const filteredSites = sites.filter(site => {
@@ -110,7 +116,8 @@ export default function Sites() {
         toast.success(`Site "${site.name}" exported successfully`);
         break;
       case 'analytics':
-        toast.info(`Opening analytics for "${site.name}"`);
+        setActiveTab('analytics');
+        toast.info(`Viewing analytics for "${site.name}"`);
         break;
       case 'settings':
         setSelectedSite(site);
@@ -137,6 +144,19 @@ export default function Sites() {
         toast.info(`Action "${action}" not implemented yet`);
         break;
     }
+  };
+
+  const handleUseTemplate = (template: any) => {
+    setSelectedTemplate(template);
+    setShowTemplatePreview(false);
+    // Create a new site with the template
+    toast.success(`Creating site with template: ${template.name}`);
+    setShowSiteForm(true);
+  };
+
+  const handlePreviewTemplate = (template: any) => {
+    setSelectedTemplate(template);
+    setShowTemplatePreview(true);
   };
 
   // Enhanced Page Builder View
@@ -193,7 +213,7 @@ export default function Sites() {
             </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <EnhancedPageBuilder siteId={selectedSite.id} />
+            <ComprehensivePageBuilder siteId={selectedSite.id} />
           </div>
         </div>
       </AppLayout>
@@ -461,55 +481,18 @@ export default function Sites() {
             </TabsContent>
 
             <TabsContent value="templates" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {[
-                  { name: 'Business Landing Page', type: 'landing', preview: '/api/placeholder/400/300' },
-                  { name: 'E-commerce Store', type: 'website', preview: '/api/placeholder/400/300' },
-                  { name: 'Lead Generation Funnel', type: 'funnel', preview: '/api/placeholder/400/300' },
-                  { name: 'Booking Page', type: 'booking', preview: '/api/placeholder/400/300' },
-                ].map((template, index) => (
-                  <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <div className="aspect-video bg-gray-100 rounded-t-lg"></div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold">{template.name}</h3>
-                      <Badge variant="outline" className="mt-2">{template.type}</Badge>
-                      <Button className="w-full mt-3" size="sm">
-                        Use Template
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <TemplateLibrary
+                onUseTemplate={handleUseTemplate}
+                onPreview={handlePreviewTemplate}
+              />
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Site Performance Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <BarChart3 className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Analytics Dashboard</h3>
-                    <p className="text-muted-foreground mb-4">Advanced analytics and reporting features are coming soon!</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <SiteAnalytics />
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Global Site Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <Settings className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Settings Panel</h3>
-                    <p className="text-muted-foreground mb-4">Advanced configuration options are coming soon!</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <GlobalSiteSettings />
             </TabsContent>
           </Tabs>
         </div>
@@ -542,6 +525,36 @@ export default function Sites() {
                   setSelectedSite(null);
                 }}
               />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
+          <DialogContent className="sm:max-w-[800px] max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Template Preview</DialogTitle>
+              <DialogDescription>
+                {selectedTemplate?.name} - {selectedTemplate?.description}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedTemplate && (
+              <div className="space-y-4">
+                <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mx-auto mb-3"></div>
+                    <h3 className="text-lg font-semibold">{selectedTemplate.name}</h3>
+                    <p className="text-gray-600">{selectedTemplate.description}</p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowTemplatePreview(false)}>
+                    Close
+                  </Button>
+                  <Button onClick={() => handleUseTemplate(selectedTemplate)}>
+                    Use This Template
+                  </Button>
+                </div>
+              </div>
             )}
           </DialogContent>
         </Dialog>
