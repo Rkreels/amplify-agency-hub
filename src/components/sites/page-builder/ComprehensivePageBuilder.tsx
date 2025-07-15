@@ -18,11 +18,14 @@ import {
   Copy, Trash2, Move, AlignLeft, AlignCenter, AlignRight, Bold, 
   Italic, Underline, Palette, Type, Image, Square, Layout, 
   Smartphone, Tablet, Monitor, Globe, ChevronDown, ChevronRight,
-  Layers, Grid, Box, Text, FormInput, Video, Minus, MoreHorizontal
+  Layers, Grid, Box, Text, FormInput, Video, Minus, MoreHorizontal,
+  MousePointer, RotateCcw, RotateCw, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { Element, Position, Size, Template, Page } from './types';
 import { ElementRenderer } from './ElementRenderer';
 import { AdvancedRightPanel } from './AdvancedRightPanel';
+import { DragDropCanvas } from './DragDropCanvas';
+import { ElementToolbar } from './ElementToolbar';
 
 interface ComprehensivePageBuilderProps {
   siteId: string;
@@ -31,54 +34,243 @@ interface ComprehensivePageBuilderProps {
 export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderProps) {
   const [elements, setElements] = useState<Element[]>([]);
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
+  const [hoveredElement, setHoveredElement] = useState<Element | null>(null);
   const [pageSettings, setPageSettings] = useState({
     title: 'My Awesome Page',
     description: 'A page built with our comprehensive page builder',
-    keywords: 'web design, page builder, react'
+    keywords: 'web design, page builder, react',
+    customCSS: '',
+    customJS: '',
+    favicon: '',
+    ogImage: ''
   });
   const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [rightPanelTab, setRightPanelTab] = useState<'elements' | 'design' | 'settings' | 'templates'>('elements');
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [history, setHistory] = useState<Element[][]>([[]]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedElement, setDraggedElement] = useState<any>(null);
+  const [showGrid, setShowGrid] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(10);
 
-  const handleAddElement = (elementType: string) => {
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // History management
+  const saveToHistory = useCallback(() => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push([...elements]);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  }, [elements, history, historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setElements(history[historyIndex - 1]);
+      setSelectedElement(null);
+    }
+  }, [history, historyIndex]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setElements(history[historyIndex + 1]);
+      setSelectedElement(null);
+    }
+  }, [history, historyIndex]);
+
+  // Element management
+  const handleAddElement = useCallback((elementType: string, position?: Position) => {
     const newElement: Element = {
-      id: Date.now().toString(),
+      id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: elementType as any,
-      content: `New ${elementType}`,
-      position: { x: 50, y: 50 },
-      size: { width: 200, height: 50 },
-      styles: {
-        backgroundColor: 'white',
-        color: 'black',
-        padding: '10px',
-        border: '1px solid gray'
-      },
-      props: {}
+      content: getDefaultContent(elementType),
+      position: position || getDefaultPosition(),
+      size: getDefaultSize(elementType),
+      styles: getDefaultStyles(elementType),
+      props: getDefaultProps(elementType),
+      children: [],
+      attributes: {},
+      layerId: 'default'
     };
-    setElements([...elements, newElement]);
-  };
+    
+    setElements(prev => [...prev, newElement]);
+    setSelectedElement(newElement);
+    saveToHistory();
+    toast.success(`${elementType} element added`);
+  }, [saveToHistory]);
 
-  const handleSelectElement = (element: Element) => {
+  const handleSelectElement = useCallback((element: Element | null) => {
     setSelectedElement(element);
-    setRightPanelTab('design');
-  };
+    if (element) {
+      setRightPanelTab('design');
+    }
+  }, []);
 
-  const handleUpdateElement = (id: string, updates: Partial<Element>) => {
-    setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el));
-    setSelectedElement(el => el?.id === id ? { ...el, ...updates } : el);
-  };
+  const handleUpdateElement = useCallback((id: string, updates: Partial<Element>) => {
+    setElements(prev => prev.map(el => 
+      el.id === id ? { ...el, ...updates } : el
+    ));
+    
+    if (selectedElement?.id === id) {
+      setSelectedElement(prev => prev ? { ...prev, ...updates } : null);
+    }
+    
+    saveToHistory();
+  }, [selectedElement, saveToHistory]);
 
-  const handleDeleteElement = (id: string) => {
-    setElements(elements.filter(el => el.id !== id));
-    setSelectedElement(el => el?.id === id ? null : el);
-  };
+  const handleDeleteElement = useCallback((id: string) => {
+    setElements(prev => prev.filter(el => el.id !== id));
+    if (selectedElement?.id === id) {
+      setSelectedElement(null);
+    }
+    saveToHistory();
+    toast.success('Element deleted');
+  }, [selectedElement, saveToHistory]);
 
-  const handleDuplicateElement = (element: Element) => {
+  const handleDuplicateElement = useCallback((element: Element) => {
     const duplicated: Element = {
       ...element,
-      id: Date.now().toString(),
-      position: { x: element.position.x + 20, y: element.position.y + 20 }
+      id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      position: { 
+        x: element.position.x + 20, 
+        y: element.position.y + 20 
+      }
     };
-    setElements([...elements, duplicated]);
+    setElements(prev => [...prev, duplicated]);
+    setSelectedElement(duplicated);
+    saveToHistory();
+    toast.success('Element duplicated');
+  }, [saveToHistory]);
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((elementData: any) => {
+    setDraggedElement(elementData);
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnd = useCallback((result: any) => {
+    setIsDragging(false);
+    setDraggedElement(null);
+    
+    if (!result.destination) return;
+
+    const reorderedElements = Array.from(elements);
+    const [movedElement] = reorderedElements.splice(result.source.index, 1);
+    reorderedElements.splice(result.destination.index, 0, movedElement);
+
+    setElements(reorderedElements);
+    saveToHistory();
+  }, [elements, saveToHistory]);
+
+  const handleCanvasDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggedElement || !canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (draggedElement.template) {
+      handleAddElement(draggedElement.template.type, { x, y });
+    }
+  }, [draggedElement, handleAddElement]);
+
+  // Utility functions
+  const getDefaultContent = (type: string): string => {
+    const defaults: Record<string, string> = {
+      text: 'Your text here',
+      heading: 'Your heading',
+      button: 'Click me',
+      image: '',
+      video: '',
+      form: '',
+      container: '',
+      divider: '',
+      spacer: ''
+    };
+    return defaults[type] || '';
+  };
+
+  const getDefaultPosition = (): Position => ({
+    x: Math.floor(Math.random() * 200) + 50,
+    y: Math.floor(Math.random() * 200) + 50
+  });
+
+  const getDefaultSize = (type: string): Size => {
+    const sizes: Record<string, Size> = {
+      text: { width: 200, height: 40 },
+      heading: { width: 300, height: 60 },
+      button: { width: 120, height: 40 },
+      image: { width: 200, height: 150 },
+      video: { width: 400, height: 225 },
+      form: { width: 300, height: 400 },
+      container: { width: 400, height: 200 },
+      divider: { width: 100, height: 1 },
+      spacer: { width: 100, height: 50 }
+    };
+    return sizes[type] || { width: 200, height: 100 };
+  };
+
+  const getDefaultStyles = (type: string): Record<string, any> => {
+    const styles: Record<string, Record<string, any>> = {
+      text: {
+        fontSize: '16px',
+        color: '#000000',
+        fontFamily: 'Arial, sans-serif',
+        lineHeight: '1.5'
+      },
+      heading: {
+        fontSize: '32px',
+        fontWeight: 'bold',
+        color: '#000000',
+        fontFamily: 'Arial, sans-serif',
+        lineHeight: '1.2'
+      },
+      button: {
+        backgroundColor: '#007bff',
+        color: '#ffffff',
+        border: 'none',
+        borderRadius: '4px',
+        padding: '10px 20px',
+        cursor: 'pointer',
+        fontSize: '16px',
+        fontWeight: '500'
+      },
+      image: {
+        objectFit: 'cover',
+        borderRadius: '0px'
+      },
+      container: {
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '4px',
+        padding: '20px'
+      },
+      divider: {
+        backgroundColor: '#dee2e6',
+        height: '1px',
+        border: 'none'
+      },
+      spacer: {
+        height: '50px'
+      }
+    };
+    return styles[type] || {};
+  };
+
+  const getDefaultProps = (type: string): Record<string, any> => {
+    const props: Record<string, Record<string, any>> = {
+      heading: { level: 'h2' },
+      image: { src: '', alt: 'Image' },
+      video: { src: '', autoplay: false, controls: true },
+      button: { href: '', target: '_self' },
+      form: { action: '', method: 'POST' }
+    };
+    return props[type] || {};
   };
 
   const handlePageSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -86,52 +278,149 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
     setPageSettings(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) {
-      return;
-    }
+  const handleSave = useCallback(() => {
+    // Implement save functionality
+    console.log('Saving page...', { elements, pageSettings });
+    toast.success('Page saved successfully');
+  }, [elements, pageSettings]);
 
-    const reorderedElements = Array.from(elements);
-    const [movedElement] = reorderedElements.splice(result.source.index, 1);
-    reorderedElements.splice(result.destination.index, 0, movedElement);
+  const handlePreview = useCallback(() => {
+    setIsPreviewMode(!isPreviewMode);
+  }, [isPreviewMode]);
 
-    setElements(reorderedElements);
-  };
+  const handleExport = useCallback(() => {
+    // Implement export functionality
+    const exportData = {
+      elements,
+      pageSettings,
+      timestamp: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'page-export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Page exported successfully');
+  }, [elements, pageSettings]);
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-gray-50 relative">
       {/* Main Canvas Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Toolbar */}
-        <div className="bg-white border-b p-4 flex items-center justify-between">
+        <div className="bg-white border-b p-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={() => setDeviceView('desktop')}>
+            {/* Device View Controls */}
+            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+              <Button 
+                variant={deviceView === 'desktop' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setDeviceView('desktop')}
+                className="px-3"
+              >
                 <Monitor className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setDeviceView('tablet')}>
+              <Button 
+                variant={deviceView === 'tablet' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setDeviceView('tablet')}
+                className="px-3"
+              >
                 <Tablet className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setDeviceView('mobile')}>
+              <Button 
+                variant={deviceView === 'mobile' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setDeviceView('mobile')}
+                className="px-3"
+              >
                 <Smartphone className="h-4 w-4" />
               </Button>
             </div>
+            
             <Separator orientation="vertical" className="h-6" />
+            
+            {/* History Controls */}
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <Undo className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={undo}
+                disabled={historyIndex <= 0}
+                className="px-3"
+              >
+                <RotateCcw className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm">
-                <Redo className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={redo}
+                disabled={historyIndex >= history.length - 1}
+                className="px-3"
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <Separator orientation="vertical" className="h-6" />
+            
+            {/* Zoom Controls */}
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setZoomLevel(Math.max(25, zoomLevel - 25))}
+                className="px-3"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[50px] text-center">{zoomLevel}%</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))}
+                className="px-3"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <Separator orientation="vertical" className="h-6" />
+            
+            {/* View Options */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGrid(!showGrid)}
+                className={showGrid ? 'bg-blue-50 border-blue-200' : ''}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSnapToGrid(!snapToGrid)}
+                className={snapToGrid ? 'bg-blue-50 border-blue-200' : ''}
+              >
+                <MousePointer className="h-4 w-4" />
               </Button>
             </div>
           </div>
+
+          {/* Right Side Controls */}
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handlePreview}>
               <Eye className="h-4 w-4 mr-2" />
-              Preview
+              {isPreviewMode ? 'Edit' : 'Preview'}
             </Button>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button size="sm" onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
               <Save className="h-4 w-4 mr-2" />
               Save
             </Button>
@@ -139,60 +428,36 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 overflow-auto p-8">
-          <div 
-            className={`
-              mx-auto bg-white shadow-lg min-h-[800px] relative
-              ${deviceView === 'desktop' ? 'w-full max-w-6xl' : ''}
-              ${deviceView === 'tablet' ? 'w-[768px]' : ''}
-              ${deviceView === 'mobile' ? 'w-[375px]' : ''}
-            `}
-          >
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="elements">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="relative min-h-[800px] p-4"
-                  >
-                    {elements.map((element, index) => (
-                      <Draggable key={element.id} draggableId={element.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            style={{
-                              position: 'absolute',
-                              top: element.position.y,
-                              left: element.position.x,
-                              width: element.size.width,
-                              height: element.size.height,
-                              ...provided.draggableProps.style
-                            }}
-                            onClick={() => handleSelectElement(element)}
-                          >
-                            <ElementRenderer 
-                              element={element} 
-                              isSelected={selectedElement?.id === element.id}
-                              onElementClick={handleSelectElement}
-                              onUpdateElement={handleUpdateElement}
-                              onDeleteElement={handleDeleteElement}
-                              onDuplicateElement={handleDuplicateElement}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          </div>
-        </div>
+        <DragDropCanvas
+          ref={canvasRef}
+          elements={elements}
+          selectedElement={selectedElement}
+          hoveredElement={hoveredElement}
+          deviceView={deviceView}
+          zoomLevel={zoomLevel}
+          isPreviewMode={isPreviewMode}
+          showGrid={showGrid}
+          gridSize={gridSize}
+          snapToGrid={snapToGrid}
+          onElementSelect={handleSelectElement}
+          onElementHover={setHoveredElement}
+          onElementUpdate={handleUpdateElement}
+          onElementDelete={handleDeleteElement}
+          onElementDuplicate={handleDuplicateElement}
+          onDrop={handleCanvasDrop}
+          onDragOver={(e) => e.preventDefault()}
+        />
       </div>
+
+      {/* Element Toolbar */}
+      {selectedElement && !isPreviewMode && (
+        <ElementToolbar
+          element={selectedElement}
+          onUpdate={handleUpdateElement}
+          onDelete={handleDeleteElement}
+          onDuplicate={handleDuplicateElement}
+        />
+      )}
 
       {/* Advanced Right Panel */}
       <AdvancedRightPanel
@@ -205,6 +470,7 @@ export function ComprehensivePageBuilder({ siteId }: ComprehensivePageBuilderPro
         onDuplicateElement={handleDuplicateElement}
         pageSettings={pageSettings}
         onPageSettingsChange={handlePageSettingsChange}
+        onDragStart={handleDragStart}
       />
     </div>
   );
