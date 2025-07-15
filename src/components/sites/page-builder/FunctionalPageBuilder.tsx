@@ -204,7 +204,8 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
       text: {
         content: 'Edit this text',
         size: { width: 200, height: 40 },
-        styles: { fontSize: '16px', color: '#000000', fontFamily: 'Arial, sans-serif' }
+        styles: { fontSize: '16px', color: '#000000', fontFamily: 'Arial, sans-serif' },
+        props: {}
       },
       heading: {
         content: 'Your Heading',
@@ -222,7 +223,8 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
           fontSize: '16px',
           fontWeight: '500',
           border: 'none'
-        }
+        },
+        props: {}
       },
       image: {
         content: '',
@@ -238,7 +240,8 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
           padding: '20px', 
           borderRadius: '8px',
           border: '1px solid #e5e7eb'
-        }
+        },
+        props: {}
       },
       container: {
         content: '',
@@ -247,17 +250,20 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
           backgroundColor: 'transparent', 
           border: '2px dashed #d1d5db',
           borderRadius: '8px'
-        }
+        },
+        props: {}
       },
       divider: {
         content: '',
         size: { width: 400, height: 2 },
-        styles: { backgroundColor: '#e5e7eb' }
+        styles: { backgroundColor: '#e5e7eb' },
+        props: {}
       },
       spacer: {
         content: '',
         size: { width: 400, height: 50 },
-        styles: { backgroundColor: 'transparent' }
+        styles: { backgroundColor: 'transparent' },
+        props: {}
       }
     };
 
@@ -270,7 +276,7 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
       position: position || { x: 50, y: 50 },
       size: elementData.size,
       styles: elementData.styles,
-      props: elementData.props || {},
+      props: elementData.props,
       children: [],
       attributes: {},
       layerId: 'default'
