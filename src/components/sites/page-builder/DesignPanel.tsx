@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { Element } from './types';
 interface DesignPanelProps {
   selectedElement: Element | null;
   onUpdateElement: (elementId: string, updates: Partial<Element>) => void;
-  onDuplicateElement: (elementId: string) => void;
+  onDuplicateElement: (element: Element) => void;
   onDeleteElement: (elementId: string) => void;
 }
 
@@ -104,7 +105,7 @@ export function DesignPanel({ selectedElement, onUpdateElement, onDuplicateEleme
           {/* Actions */}
           <div className="pt-4 border-t space-y-2">
             <Button
-              onClick={() => onDuplicateElement(selectedElement.id)}
+              onClick={() => onDuplicateElement(selectedElement)}
               variant="outline"
               className="w-full"
             >
