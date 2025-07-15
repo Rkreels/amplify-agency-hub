@@ -1,133 +1,377 @@
 
-export const templates = [
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  image: string;
+  isPremium: boolean;
+  elements: any[];
+  preview: {
+    desktop: string;
+    mobile: string;
+  };
+}
+
+export const templates: Template[] = [
   {
-    id: 'business-pro',
-    name: 'Business Pro',
-    category: 'business',
-    type: 'website' as const,
-    description: 'Professional business website with service pages and contact forms',
-    features: ['Contact Forms', 'Service Pages', 'Team Section', 'Testimonials'],
-    rating: 4.8,
-    isPremium: true,
-    preview: '/templates/business-pro.jpg',
+    id: 'landing-page',
+    name: 'High-Converting Landing Page',
+    description: 'Perfect for product launches and lead generation',
+    category: 'Landing Pages',
+    image: '/api/placeholder/400/300',
+    isPremium: false,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
     elements: [
       {
-        id: 'header-1',
-        type: 'container',
-        content: '',
-        position: { x: 0, y: 0 },
-        size: { width: '100%', height: 80 },
+        id: 'hero-heading',
+        type: 'heading',
+        content: 'Transform Your Business Today',
+        position: { x: 50, y: 80 },
+        size: { width: 700, height: 100 },
         styles: {
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 2rem'
+          fontSize: '48px',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          textAlign: 'center',
+          lineHeight: '1.2',
+          marginBottom: '20px'
         },
-        children: ['logo-1', 'nav-1']
+        props: { level: 'h1' },
+        children: [],
+        attributes: {},
+        layerId: 'default'
       },
       {
-        id: 'hero-1',
+        id: 'hero-subtitle',
+        type: 'text',
+        content: 'Join thousands of successful businesses who have already transformed their operations with our proven system.',
+        position: { x: 100, y: 200 },
+        size: { width: 600, height: 80 },
+        styles: {
+          fontSize: '20px',
+          color: '#6b7280',
+          textAlign: 'center',
+          lineHeight: '1.6',
+          marginBottom: '30px'
+        },
+        props: {},
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      },
+      {
+        id: 'hero-cta',
+        type: 'button',
+        content: 'Get Started Free',
+        position: { x: 325, y: 300 },
+        size: { width: 200, height: 60 },
+        styles: {
+          backgroundColor: '#3b82f6',
+          color: '#ffffff',
+          fontSize: '18px',
+          fontWeight: '600',
+          borderRadius: '12px',
+          border: 'none',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+        },
+        props: { href: '#signup' },
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      },
+      {
+        id: 'features-heading',
+        type: 'heading',
+        content: 'Why Choose Our Solution?',
+        position: { x: 50, y: 450 },
+        size: { width: 700, height: 60 },
+        styles: {
+          fontSize: '36px',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          textAlign: 'center',
+          marginBottom: '40px'
+        },
+        props: { level: 'h2' },
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      },
+      {
+        id: 'feature-1',
         type: 'container',
         content: '',
-        position: { x: 0, y: 80 },
-        size: { width: '100%', height: 500 },
+        position: { x: 50, y: 550 },
+        size: { width: 220, height: 200 },
         styles: {
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '4rem 2rem'
+          backgroundColor: '#f9fafb',
+          padding: '30px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center'
         },
-        children: ['hero-content-1']
+        props: {},
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      },
+      {
+        id: 'testimonial-section',
+        type: 'container',
+        content: '',
+        position: { x: 50, y: 800 },
+        size: { width: 700, height: 250 },
+        styles: {
+          backgroundColor: '#f8fafc',
+          padding: '40px',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0'
+        },
+        props: {},
+        children: [],
+        attributes: {},
+        layerId: 'default'
       }
     ]
   },
   {
-    id: 'ecommerce-modern',
-    name: 'Modern E-commerce',
-    category: 'ecommerce',
-    type: 'website' as const,
-    description: 'Sleek e-commerce site with product catalog and shopping cart',
-    features: ['Product Catalog', 'Shopping Cart', 'Payment Forms', 'User Reviews'],
-    rating: 4.9,
+    id: 'business-form',
+    name: 'Lead Generation Form',
+    description: 'Capture leads with this conversion-optimized form',
+    category: 'Forms',
+    image: '/api/placeholder/400/300',
+    isPremium: false,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: [
+      {
+        id: 'form-title',
+        type: 'heading',
+        content: 'Get Your Free Consultation',
+        position: { x: 200, y: 80 },
+        size: { width: 400, height: 80 },
+        styles: {
+          fontSize: '36px',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          textAlign: 'center',
+          marginBottom: '20px'
+        },
+        props: { level: 'h1' },
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      },
+      {
+        id: 'form-subtitle',
+        type: 'text',
+        content: 'Fill out the form below and our experts will contact you within 24 hours.',
+        position: { x: 150, y: 180 },
+        size: { width: 500, height: 50 },
+        styles: {
+          fontSize: '18px',
+          color: '#6b7280',
+          textAlign: 'center',
+          lineHeight: '1.5',
+          marginBottom: '30px'
+        },
+        props: {},
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      },
+      {
+        id: 'lead-form',
+        type: 'form',
+        content: '',
+        position: { x: 200, y: 260 },
+        size: { width: 400, height: 400 },
+        styles: {
+          backgroundColor: '#ffffff',
+          padding: '40px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
+        },
+        props: {
+          action: '/submit-lead',
+          method: 'POST'
+        },
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      }
+    ]
+  },
+  {
+    id: 'ecommerce-product',
+    name: 'Product Showcase',
+    description: 'Beautiful product display with purchase options',
+    category: 'E-commerce',
+    image: '/api/placeholder/400/300',
     isPremium: true,
-    preview: '/templates/ecommerce-modern.jpg',
-    elements: []
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: [
+      {
+        id: 'product-hero',
+        type: 'container',
+        content: '',
+        position: { x: 50, y: 80 },
+        size: { width: 700, height: 400 },
+        styles: {
+          backgroundColor: '#ffffff',
+          padding: '40px',
+          borderRadius: '16px',
+          border: '1px solid #e5e7eb'
+        },
+        props: {},
+        children: [],
+        attributes: {},
+        layerId: 'default'
+      }
+    ]
   },
   {
-    id: 'lead-gen-funnel',
-    name: 'Lead Generation Funnel',
-    category: 'business',
-    type: 'funnel' as const,
-    description: 'High-converting lead generation funnel with opt-in forms',
-    features: ['Opt-in Forms', 'Thank You Pages', 'Email Integration', 'A/B Testing'],
-    rating: 4.7,
-    isPremium: false,
-    preview: '/templates/lead-gen-funnel.jpg',
-    elements: []
-  },
-  {
-    id: 'portfolio-creative',
-    name: 'Creative Portfolio',
-    category: 'portfolio',
-    type: 'website' as const,
-    description: 'Stunning portfolio site for creatives and designers',
-    features: ['Image Gallery', 'Project Showcase', 'Contact Form', 'Social Links'],
-    rating: 4.6,
-    isPremium: false,
-    preview: '/templates/portfolio-creative.jpg',
-    elements: []
-  },
-  {
-    id: 'restaurant-deluxe',
-    name: 'Restaurant Deluxe',
-    category: 'restaurant',
-    type: 'website' as const,
-    description: 'Beautiful restaurant website with menu and reservations',
-    features: ['Menu Display', 'Reservations', 'Photo Gallery', 'Location Map'],
-    rating: 4.8,
+    id: 'agency-portfolio',
+    name: 'Agency Portfolio',
+    description: 'Showcase your work and attract new clients',
+    category: 'Portfolio',
+    image: '/api/placeholder/400/300',
     isPremium: true,
-    preview: '/templates/restaurant-deluxe.jpg',
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
     elements: []
   },
   {
-    id: 'agency-landing',
-    name: 'Agency Landing',
-    category: 'agency',
-    type: 'landing' as const,
-    description: 'Professional agency landing page with service showcase',
-    features: ['Service Cards', 'Case Studies', 'Team Profiles', 'Contact CTA'],
-    rating: 4.5,
+    id: 'restaurant-menu',
+    name: 'Restaurant Menu',
+    description: 'Digital menu with ordering capabilities',
+    category: 'Restaurant',
+    image: '/api/placeholder/400/300',
     isPremium: false,
-    preview: '/templates/agency-landing.jpg',
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
     elements: []
   },
   {
-    id: 'booking-calendar',
-    name: 'Booking Calendar',
-    category: 'business',
-    type: 'booking' as const,
-    description: 'Appointment booking page with calendar integration',
-    features: ['Calendar Widget', 'Time Slots', 'Payment Integration', 'Confirmations'],
-    rating: 4.9,
+    id: 'fitness-trainer',
+    name: 'Fitness Trainer',
+    description: 'Personal trainer booking and program showcase',
+    category: 'Fitness',
+    image: '/api/placeholder/400/300',
     isPremium: true,
-    preview: '/templates/booking-calendar.jpg',
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
     elements: []
   },
   {
-    id: 'blog-minimal',
-    name: 'Minimal Blog',
-    category: 'blog',
-    type: 'website' as const,
-    description: 'Clean and minimal blog template with post listings',
-    features: ['Post Grid', 'Categories', 'Search', 'Social Sharing'],
-    rating: 4.4,
+    id: 'real-estate',
+    name: 'Real Estate Listing',
+    description: 'Property showcase with inquiry form',
+    category: 'Real Estate',
+    image: '/api/placeholder/400/300',
     isPremium: false,
-    preview: '/templates/blog-minimal.jpg',
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: []
+  },
+  {
+    id: 'law-firm',
+    name: 'Law Firm',
+    description: 'Professional legal services presentation',
+    category: 'Professional',
+    image: '/api/placeholder/400/300',
+    isPremium: true,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: []
+  },
+  {
+    id: 'medical-practice',
+    name: 'Medical Practice',
+    description: 'Healthcare provider with appointment booking',
+    category: 'Healthcare',
+    image: '/api/placeholder/400/300',
+    isPremium: false,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: []
+  },
+  {
+    id: 'saas-landing',
+    name: 'SaaS Landing Page',
+    description: 'Software as a Service product presentation',
+    category: 'SaaS',
+    image: '/api/placeholder/400/300',
+    isPremium: true,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: []
+  },
+  {
+    id: 'event-registration',
+    name: 'Event Registration',
+    description: 'Event details with registration form',
+    category: 'Events',
+    image: '/api/placeholder/400/300',
+    isPremium: false,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
+    elements: []
+  },
+  {
+    id: 'nonprofit-donation',
+    name: 'Nonprofit Donation',
+    description: 'Charity organization with donation options',
+    category: 'Nonprofit',
+    image: '/api/placeholder/400/300',
+    isPremium: false,
+    preview: {
+      desktop: '/api/placeholder/800/600',
+      mobile: '/api/placeholder/400/600'
+    },
     elements: []
   }
+];
+
+export const categories = [
+  'All',
+  'Landing Pages',
+  'Forms',
+  'E-commerce',
+  'Portfolio',
+  'Restaurant',
+  'Fitness',
+  'Real Estate',
+  'Professional',
+  'Healthcare',
+  'SaaS',
+  'Events',
+  'Nonprofit'
 ];

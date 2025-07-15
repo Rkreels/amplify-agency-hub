@@ -1,564 +1,242 @@
 
 import React, { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, 
-  Globe,
-  Users,
-  TrendingUp,
-  Zap,
-  RefreshCw,
-  Monitor,
+  Search, 
+  Globe, 
+  Settings, 
+  BarChart3, 
   Eye,
   Edit,
-  ExternalLink,
-  BarChart3,
-  Settings,
   Copy,
-  Download,
   Trash2,
-  Search,
-  Target,
-  Calendar
+  ExternalLink
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useSitesStore, Site } from '@/store/useSitesStore';
-import { SiteForm } from '@/components/sites/SiteForm';
-import { SiteDetails } from '@/components/sites/SiteDetails';
-import { ComprehensivePageBuilder } from '@/components/sites/page-builder/ComprehensivePageBuilder';
-import { EnhancedFunnelBuilder } from '@/components/sites/EnhancedFunnelBuilder';
 import { TemplateLibrary } from '@/components/sites/templates/TemplateLibrary';
+import { TemplatePreview } from '@/components/sites/templates/TemplatePreview';
 import { SiteAnalytics } from '@/components/sites/analytics/SiteAnalytics';
 import { GlobalSiteSettings } from '@/components/sites/settings/GlobalSiteSettings';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+import { FunctionalPageBuilder } from '@/components/sites/page-builder/FunctionalPageBuilder';
+
+interface Site {
+  id: string;
+  name: string;
+  domain: string;
+  status: 'published' | 'draft' | 'archived';
+  lastModified: string;
+  views: number;
+  conversions: number;
+  template?: string;
+}
 
 export default function Sites() {
-  const { sites, selectedSite, setSelectedSite, deleteSite, publishSite, unpublishSite } = useSitesStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
-  const [filterType, setFilterType] = useState<'all' | 'website' | 'landing' | 'funnel' | 'booking'>('all');
-  const [showSiteForm, setShowSiteForm] = useState(false);
-  const [showSiteDetails, setShowSiteDetails] = useState(false);
-  const [showPageBuilder, setShowPageBuilder] = useState(false);
-  const [showFunnelBuilder, setShowFunnelBuilder] = useState(false);
-  const [showTemplatePreview, setShowTemplatePreview] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [showPageBuilder, setShowPageBuilder] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredSites = sites.filter(site => {
-    const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         site.url.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || site.status === filterStatus;
-    const matchesType = filterType === 'all' || site.type === filterType;
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'bg-green-100 text-green-800 border-green-200';
-      case 'draft': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'archived': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+  // Sample sites data
+  const [sites, setSites] = useState<Site[]>([
+    {
+      id: '1',
+      name: 'Landing Page Pro',
+      domain: 'landingpro.com',
+      status: 'published',
+      lastModified: '2024-01-15',
+      views: 15420,
+      conversions: 342
+    },
+    {
+      id: '2',
+      name: 'Business Form',
+      domain: 'bizform.net',
+      status: 'draft',
+      lastModified: '2024-01-14',
+      views: 0,
+      conversions: 0
+    },
+    {
+      id: '3',
+      name: 'Product Showcase',
+      domain: 'showcase.io',
+      status: 'published',
+      lastModified: '2024-01-13',
+      views: 8920,
+      conversions: 156
     }
+  ]);
+
+  const filteredSites = sites.filter(site =>
+    site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    site.domain.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleCreateSite = () => {
+    setShowPageBuilder(true);
+    setSelectedTemplate(null);
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'website': return <Globe className="h-4 w-4 text-blue-500" />;
-      case 'landing': return <Target className="h-4 w-4 text-purple-500" />;
-      case 'funnel': return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'booking': return <Calendar className="h-4 w-4 text-orange-500" />;
-      default: return <Globe className="h-4 w-4 text-gray-500" />;
-    }
+  const handleUseTemplate = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setShowPageBuilder(true);
   };
 
-  const handleSiteAction = (action: string, site: Site) => {
-    switch (action) {
-      case 'view':
-        window.open(`https://${site.url}`, '_blank');
-        toast.info(`Opening ${site.name}`);
-        break;
-      case 'edit':
-        setSelectedSite(site);
-        setShowSiteDetails(true);
-        break;
-      case 'pages':
-        setSelectedSite(site);
-        setShowPageBuilder(true);
-        break;
-      case 'funnels':
-        setSelectedSite(site);
-        setShowFunnelBuilder(true);
-        break;
-      case 'duplicate':
-        toast.success(`Site "${site.name}" duplicated successfully`);
-        break;
-      case 'export':
-        toast.success(`Site "${site.name}" exported successfully`);
-        break;
-      case 'analytics':
-        setActiveTab('analytics');
-        toast.info(`Viewing analytics for "${site.name}"`);
-        break;
-      case 'settings':
-        setSelectedSite(site);
-        setShowSiteDetails(true);
-        break;
-      case 'publish':
-        publishSite(site.id);
-        toast.success(`Site "${site.name}" published successfully`);
-        break;
-      case 'unpublish':
-        unpublishSite(site.id);
-        toast.success(`Site "${site.name}" unpublished successfully`);
-        break;
-      case 'delete':
-        if (window.confirm(`Are you sure you want to delete "${site.name}"? This action cannot be undone.`)) {
-          deleteSite(site.id);
-          toast.success(`Site "${site.name}" deleted successfully`);
-          if (selectedSite?.id === site.id) {
-            setSelectedSite(null);
-          }
-        }
-        break;
-      default:
-        toast.info(`Action "${action}" not implemented yet`);
-        break;
-    }
+  const handleEditSite = (site: Site) => {
+    setSelectedSite(site);
+    setShowPageBuilder(true);
+    setSelectedTemplate(site.template || null);
   };
 
-  const handleUseTemplate = (template: any) => {
-    setSelectedTemplate(template);
-    setShowTemplatePreview(false);
-    // Create a new site with the template
-    toast.success(`Creating site with template: ${template.name}`);
-    setShowSiteForm(true);
-  };
-
-  const handlePreviewTemplate = (template: any) => {
-    setSelectedTemplate(template);
-    setShowTemplatePreview(true);
-  };
-
-  // Enhanced Page Builder View
-  if (showPageBuilder && selectedSite) {
+  if (showPageBuilder) {
     return (
-      <AppLayout>
-        <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
-          <div className="flex items-center justify-between p-4 border-b bg-white shadow-sm">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowPageBuilder(false);
-                  setSelectedSite(null);
-                }}
-                className="flex items-center gap-2"
-              >
-                ← Back to Sites
-              </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Globe className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">{selectedSite.name}</h1>
-                  <p className="text-sm text-gray-500">Page Builder</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="capitalize">
-                {selectedSite.type}
-              </Badge>
-              <Badge variant={selectedSite.status === 'published' ? 'default' : 'secondary'}>
-                {selectedSite.status}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Preview
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                onClick={() => {
-                  publishSite(selectedSite.id);
-                  toast.success('Page published successfully!');
-                }}
-              >
-                <Download className="h-4 w-4" />
-                Publish
-              </Button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <ComprehensivePageBuilder siteId={selectedSite.id} />
-          </div>
-        </div>
-      </AppLayout>
+      <div className="h-screen">
+        <FunctionalPageBuilder 
+          siteId={selectedSite?.id || 'new'} 
+          templateId={selectedTemplate || undefined}
+        />
+      </div>
     );
   }
 
-  // Enhanced Funnel Builder View
-  if (showFunnelBuilder && selectedSite) {
-    return (
-      <AppLayout>
-        <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
-          <div className="flex items-center justify-between p-4 border-b bg-white shadow-sm">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowFunnelBuilder(false);
-                  setSelectedSite(null);
-                }}
-                className="flex items-center gap-2"
-              >
-                ← Back to Sites
-              </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">{selectedSite.name}</h1>
-                  <p className="text-sm text-gray-500">Funnel Builder</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="capitalize">
-                {selectedSite.type}
-              </Badge>
-            </div>
-          </div>
-          <div className="flex-1">
-            <EnhancedFunnelBuilder siteId={selectedSite.id} />
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Main Sites Dashboard
   return (
-    <AppLayout>
-      <div className="h-[calc(100vh-4rem)] bg-gray-50 flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Sites & Funnels</h1>
-              <p className="text-gray-600 mt-1">Build, manage and optimize your websites, landing pages, and sales funnels</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={() => {
-                toast.info('Refreshing sites data...');
-              }}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-              <Button onClick={() => setShowSiteForm(true)} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Site
-              </Button>
-            </div>
-          </div>
+    <div className="flex-1 space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Sites & Funnels</h2>
+          <p className="text-muted-foreground">
+            Create high-converting websites and funnels
+          </p>
+        </div>
+        <Button onClick={handleCreateSite} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="mr-2 h-4 w-4" />
+          Create New Site
+        </Button>
+      </div>
 
-          {/* Filters */}
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Search and Filters */}
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search sites and funnels..."
+                placeholder="Search sites..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-10"
               />
             </div>
-            <Select value={filterStatus} onValueChange={(value: 'all' | 'published' | 'draft' | 'archived') => setFilterStatus(value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterType} onValueChange={(value: 'all' | 'website' | 'landing' | 'funnel' | 'booking') => setFilterType(value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="website">Website</SelectItem>
-                <SelectItem value="landing">Landing</SelectItem>
-                <SelectItem value="funnel">Funnel</SelectItem>
-                <SelectItem value="booking">Booking</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 max-w-md">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-6">
-              {/* Quick Stats */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Total Sites</CardTitle>
-                    <Globe className="h-5 w-5 text-blue-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-gray-900">{sites.length}</div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {sites.filter(s => s.status === 'published').length} published, {sites.filter(s => s.status === 'draft').length} draft
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {sites.reduce((sum, site) => sum + site.visitors, 0).toLocaleString()}
-                    </div>
-                    <p className="text-xs text-muted-foreground">This month</p>
-                  </CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">12.5%</div>
-                    <p className="text-xs text-muted-foreground">+2.1% from last month</p>
-                  </CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active Funnels</CardTitle>
-                    <Zap className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {sites.filter(s => s.type === 'funnel' && s.status === 'published').length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Running campaigns</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Sites Grid */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredSites.map((site) => (
-                  <Card key={site.id} className="hover:shadow-lg transition-all cursor-pointer group">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {getTypeIcon(site.type)}
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{site.name}</h3>
-                            <p className="text-sm text-gray-500">{site.url}</p>
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleSiteAction('view', site)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Live
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSiteAction('pages', site)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Pages
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleSiteAction('duplicate', site)}>
-                              <Copy className="h-4 w-4 mr-2" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSiteAction('delete', site)} className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2 mb-4">
-                        <Badge className={`${getStatusColor(site.status)} text-xs border`}>
-                          {site.status}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {site.type}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">{site.visitors.toLocaleString()}</div>
-                          <div className="text-xs text-gray-500">Visitors</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">{site.pages.length}</div>
-                          <div className="text-xs text-gray-500">Pages</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1" onClick={() => handleSiteAction('pages', site)}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSiteAction('view', site)}>
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSiteAction('analytics', site)}>
-                          <BarChart3 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredSites.length === 0 && (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Globe className="h-8 w-8 text-gray-400" />
+          {/* Sites Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredSites.map((site) => (
+              <Card key={site.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{site.name}</CardTitle>
+                    <Badge variant={site.status === 'published' ? 'default' : 'secondary'}>
+                      {site.status}
+                    </Badge>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Sites Found</h3>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                    Try adjusting your search terms or filters, or create a new site to get started
-                  </p>
-                  <Button onClick={() => setShowSiteForm(true)} size="lg">
-                    <Plus className="h-5 w-5 mr-2" />
-                    Create Your First Site
-                  </Button>
-                </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Globe className="mr-1 h-4 w-4" />
+                    {site.domain}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="font-medium">{site.views.toLocaleString()}</div>
+                      <div className="text-muted-foreground">Views</div>
+                    </div>
+                    <div>
+                      <div className="font-medium">{site.conversions}</div>
+                      <div className="text-muted-foreground">Conversions</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="text-sm text-muted-foreground">
+                      Modified {site.lastModified}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`https://${site.domain}`, '_blank')}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditSite(site)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {filteredSites.length === 0 && (
+            <div className="text-center py-12">
+              <Globe className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No sites found</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm ? 'Try adjusting your search term' : 'Get started by creating your first site'}
+              </p>
+              {!searchTerm && (
+                <Button onClick={handleCreateSite}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Your First Site
+                </Button>
               )}
-            </TabsContent>
+            </div>
+          )}
+        </TabsContent>
 
-            <TabsContent value="templates" className="space-y-4">
-              <TemplateLibrary
-                onUseTemplate={handleUseTemplate}
-                onPreview={handlePreviewTemplate}
-              />
-            </TabsContent>
+        {/* Templates Tab */}
+        <TabsContent value="templates">
+          <TemplateLibrary onUseTemplate={handleUseTemplate} />
+        </TabsContent>
 
-            <TabsContent value="analytics" className="space-y-4">
-              <SiteAnalytics />
-            </TabsContent>
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <SiteAnalytics />
+        </TabsContent>
 
-            <TabsContent value="settings" className="space-y-4">
-              <GlobalSiteSettings />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Dialogs */}
-        <Dialog open={showSiteForm} onOpenChange={setShowSiteForm}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New Site</DialogTitle>
-              <DialogDescription>
-                Choose a site type and configure your new site.
-              </DialogDescription>
-            </DialogHeader>
-            <SiteForm onComplete={() => setShowSiteForm(false)} />
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showSiteDetails} onOpenChange={setShowSiteDetails}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Site Details</DialogTitle>
-              <DialogDescription>
-                View and edit site information.
-              </DialogDescription>
-            </DialogHeader>
-            {selectedSite && (
-              <SiteDetails 
-                onClose={() => {
-                  setShowSiteDetails(false);
-                  setSelectedSite(null);
-                }}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
-          <DialogContent className="sm:max-w-[800px] max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>Template Preview</DialogTitle>
-              <DialogDescription>
-                {selectedTemplate?.name} - {selectedTemplate?.description}
-              </DialogDescription>
-            </DialogHeader>
-            {selectedTemplate && (
-              <div className="space-y-4">
-                <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mx-auto mb-3"></div>
-                    <h3 className="text-lg font-semibold">{selectedTemplate.name}</h3>
-                    <p className="text-gray-600">{selectedTemplate.description}</p>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowTemplatePreview(false)}>
-                    Close
-                  </Button>
-                  <Button onClick={() => handleUseTemplate(selectedTemplate)}>
-                    Use This Template
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-    </AppLayout>
+        {/* Settings Tab */}
+        <TabsContent value="settings">
+          <GlobalSiteSettings />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
