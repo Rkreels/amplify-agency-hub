@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -262,7 +261,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                   <DesignPanel
                     selectedElement={selectedElement || null}
                     onUpdateElement={updateElement}
-                    onDuplicateElement={duplicateElement}
+                    onDuplicateElement={(element) => duplicateElement(element.id)}
                     onDeleteElement={deleteElement}
                   />
                 </ScrollArea>
