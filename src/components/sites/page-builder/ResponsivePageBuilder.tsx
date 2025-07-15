@@ -101,8 +101,8 @@ export function ResponsivePageBuilder({ siteId }: ResponsivePageBuilderProps) {
       video: { width: 400, height: 225 },
       form: { width: 300, height: 400 },
       container: { width: 400, height: 200 },
-      divider: { width: '100%', height: 1 },
-      spacer: { width: '100%', height: 50 }
+      divider: { width: 400, height: 1 },
+      spacer: { width: 400, height: 50 }
     };
     return sizes[type] || { width: 200, height: 100 };
   };
