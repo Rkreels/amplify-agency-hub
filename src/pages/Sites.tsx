@@ -21,7 +21,7 @@ import { TemplateLibrary } from '@/components/sites/templates/TemplateLibrary';
 import { TemplatePreview } from '@/components/sites/templates/TemplatePreview';
 import { SiteAnalytics } from '@/components/sites/analytics/SiteAnalytics';
 import { GlobalSiteSettings } from '@/components/sites/settings/GlobalSiteSettings';
-import { FunctionalPageBuilder } from '@/components/sites/page-builder/FunctionalPageBuilder';
+import { AdvancedPageBuilder } from '@/components/sites/page-builder/AdvancedPageBuilder';
 import { useSearchParams } from 'react-router-dom';
 
 interface Site {
@@ -95,10 +95,10 @@ export default function Sites() {
     setSearchParams({ builder: 'true', siteId: site.id, templateId: site.template || '' });
   };
 
-  // Show page builder in current layout (with sidebar)
+  // Show page builder in full screen mode
   if (showPageBuilder) {
     return (
-      <FunctionalPageBuilder 
+      <AdvancedPageBuilder 
         siteId={siteId} 
         templateId={templateId}
       />
