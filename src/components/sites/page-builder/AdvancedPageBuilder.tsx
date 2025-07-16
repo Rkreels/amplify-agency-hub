@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -489,13 +488,28 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
               ) : (
                 <div className="relative h-full">
                   {currentPage?.elements.map(element => 
-                    <ElementRenderer
+                    <div
                       key={element.id}
-                      element={element}
-                      isSelected={selectedElementId === element.id}
-                      onElementClick={handleElementClick}
-                      onElementUpdate={updateElement}
-                    />
+                      style={{
+                        position: 'absolute',
+                        left: element.position.x,
+                        top: element.position.y,
+                        width: element.size.width,
+                        height: element.size.height,
+                      }}
+                    >
+                      <ElementRenderer
+                        element={element}
+                        isSelected={selectedElementId === element.id}
+                        onElementClick={handleElementClick}
+                        onUpdateElement={updateElement}
+                        onDeleteElement={deleteElement}
+                        onDuplicateElement={() => duplicateElement(element.id)}
+                        isPreviewMode={isPreviewMode}
+                        snapToGrid={snapToGrid}
+                        gridSize={20}
+                      />
+                    </div>
                   )}
                 </div>
               )}
