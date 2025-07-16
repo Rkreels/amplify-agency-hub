@@ -14,12 +14,13 @@ import {
   Type, Heading, Square, Image, Video, FormInput, 
   Columns, Minus, Star, Users, Timer, BarChart3, 
   Share2, Phone, Calendar, MessageCircle, Navigation,
-  Menu, Link, icons, Play, Upload, Palette, 
+  Menu, Link, Play, Upload, Palette, 
   Move, RotateCcw, RotateCw, Copy, Trash2, 
   Eye, EyeOff, Lock, Unlock, ZoomIn, ZoomOut,
   Undo, Redo, Grid3X3, AlignLeft, AlignCenter, 
   AlignRight, AlignJustify, Bold, Italic, Underline,
-  Save, Download, Settings, Layers, History
+  Save, Download, Settings, Layers, History,
+  Monitor, Tablet, Smartphone, RotateCcw as RotateCcwIcon, RotateCw as RotateCwIcon
 } from 'lucide-react';
 import { Element, Template } from './types';
 import { templates } from '../templates/templateData';
@@ -193,6 +194,8 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
   const [gridSize, setGridSize] = useState(20);
   const [leftSidebarTab, setLeftSidebarTab] = useState('elements');
   const [rightSidebarTab, setRightSidebarTab] = useState('design');
+  const [draggedElement, setDraggedElement] = useState<Element | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -285,7 +288,46 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
     addToHistory(newElements);
   }, [elements, addToHistory]);
 
-  // Drag and Drop Handlers
+  // Enhanced drag and drop with proper element placement
+  const handleElementPlace = useCallback((position: { x: number; y: number }) => {
+    if (!draggedElement) return;
+    
+    // Find elements that need to move out of the way
+    const updatedElements = elements.map(el => {
+      const overlap = (
+        position.x < el.position.x + el.size.width &&
+        position.x + draggedElement.size.width > el.position.x &&
+        position.y < el.position.y + el.size.height &&
+        position.y + draggedElement.size.height > el.position.y
+      );
+      
+      if (overlap && el.id !== draggedElement.id) {
+        // Move overlapping element down
+        return {
+          ...el,
+          position: {
+            x: el.position.x,
+            y: position.y + draggedElement.size.height + 20
+          }
+        };
+      }
+      
+      if (el.id === draggedElement.id) {
+        return {
+          ...el,
+          position
+        };
+      }
+      
+      return el;
+    });
+    
+    setElements(updatedElements);
+    addToHistory(updatedElements);
+    setDraggedElement(null);
+  }, [draggedElement, elements, addToHistory]);
+
+  // Mouse and drag event handlers
   const handleMouseDown = useCallback((e: React.MouseEvent, element: Element) => {
     if (isPreviewMode) return;
     
@@ -546,7 +588,8 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
           height: element.size.height,
           zIndex: isSelected ? 1000 : 1
         }}
-        onMouseDown={(e) => handleMouseDown(e, element)}
+        draggable
+        onDragStart={() => setDraggedElement(element)}
         onMouseEnter={() => !isDraggingRef.current && setHoveredElement(element)}
         onMouseLeave={() => setHoveredElement(null)}
         onClick={(e) => {
@@ -585,30 +628,169 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
     );
   };
 
-  const gridStyle = showGrid ? {
-    backgroundImage: `
-      linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
-    `,
-    backgroundSize: `${gridSize}px ${gridSize}px`
-  } : {};
+  // EnhancedElementPlacement component inline here for simplicity
+  const EnhancedElementPlacement = ({
+    elements,
+    draggedElement,
+    mousePosition,
+    onElementPlace
+  }: {
+    elements: Element[];
+    draggedElement: Element | null;
+    mousePosition: { x: number; y: number };
+    onElementPlace: (position: { x: number; y: number }) => void;
+  }) => {
+    // Calculate snap zones for better element placement
+    const getSnapZones = () => {
+      const zones: Array<{ x: number; y: number; element?: Element }> = [];
+      
+      // Add grid snap points
+      for (let x = 0; x < 1200; x += 20) {
+        for (let y = 0; y < 800; y += 20) {
+          zones.push({ x, y });
+        }
+      }
+      
+      // Add element edge snap points
+      elements.forEach(element => {
+        if (element.id !== draggedElement?.id) {
+          zones.push(
+            { x: element.position.x, y: element.position.y + element.size.height + 10, element },
+            { x: element.position.x, y: element.position.y - 10, element },
+            { x: element.position.x + element.size.width + 10, y: element.position.y, element },
+            { x: element.position.x - 10, y: element.position.y, element }
+          );
+        }
+      });
+      
+      return zones;
+    };
+
+    const findNearestSnapZone = (x: number, y: number) => {
+      const zones = getSnapZones();
+      let nearest = { x, y };
+      let minDistance = Infinity;
+      
+      zones.forEach(zone => {
+        const distance = Math.sqrt(Math.pow(zone.x - x, 2) + Math.pow(zone.y - y, 2));
+        if (distance < minDistance && distance < 20) {
+          minDistance = distance;
+          nearest = { x: zone.x, y: zone.y };
+        }
+      });
+      
+      return nearest;
+    };
+
+    const handleElementDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      const snappedPosition = findNearestSnapZone(mousePosition.x, mousePosition.y);
+      onElementPlace(snappedPosition);
+    };
+
+    return (
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        onDrop={handleElementDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        {/* Snap guides */}
+        {draggedElement && (
+          <>
+            {/* Vertical guides */}
+            {elements.map(element => (
+              <div
+                key={`v-${element.id}`}
+                className="absolute w-px bg-blue-400 opacity-50"
+                style={{
+                  left: element.position.x,
+                  top: 0,
+                  height: '100%'
+                }}
+              />
+            ))}
+            
+            {/* Horizontal guides */}
+            {elements.map(element => (
+              <div
+                key={`h-${element.id}`}
+                className="absolute h-px bg-blue-400 opacity-50"
+                style={{
+                  top: element.position.y,
+                  left: 0,
+                  width: '100%'
+                }}
+              />
+            ))}
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Left Sidebar */}
-      <div className="w-80 bg-white border-r flex flex-col">
-        <div className="p-4 border-b">
+      {/* Top Toolbar - Restored to original position */}
+      <div className="absolute top-0 left-0 right-0 bg-white border-b p-4 flex items-center justify-between shadow-sm z-50">
+        <div className="flex items-center space-x-4">
           <Button
             onClick={() => navigate('/sites')}
             variant="outline"
             size="sm"
-            className="mb-4"
           >
             ← Back to Sites
           </Button>
-          <h2 className="text-lg font-semibold">Page Builder</h2>
+          
+          {/* Device View Controls */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <Button 
+              variant={deviceView === 'desktop' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setDeviceView('desktop')}
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={deviceView === 'tablet' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setDeviceView('tablet')}
+            >
+              <Tablet className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={deviceView === 'mobile' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setDeviceView('mobile')}
+            >
+              <Smartphone className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* History Controls */}
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0}>
+              <RotateCcwIcon className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1}>
+              <RotateCwIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsPreviewMode(!isPreviewMode)}>
+            <Eye className="h-4 w-4 mr-2" />
+            {isPreviewMode ? 'Edit' : 'Preview'}
+          </Button>
+          <Button size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {/* Left Sidebar - Elements */}
+      <div className="w-80 bg-white border-r flex flex-col mt-20">
         <Tabs value={leftSidebarTab} onValueChange={setLeftSidebarTab} className="flex-1">
           <TabsList className="grid w-full grid-cols-3 m-4">
             <TabsTrigger value="elements">Elements</TabsTrigger>
@@ -673,48 +855,42 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
         </Tabs>
       </div>
       
-      <div className="flex-1 flex flex-col">
-        <div className="bg-white border-b p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undo}
-              disabled={historyIndex <= 0}
-            >
-              <Undo className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={redo}
-              disabled={historyIndex >= history.length - 1}
-            >
-              <Redo className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <Button variant="default" size="sm">
-            <Save className="h-4 w-4 mr-2" />
-            Save
-          </Button>
-        </div>
-
+      {/* Main Canvas */}
+      <div className="flex-1 flex flex-col mt-20">
         <div className="flex-1 overflow-auto bg-gray-100 p-8">
           <div className="flex justify-center">
             <div
               ref={canvasRef}
               className="bg-white shadow-lg relative"
               style={{
-                width: 1200,
+                width: getCanvasWidth(),
                 minHeight: 800,
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'top center',
-                ...gridStyle
+                backgroundImage: showGrid ? `
+                  linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
+                ` : undefined,
+                backgroundSize: showGrid ? `${gridSize}px ${gridSize}px` : undefined
               }}
               onClick={() => setSelectedElement(null)}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMousePosition({
+                  x: e.clientX - rect.left,
+                  y: e.clientY - rect.top
+                });
+              }}
             >
               {elements.map(renderElement)}
+              
+              {/* Enhanced Element Placement */}
+              <EnhancedElementPlacement
+                elements={elements}
+                draggedElement={draggedElement}
+                mousePosition={mousePosition}
+                onElementPlace={handleElementPlace}
+              />
               
               {/* Empty State */}
               {elements.length === 0 && (
@@ -733,8 +909,8 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
         </div>
       </div>
 
-      {/* Right Sidebar */}
-      <div className="w-80 bg-white border-l flex flex-col">
+      {/* Right Sidebar - Design Panel */}
+      <div className="w-80 bg-white border-l flex flex-col mt-20">
         <Tabs value={rightSidebarTab} onValueChange={setRightSidebarTab} className="flex-1">
           <TabsList className="grid w-full grid-cols-2 m-4">
             <TabsTrigger value="design">Design</TabsTrigger>
@@ -751,7 +927,7 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
                       
                       {/* Position & Size */}
                       <div className="space-y-3">
-                        <Label className="text-xs font-medium">Position</Label>
+                        <Label className="text-xs font-medium">Position & Size</Label>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-xs">X</Label>
@@ -800,83 +976,34 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
                       </div>
                     </div>
 
-                    <Separator />
-
                     {/* Typography */}
                     {(selectedElement.type === 'text' || selectedElement.type === 'heading') && (
-                      <div className="space-y-3">
-                        <Label className="text-xs font-medium">Typography</Label>
-                        <div>
-                          <Label className="text-xs">Font Size</Label>
-                          <Input
-                            value={selectedElement.styles?.fontSize || '16px'}
-                            onChange={(e) => updateElement(selectedElement.id, {
-                              styles: { ...selectedElement.styles, fontSize: e.target.value }
-                            })}
-                          />
+                      <>
+                        <Separator />
+                        <div className="space-y-3">
+                          <Label className="text-xs font-medium">Typography</Label>
+                          <div>
+                            <Label className="text-xs">Font Size</Label>
+                            <Input
+                              value={selectedElement.styles?.fontSize || '16px'}
+                              onChange={(e) => updateElement(selectedElement.id, {
+                                styles: { ...selectedElement.styles, fontSize: e.target.value }
+                              })}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Color</Label>
+                            <Input
+                              type="color"
+                              value={selectedElement.styles?.color || '#000000'}
+                              onChange={(e) => updateElement(selectedElement.id, {
+                                styles: { ...selectedElement.styles, color: e.target.value }
+                              })}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-xs">Color</Label>
-                          <Input
-                            type="color"
-                            value={selectedElement.styles?.color || '#000000'}
-                            onChange={(e) => updateElement(selectedElement.id, {
-                              styles: { ...selectedElement.styles, color: e.target.value }
-                            })}
-                          />
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant={selectedElement.styles?.fontWeight === 'bold' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => updateElement(selectedElement.id, {
-                              styles: { 
-                                ...selectedElement.styles, 
-                                fontWeight: selectedElement.styles?.fontWeight === 'bold' ? 'normal' : 'bold'
-                              }
-                            })}
-                          >
-                            <Bold className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant={selectedElement.styles?.fontStyle === 'italic' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => updateElement(selectedElement.id, {
-                              styles: { 
-                                ...selectedElement.styles, 
-                                fontStyle: selectedElement.styles?.fontStyle === 'italic' ? 'normal' : 'italic'
-                              }
-                            })}
-                          >
-                            <Italic className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                      </>
                     )}
-
-                    {/* Background & Border */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-medium">Background & Border</Label>
-                      <div>
-                        <Label className="text-xs">Background Color</Label>
-                        <Input
-                          type="color"
-                          value={selectedElement.styles?.backgroundColor || '#ffffff'}
-                          onChange={(e) => updateElement(selectedElement.id, {
-                            styles: { ...selectedElement.styles, backgroundColor: e.target.value }
-                          })}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Border Radius</Label>
-                        <Input
-                          value={selectedElement.styles?.borderRadius || '0px'}
-                          onChange={(e) => updateElement(selectedElement.id, {
-                            styles: { ...selectedElement.styles, borderRadius: e.target.value }
-                          })}
-                        />
-                      </div>
-                    </div>
 
                     <Separator />
 
