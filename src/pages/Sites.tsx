@@ -95,7 +95,7 @@ export default function Sites() {
     setSearchParams({ builder: 'true', siteId: site.id, templateId: site.template || '' });
   };
 
-  // Show page builder in full screen
+  // Show page builder in current layout (with sidebar)
   if (showPageBuilder) {
     return (
       <FunctionalPageBuilder 
