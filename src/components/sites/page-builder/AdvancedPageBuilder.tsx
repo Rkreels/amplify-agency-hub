@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,10 +11,10 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Type, Heading, Square, Image, Video, Form as FormIcon, 
+  Type, Heading, Square, Image, Video, FormInput, 
   Columns, Minus, Star, Users, Timer, BarChart3, 
   Share2, Phone, Calendar, MessageCircle, Navigation,
-  Menu, Link, Icons, Play, Upload, Palette, 
+  Menu, Link, icons, Play, Upload, Palette, 
   Move, RotateCcw, RotateCw, Copy, Trash2, 
   Eye, EyeOff, Lock, Unlock, ZoomIn, ZoomOut,
   Undo, Redo, Grid3X3, AlignLeft, AlignCenter, 
@@ -128,7 +127,7 @@ const elementTemplates = [
   {
     type: 'form',
     label: 'Form',
-    icon: FormIcon,
+    icon: FormInput,
     template: {
       type: 'form',
       content: '',
@@ -453,7 +452,8 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
             style={element.styles}
             className="w-full h-full"
             contentEditable={isSelected}
-            onBlur={(e) => updateElement(element.id, { content: e.target.textContent || '' })}
+            suppressContentEditableWarning={true}
+            onBlur={(e) => updateElement(element.id, { content: e.currentTarget.textContent || '' })}
           >
             {element.content}
           </div>
@@ -484,7 +484,7 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
         break;
       case 'container':
         elementContent = (
-          <div style={element.styles} className="w-full h-full">
+          <div style={element.styles} className="w-full h-full relative">
             {element.children?.map(child => renderElement(child))}
           </div>
         );
@@ -670,55 +670,10 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
               </div>
             </ScrollArea>
           </TabsContent>
-          
-          <TabsContent value="layers" className="flex-1 m-0">
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-2">
-                {elements.map((element) => (
-                  <div
-                    key={element.id}
-                    className={`p-2 rounded cursor-pointer flex items-center justify-between ${
-                      selectedElement?.id === element.id ? 'bg-blue-100' : 'hover:bg-gray-100'
-                    }`}
-                    onClick={() => setSelectedElement(element)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Type className="h-4 w-4" />
-                      <span className="text-sm">{element.type}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateElement(element.id, { hidden: !element.hidden });
-                        }}
-                      >
-                        {element.hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateElement(element.id, { locked: !element.locked });
-                        }}
-                      >
-                        {element.locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </TabsContent>
         </Tabs>
       </div>
-
-      {/* Main Canvas Area */}
+      
       <div className="flex-1 flex flex-col">
-        {/* Top Toolbar */}
         <div className="bg-white border-b p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
@@ -737,86 +692,21 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
             >
               <Redo className="h-4 w-4" />
             </Button>
-            <Separator orientation="vertical" className="h-6" />
-            
-            {/* Device View */}
-            <div className="flex items-center border rounded-lg p-1">
-              <Button
-                variant={deviceView === 'desktop' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDeviceView('desktop')}
-              >
-                Desktop
-              </Button>
-              <Button
-                variant={deviceView === 'tablet' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDeviceView('tablet')}
-              >
-                Tablet
-              </Button>
-              <Button
-                variant={deviceView === 'mobile' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDeviceView('mobile')}
-              >
-                Mobile
-              </Button>
-            </div>
-            
-            <Separator orientation="vertical" className="h-6" />
-            
-            {/* Zoom */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setZoomLevel(Math.max(25, zoomLevel - 25))}
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <span className="text-sm min-w-16 text-center">{zoomLevel}%</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))}
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowGrid(!showGrid)}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={isPreviewMode ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setIsPreviewMode(!isPreviewMode)}
-            >
-              <Eye className="h-4 w-4" />
-              Preview
-            </Button>
-            <Button variant="default" size="sm">
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </Button>
-          </div>
+          <Button variant="default" size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
         </div>
 
-        {/* Canvas */}
         <div className="flex-1 overflow-auto bg-gray-100 p-8">
           <div className="flex justify-center">
             <div
               ref={canvasRef}
               className="bg-white shadow-lg relative"
               style={{
-                width: getCanvasWidth(),
+                width: 1200,
                 minHeight: 800,
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'top center',

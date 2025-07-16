@@ -61,6 +61,22 @@ export interface Element {
   };
 }
 
+export interface Layer {
+  id: string;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  elements: string[];
+  zIndex: number;
+}
+
+export interface ElementTemplate {
+  type: string;
+  label: string;
+  icon: any;
+  template: Partial<Element>;
+}
+
 export interface Template {
   id: string;
   name: string;
