@@ -1,4 +1,3 @@
-
 export interface Position {
   x: number;
   y: number;
@@ -11,7 +10,7 @@ export interface Size {
 
 export interface Element {
   id: string;
-  type: 'text' | 'heading' | 'button' | 'image' | 'container' | 'form' | 'video' | 'divider' | 'spacer' | 'columns' | 'input' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'gallery' | 'slider' | 'audio' | 'map' | 'testimonial' | 'pricing' | 'team' | 'countdown' | 'progress' | 'social' | 'contact' | 'calendar' | 'chat';
+  type: 'text' | 'heading' | 'button' | 'image' | 'container' | 'form' | 'video' | 'divider' | 'spacer' | 'columns' | 'input' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'gallery' | 'slider' | 'audio' | 'map' | 'testimonial' | 'pricing' | 'team' | 'countdown' | 'progress' | 'social' | 'contact' | 'calendar' | 'chat' | 'navbar' | 'menu' | 'breadcrumb' | 'link' | 'icon';
   position: Position;
   size: Size;
   styles: Record<string, any>;
