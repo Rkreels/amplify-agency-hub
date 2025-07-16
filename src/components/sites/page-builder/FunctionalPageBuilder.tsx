@@ -71,7 +71,7 @@ import {
 } from 'lucide-react';
 import { Element, Template } from './types';
 import { DragDropCanvas } from './DragDropCanvas';
-import { templateData } from '../templates/templateData';
+import { templates } from '../templates/templateData';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 interface FunctionalPageBuilderProps {
@@ -400,7 +400,7 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
   // Load template if templateId is provided
   useEffect(() => {
     if (templateId && templateId !== 'new') {
-      const template = templateData.find(t => t.id === templateId);
+      const template = templates.find(t => t.id === templateId);
       if (template) {
         setElements(template.elements);
         addToHistory(template.elements);
@@ -704,7 +704,7 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
               <TabsContent value="templates" className="h-full m-0">
                 <ScrollArea className="h-full">
                   <div className="p-4 space-y-4">
-                    {templateData.map((template) => (
+                    {templates.map((template) => (
                       <Card 
                         key={template.id}
                         className="cursor-pointer hover:bg-gray-50 transition-colors"
@@ -716,7 +716,7 @@ export function FunctionalPageBuilder({ siteId, templateId }: FunctionalPageBuil
                           </div>
                           <h4 className="font-medium text-sm">{template.name}</h4>
                           <p className="text-xs text-gray-500 mt-1">{template.description}</p>
-                          {template.premium && (
+                          {template.isPremium && (
                             <Badge variant="secondary" className="mt-2 text-xs">Premium</Badge>
                           )}
                         </CardContent>
