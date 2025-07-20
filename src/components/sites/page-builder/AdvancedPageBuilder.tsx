@@ -12,10 +12,10 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, Edit, Trash2, Copy, Eye, EyeOff, Settings, 
-  Layout, Layers, Undo, Redo, Grid3X3, Move,
+  Layout, Layers, Undo, Redo, Grid3X3, Move, Lock, Unlock,
   Monitor, Tablet, Smartphone, Save, Download, Upload,
   ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight,
-  Palette, Type, Image as ImageIcon, MousePointer2
+  Palette, Type, Image as ImageIcon, MousePointer2, AlignLeft, AlignCenter, AlignRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -73,12 +73,10 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
 
   const currentPage = pages.find(p => p.id === currentPageId);
   const selectedElement = currentPage?.elements.find(e => e.id === selectedElementId);
-  const hoveredElement = currentPage?.elements.find(e => e.id === hoveredElementId);
 
   // Load template if provided
   useEffect(() => {
     if (templateId && templateId !== 'new') {
-      // Load template logic would go here
       console.log('Loading template:', templateId);
     }
   }, [templateId]);
@@ -130,6 +128,7 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
       target: template.target,
       children: template.children || [],
       attributes: template.attributes || {},
+      locked: false
     };
 
     saveToHistory();
@@ -202,13 +201,15 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
     addElement(duplicatedElement);
   }, [addElement]);
 
+  const toggleElementLock = useCallback((elementId: string) => {
+    if (!selectedElement) return;
+    updateElement(elementId, { locked: !selectedElement.locked });
+    toast.success(`Element ${selectedElement.locked ? 'unlocked' : 'locked'}`);
+  }, [selectedElement, updateElement]);
+
   // Event handlers
   const handleElementClick = useCallback((element: Element) => {
     setSelectedElementId(element.id);
-  }, []);
-
-  const handleElementHover = useCallback((element: Element | null) => {
-    setHoveredElementId(element?.id || null);
   }, []);
 
   const handleCanvasDrop = useCallback((e: React.DragEvent) => {
@@ -228,6 +229,24 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
   }, []);
 
   // Page management
+  const addPage = useCallback(() => {
+    const newPage: Page = {
+      id: `page-${Date.now()}`,
+      title: `Page ${pages.length + 1}`,
+      slug: `/page-${pages.length + 1}`,
+      elements: [],
+      settings: {
+        title: `Page ${pages.length + 1}`,
+        description: '',
+        keywords: '',
+      },
+      isPublished: false,
+    };
+    setPages(prev => [...prev, newPage]);
+    setCurrentPageId(newPage.id);
+    toast.success('New page created');
+  }, [pages.length]);
+
   const savePage = useCallback(() => {
     toast.success('Page saved successfully');
   }, []);
@@ -373,9 +392,28 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
             {/* Templates Tab */}
             <TabsContent value="templates" className="m-0 h-full">
               <ScrollArea className="h-full p-4">
-                <div className="text-center py-8 text-gray-500">
-                  <Layout className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Template library coming soon</p>
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Pre-built Templates</Label>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <h4 className="font-medium mb-2">Landing Page</h4>
+                        <p className="text-sm text-gray-600">Complete landing page template</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <h4 className="font-medium mb-2">Contact Form</h4>
+                        <p className="text-sm text-gray-600">Professional contact form</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <h4 className="font-medium mb-2">Pricing Table</h4>
+                        <p className="text-sm text-gray-600">Responsive pricing table</p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -383,14 +421,29 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
             {/* Assets Tab */}
             <TabsContent value="assets" className="m-0 h-full">
               <ScrollArea className="h-full p-4">
-                <div className="text-center py-8 text-gray-500">
-                  <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Upload and manage your assets</p>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Upload Assets</Label>
+                    <Button variant="outline" className="w-full">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Images
+                    </Button>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Stock Images</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="aspect-square bg-gray-100 rounded cursor-pointer hover:bg-gray-200">
+                          <img src={`https://via.placeholder.com/150x150?text=Image${i}`} alt={`Stock ${i}`} className="w-full h-full object-cover rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </ScrollArea>
             </TabsContent>
 
-            {/* Layers Tab */}
+             {/* Layers Tab */}
             <TabsContent value="layers" className="m-0 h-full">
               <ScrollArea className="h-full p-4">
                 <div className="space-y-2">
@@ -465,6 +518,11 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
                 ))}
               </SelectContent>
             </Select>
+
+            <Button variant="outline" size="sm" onClick={addPage}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Page
+            </Button>
 
             <Separator orientation="vertical" className="h-6" />
 
@@ -628,12 +686,213 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
             {/* Design Tab */}
             <TabsContent value="design" className="m-0 h-full">
               <ScrollArea className="h-full p-4">
-                <DesignPanel
-                  selectedElement={selectedElement || null}
-                  onUpdateElement={updateElement}
-                  onDuplicateElement={duplicateElement}
-                  onDeleteElement={deleteElement}
-                />
+                {!selectedElement ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Palette className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Select an element to edit its design</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Element Actions */}
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => duplicateElement(selectedElement)}>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Duplicate
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => toggleElementLock(selectedElement.id)}
+                      >
+                        {selectedElement.locked ? <Unlock className="h-4 w-4 mr-1" /> : <Lock className="h-4 w-4 mr-1" />}
+                        {selectedElement.locked ? 'Unlock' : 'Lock'}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => deleteElement(selectedElement.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Position & Size */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Position & Size</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">X Position</Label>
+                          <Input
+                            type="number"
+                            value={selectedElement.position.x}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              position: { ...selectedElement.position, x: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y Position</Label>
+                          <Input
+                            type="number"
+                            value={selectedElement.position.y}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              position: { ...selectedElement.position, y: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Width</Label>
+                          <Input
+                            type="number"
+                            value={selectedElement.size.width}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              size: { ...selectedElement.size, width: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Height</Label>
+                          <Input
+                            type="number"
+                            value={selectedElement.size.height}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              size: { ...selectedElement.size, height: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    {(selectedElement.type === 'text' || selectedElement.type === 'heading' || selectedElement.type === 'button') && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Content</Label>
+                        <Textarea
+                          value={selectedElement.content || ''}
+                          onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+                    )}
+
+                    {/* Typography */}
+                    {(selectedElement.type === 'text' || selectedElement.type === 'heading' || selectedElement.type === 'button') && (
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Typography</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Font Size</Label>
+                            <Input
+                              value={selectedElement.styles?.fontSize || '16px'}
+                              onChange={(e) => updateElement(selectedElement.id, {
+                                styles: { ...selectedElement.styles, fontSize: e.target.value }
+                              })}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Font Weight</Label>
+                            <Select
+                              value={selectedElement.styles?.fontWeight || 'normal'}
+                              onValueChange={(value) => updateElement(selectedElement.id, {
+                                styles: { ...selectedElement.styles, fontWeight: value }
+                              })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="normal">Normal</SelectItem>
+                                <SelectItem value="bold">Bold</SelectItem>
+                                <SelectItem value="lighter">Light</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Text Color</Label>
+                          <Input
+                            type="color"
+                            value={selectedElement.styles?.color || '#000000'}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              styles: { ...selectedElement.styles, color: e.target.value }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Background & Border */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Background & Border</Label>
+                      <div>
+                        <Label className="text-xs">Background Color</Label>
+                        <Input
+                          type="color"
+                          value={selectedElement.styles?.backgroundColor || '#ffffff'}
+                          onChange={(e) => updateElement(selectedElement.id, {
+                            styles: { ...selectedElement.styles, backgroundColor: e.target.value }
+                          })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Border Width</Label>
+                          <Input
+                            value={selectedElement.styles?.borderWidth || '0px'}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              styles: { ...selectedElement.styles, borderWidth: e.target.value }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Border Radius</Label>
+                          <Input
+                            value={selectedElement.styles?.borderRadius || '0px'}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              styles: { ...selectedElement.styles, borderRadius: e.target.value }
+                            })}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Border Color</Label>
+                        <Input
+                          type="color"
+                          value={selectedElement.styles?.borderColor || '#000000'}
+                          onChange={(e) => updateElement(selectedElement.id, {
+                            styles: { ...selectedElement.styles, borderColor: e.target.value }
+                          })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Spacing */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Spacing</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Padding</Label>
+                          <Input
+                            value={selectedElement.styles?.padding || '0px'}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              styles: { ...selectedElement.styles, padding: e.target.value }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Margin</Label>
+                          <Input
+                            value={selectedElement.styles?.margin || '0px'}
+                            onChange={(e) => updateElement(selectedElement.id, {
+                              styles: { ...selectedElement.styles, margin: e.target.value }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </ScrollArea>
             </TabsContent>
 
@@ -674,6 +933,66 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
                         rows={4}
                       />
                     </div>
+
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Z-Index</Label>
+                      <Input
+                        type="number"
+                        value={selectedElement.styles?.zIndex || 1}
+                        onChange={(e) => updateElement(selectedElement.id, {
+                          styles: { ...selectedElement.styles, zIndex: parseInt(e.target.value) || 1 }
+                        })}
+                      />
+                    </div>
+
+                    {selectedElement.type === 'button' && (
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Link URL</Label>
+                          <Input
+                            value={selectedElement.href || ''}
+                            onChange={(e) => updateElement(selectedElement.id, { href: e.target.value })}
+                            placeholder="https://example.com"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Link Target</Label>
+                          <Select
+                            value={selectedElement.target || '_self'}
+                            onValueChange={(value) => updateElement(selectedElement.id, { target: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_self">Same Window</SelectItem>
+                              <SelectItem value="_blank">New Window</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedElement.type === 'image' || selectedElement.type === 'video') && (
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Source URL</Label>
+                          <Input
+                            value={selectedElement.src || ''}
+                            onChange={(e) => updateElement(selectedElement.id, { src: e.target.value })}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Alt Text</Label>
+                          <Input
+                            value={selectedElement.alt || ''}
+                            onChange={(e) => updateElement(selectedElement.id, { alt: e.target.value })}
+                            placeholder="Description of the image"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </ScrollArea>
@@ -748,6 +1067,26 @@ export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderP
                         }}
                         placeholder="keyword1, keyword2, keyword3"
                       />
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Page Actions</Label>
+                      <div className="flex flex-col gap-2">
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Export Page
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate Page
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Page
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

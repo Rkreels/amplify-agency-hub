@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Element } from './types';
 import { ElementToolbar } from './ElementToolbar';
 
@@ -29,47 +29,88 @@ export function ElementRenderer({
   onDuplicateElement
 }: ElementRendererProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const elementRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (isPreviewMode) return;
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isPreviewMode || element.locked) return;
     
     e.stopPropagation();
     onElementClick(element);
-    
-    if (element.locked) return;
     
     setIsDragging(true);
     setDragStart({
       x: e.clientX - element.position.x,
       y: e.clientY - element.position.y
     });
-  };
+  }, [isPreviewMode, element, onElementClick]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || element.locked) return;
-    
-    const newX = e.clientX - dragStart.x;
-    const newY = e.clientY - dragStart.y;
-    
-    const snappedX = snapToGrid ? Math.round(newX / gridSize) * gridSize : newX;
-    const snappedY = snapToGrid ? Math.round(newY / gridSize) * gridSize : newY;
-    
-    onUpdateElement(element.id, {
-      position: { x: Math.max(0, snappedX), y: Math.max(0, snappedY) }
-    });
-  };
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isDragging && !element.locked) {
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      
+      const snappedX = snapToGrid ? Math.round(newX / gridSize) * gridSize : newX;
+      const snappedY = snapToGrid ? Math.round(newY / gridSize) * gridSize : newY;
+      
+      onUpdateElement(element.id, {
+        position: { x: Math.max(0, snappedX), y: Math.max(0, snappedY) }
+      });
+    }
 
-  const handleMouseUp = () => {
+    if (isResizing && !element.locked) {
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
+      
+      const newWidth = Math.max(50, resizeStart.width + deltaX);
+      const newHeight = Math.max(30, resizeStart.height + deltaY);
+      
+      onUpdateElement(element.id, {
+        size: { width: newWidth, height: newHeight }
+      });
+    }
+  }, [isDragging, isResizing, element.locked, dragStart, resizeStart, snapToGrid, gridSize, onUpdateElement, element.id]);
+
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+    setIsResizing(false);
+  }, []);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    if (isPreviewMode || element.locked) return;
+    
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: element.size.width,
+      height: element.size.height
+    });
+  }, [isPreviewMode, element.locked, element.size]);
+
+  // Add global mouse event listeners
+  React.useEffect(() => {
+    if (isDragging || isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   const renderElementContent = () => {
     const commonStyles = {
       ...element.styles,
       width: '100%',
       height: '100%',
-      display: element.styles?.display || 'block'
+      display: element.styles?.display || 'block',
+      pointerEvents: isPreviewMode ? 'auto' : 'none'
     };
 
     switch (element.type) {
@@ -101,7 +142,7 @@ export function ElementRenderer({
       case 'button':
         return (
           <button
-            style={commonStyles}
+            style={{...commonStyles, pointerEvents: isPreviewMode ? 'auto' : 'none'}}
             onClick={(e) => {
               if (!isPreviewMode) e.preventDefault();
               if (element.href && isPreviewMode) {
@@ -132,6 +173,8 @@ export function ElementRenderer({
                 element={child}
                 isSelected={false}
                 isPreviewMode={isPreviewMode}
+                snapToGrid={snapToGrid}
+                gridSize={gridSize}
                 onElementClick={onElementClick}
                 onUpdateElement={onUpdateElement}
                 onDeleteElement={onDeleteElement}
@@ -160,6 +203,25 @@ export function ElementRenderer({
           />
         );
 
+      case 'video':
+        return (
+          <video
+            src={element.src}
+            controls={isPreviewMode}
+            style={commonStyles}
+            poster={element.alt}
+          />
+        );
+
+      case 'audio':
+        return (
+          <audio
+            src={element.src}
+            controls={isPreviewMode}
+            style={commonStyles}
+          />
+        );
+
       default:
         return (
           <div style={commonStyles}>
@@ -172,12 +234,15 @@ export function ElementRenderer({
   return (
     <>
       <div
+        ref={elementRef}
         className={`
-          absolute border-2 cursor-move transition-all
+          absolute border-2 transition-all duration-200
           ${isSelected ? 'border-blue-500 bg-blue-50/10' : 'border-transparent'}
           ${isHovered ? 'border-blue-300' : ''}
-          ${isDragging ? 'shadow-lg scale-105' : ''}
-          ${element.locked ? 'cursor-not-allowed' : ''}
+          ${isDragging ? 'shadow-lg scale-105 z-50' : ''}
+          ${isResizing ? 'shadow-lg z-50' : ''}
+          ${element.locked ? 'cursor-not-allowed opacity-75' : ''}
+          ${!isPreviewMode && !element.locked ? 'cursor-move' : ''}
         `}
         style={{
           left: element.position.x,
@@ -187,8 +252,6 @@ export function ElementRenderer({
           zIndex: isSelected ? 1000 : element.styles?.zIndex || 1
         }}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
         onClick={(e) => {
           e.stopPropagation();
           onElementClick(element);
@@ -197,12 +260,44 @@ export function ElementRenderer({
         {renderElementContent()}
         
         {/* Selection handles */}
-        {isSelected && !isPreviewMode && (
+        {isSelected && !isPreviewMode && !element.locked && (
           <>
-            <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 border border-white rounded-full" />
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 border border-white rounded-full" />
-            <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 border border-white rounded-full" />
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 border border-white rounded-full" />
+            {/* Corner resize handles */}
+            <div 
+              className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-nw-resize hover:bg-blue-600"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleResizeStart(e);
+              }}
+            />
+            <div 
+              className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-ne-resize hover:bg-blue-600"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleResizeStart(e);
+              }}
+            />
+            <div 
+              className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-sw-resize hover:bg-blue-600"
+              onMouseDown={(e) => {
+                e.stopPropagagation();
+                handleResizeStart(e);
+              }}
+            />
+            <div 
+              className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-se-resize hover:bg-blue-600"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleResizeStart(e);
+              }}
+            />
+            
+            {/* Lock indicator */}
+            {element.locked && (
+              <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">🔒</span>
+              </div>
+            )}
           </>
         )}
       </div>
