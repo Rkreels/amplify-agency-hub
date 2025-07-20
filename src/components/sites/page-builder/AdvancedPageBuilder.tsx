@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,15 +20,42 @@ import {
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 
-import { Element, Page } from './page-builder/types';
-import { elementTemplates, sectionTemplates } from './page-builder/ElementTemplates';
-import { ElementRenderer } from './page-builder/ElementRenderer';
-import { DesignPanel } from './page-builder/DesignPanel';
+import { Element, Page } from './types';
+import { elementTemplates } from './ElementTemplates';
+import { ElementRenderer } from './ElementRenderer';
+import { DesignPanel } from './DesignPanel';
 
 interface AdvancedPageBuilderProps {
   siteId: string;
   templateId?: string;
 }
+
+// Sample section templates
+const sectionTemplates = [
+  {
+    id: 'hero-1',
+    name: 'Hero Section',
+    description: 'Hero section with title and CTA',
+    elements: [
+      {
+        id: 'hero-title',
+        type: 'heading',
+        position: { x: 50, y: 100 },
+        size: { width: 600, height: 80 },
+        content: 'Welcome to Our Website',
+        styles: { fontSize: '48px', fontWeight: 'bold', textAlign: 'center' }
+      },
+      {
+        id: 'hero-button',
+        type: 'button',
+        position: { x: 250, y: 200 },
+        size: { width: 200, height: 50 },
+        content: 'Get Started',
+        styles: { backgroundColor: '#3B82F6', color: '#FFFFFF' }
+      }
+    ]
+  }
+];
 
 export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
   const [pages, setPages] = useState<Page[]>([
@@ -176,32 +204,27 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     toast.success('Element deleted');
   }, [currentPage, currentPageId]);
 
-  const duplicateElement = useCallback((elementId: string) => {
+  const duplicateElement = useCallback((element: Element) => {
     if (!currentPage) return;
-
-    const findElement = (elements: Element[]): Element | null => {
-      for (const element of elements) {
-        if (element.id === elementId) return element;
-        if (element.children && element.children.length > 0) {
-          const found = findElement(element.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const element = findElement(currentPage.elements);
-    if (!element) return;
 
     const duplicateElementRecursive = (el: Element): Element => ({
       ...el,
       id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      position: { x: el.position.x + 20, y: el.position.y + 20 },
       children: el.children?.map(duplicateElementRecursive),
     });
 
     const duplicatedElement = duplicateElementRecursive(element);
-    addElement(duplicatedElement);
-  }, [currentPage, addElement]);
+    
+    const updatedPage = {
+      ...currentPage,
+      elements: [...currentPage.elements, duplicatedElement],
+    };
+
+    setPages(prev => prev.map(p => p.id === currentPageId ? updatedPage : p));
+    setSelectedElementId(duplicatedElement.id);
+    toast.success('Element duplicated');
+  }, [currentPage, currentPageId]);
 
   const handleElementClick = useCallback((element: Element) => {
     setSelectedElementId(element.id);
@@ -235,11 +258,18 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
 
   const handleCanvasDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (draggedElement) {
-      addElement(draggedElement);
-      setIsDragging(false);
-      setDraggedElement(null);
+    if (draggedElement && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      addElement({
+        ...draggedElement,
+        position: { x: Math.max(0, x), y: Math.max(0, y) }
+      });
     }
+    setIsDragging(false);
+    setDraggedElement(null);
   };
 
   const handleCanvasDragOver = (e: React.DragEvent) => {
@@ -248,7 +278,6 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
 
   const addTemplateSection = (template: any) => {
     if (!currentPage) return;
-    // For simplicity, add template elements to current page elements
     const newElements = template.elements.map((el: Element) => ({
       ...el,
       id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -285,7 +314,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                     <div>
                       <Label className="text-sm font-medium mb-2 block">Basic Elements</Label>
                       <div className="grid grid-cols-2 gap-2">
-                        {elementTemplates.filter(t => t.category === 'basic').map((template) => {
+                        {elementTemplates.map((template) => {
                           const Icon = template.icon;
                           return (
                             <Card 
@@ -304,64 +333,6 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                             >
                               <CardContent className="p-3 text-center">
                                 <Icon className="h-6 w-6 mx-auto mb-1 text-blue-600" />
-                                <span className="text-xs font-medium">{template.label}</span>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">Form Elements</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {elementTemplates.filter(t => t.category === 'form').map((template) => {
-                          const Icon = template.icon;
-                          return (
-                            <Card 
-                              key={template.type}
-                              className="cursor-grab hover:shadow-md transition-shadow"
-                              draggable
-                              onDragStart={() => {
-                                setDraggedElement(template.template as Element);
-                                setIsDragging(true);
-                              }}
-                              onDragEnd={() => {
-                                setIsDragging(false);
-                                setDraggedElement(null);
-                              }}
-                            >
-                              <CardContent className="p-3 text-center">
-                                <Icon className="h-6 w-6 mx-auto mb-1 text-green-600" />
-                                <span className="text-xs font-medium">{template.label}</span>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">Media Elements</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {elementTemplates.filter(t => t.category === 'media').map((template) => {
-                          const Icon = template.icon;
-                          return (
-                            <Card 
-                              key={template.type}
-                              className="cursor-grab hover:shadow-md transition-shadow"
-                              draggable
-                              onDragStart={() => {
-                                setDraggedElement(template.template as Element);
-                                setIsDragging(true);
-                              }}
-                              onDragEnd={() => {
-                                setIsDragging(false);
-                                setDraggedElement(null);
-                              }}
-                            >
-                              <CardContent className="p-3 text-center">
-                                <Icon className="h-6 w-6 mx-auto mb-1 text-purple-600" />
                                 <span className="text-xs font-medium">{template.label}</span>
                               </CardContent>
                             </Card>
@@ -407,7 +378,6 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                     <div>
                       <Label className="font-medium mb-2 block">Media Library</Label>
                       <div className="grid grid-cols-3 gap-2">
-                        {/* Sample assets */}
                         {[1, 2, 3, 4, 5, 6].map((i) => (
                           <div key={i} className="aspect-square bg-gray-100 rounded cursor-pointer hover:shadow-md transition-shadow">
                             <div className="w-full h-full flex items-center justify-center">
@@ -712,7 +682,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                   <DesignPanel
                     selectedElement={selectedElement || null}
                     onUpdateElement={updateElement}
-                    onDuplicateElement={(element) => duplicateElement(element.id)}
+                    onDuplicateElement={duplicateElement}
                     onDeleteElement={deleteElement}
                   />
                 </ScrollArea>
