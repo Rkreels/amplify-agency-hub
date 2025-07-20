@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,9 +25,10 @@ import { DesignPanel } from './page-builder/DesignPanel';
 
 interface AdvancedPageBuilderProps {
   siteId: string;
+  templateId?: string;
 }
 
-export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
+export function AdvancedPageBuilder({ siteId, templateId }: AdvancedPageBuilderProps) {
   const [pages, setPages] = useState<Page[]>([
     {
       id: 'page-1',
@@ -94,7 +96,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     const newElement: Element = {
       id: `element-${Date.now()}`,
       type: element.type || 'text',
-      position: element.position || { x: 0, y: 0 },
+      position: element.position || { x: 50, y: 50 },
       size: element.size || { width: 200, height: 100 },
       content: element.content || '',
       styles: element.styles || {},
@@ -162,32 +164,27 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     toast.success('Element deleted');
   }, [currentPage, currentPageId]);
 
-  const duplicateElement = useCallback((elementId: string) => {
+  const duplicateElement = useCallback((element: Element) => {
     if (!currentPage) return;
-
-    const findElement = (elements: Element[]): Element | null => {
-      for (const element of elements) {
-        if (element.id === elementId) return element;
-        if (element.children && element.children.length > 0) {
-          const found = findElement(element.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const element = findElement(currentPage.elements);
-    if (!element) return;
 
     const duplicateElementRecursive = (el: Element): Element => ({
       ...el,
       id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      position: { x: el.position.x + 20, y: el.position.y + 20 },
       children: el.children?.map(duplicateElementRecursive),
     });
 
     const duplicatedElement = duplicateElementRecursive(element);
-    addElement(duplicatedElement);
-  }, [currentPage, addElement]);
+    
+    const updatedPage = {
+      ...currentPage,
+      elements: [...currentPage.elements, duplicatedElement],
+    };
+
+    setPages(prev => prev.map(p => p.id === currentPageId ? updatedPage : p));
+    setSelectedElementId(duplicatedElement.id);
+    toast.success('Element duplicated');
+  }, [currentPage, currentPageId]);
 
   const handleElementClick = useCallback((element: Element) => {
     setSelectedElementId(element.id);
@@ -205,8 +202,24 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
     toast.success('Page published successfully');
   }, [currentPage, currentPageId]);
 
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedElement && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      addElement({
+        ...draggedElement,
+        position: { x: Math.max(0, x), y: Math.max(0, y) }
+      });
+    }
+    setIsDragging(false);
+    setDraggedElement(null);
+  }, [draggedElement, addElement]);
+
   return (
-    <div className="h-full flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50">
       {/* Left Sidebar - Elements & Properties */}
       <div className={`${showProperties ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden bg-white border-r border-gray-200`}>
         <div className="h-full flex flex-col">
@@ -261,7 +274,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                   <DesignPanel
                     selectedElement={selectedElement || null}
                     onUpdateElement={updateElement}
-                    onDuplicateElement={(element) => duplicateElement(element.id)}
+                    onDuplicateElement={duplicateElement}
                     onDeleteElement={deleteElement}
                   />
                 </ScrollArea>
@@ -337,7 +350,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                         <div className="flex items-center justify-between">
                           <span className="text-sm capitalize">{element.type}</span>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => duplicateElement(element.id)}>
+                            <Button size="sm" variant="ghost" onClick={() => duplicateElement(element)}>
                               <Copy className="h-3 w-3" />
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => deleteElement(element.id)}>
@@ -453,7 +466,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
           <div className="h-full flex items-center justify-center">
             <div
               ref={canvasRef}
-              className={`bg-white shadow-lg transition-all duration-300 ${
+              className={`bg-white shadow-lg transition-all duration-300 relative ${
                 previewMode === 'mobile' ? 'w-[375px] min-h-[600px]' :
                 previewMode === 'tablet' ? 'w-[768px] min-h-[600px]' :
                 'w-full max-w-[1200px] min-h-[600px]'
@@ -462,12 +475,7 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'top center'
               }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (draggedElement) {
-                  addElement(draggedElement);
-                }
-              }}
+              onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => setSelectedElementId(null)}
             >
@@ -480,13 +488,17 @@ export function AdvancedPageBuilder({ siteId }: AdvancedPageBuilderProps) {
                   </div>
                 </div>
               ) : (
-                <div className="p-4">
+                <div className="relative w-full h-full">
                   {currentPage?.elements.map(element => 
                     <ElementRenderer
                       key={element.id}
                       element={element}
                       isSelected={selectedElementId === element.id}
+                      isPreviewMode={isPreviewMode}
                       onElementClick={handleElementClick}
+                      onUpdateElement={updateElement}
+                      onDeleteElement={deleteElement}
+                      onDuplicateElement={duplicateElement}
                     />
                   )}
                 </div>
