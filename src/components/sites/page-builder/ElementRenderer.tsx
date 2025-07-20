@@ -105,12 +105,12 @@ export function ElementRenderer({
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   const renderElementContent = () => {
-    const commonStyles = {
+    const commonStyles: React.CSSProperties = {
       ...element.styles,
       width: '100%',
       height: '100%',
       display: element.styles?.display || 'block',
-      pointerEvents: isPreviewMode ? 'auto' : 'none'
+      pointerEvents: (isPreviewMode ? 'auto' : 'none') as React.CSSProperties['pointerEvents']
     };
 
     switch (element.type) {
@@ -142,7 +142,7 @@ export function ElementRenderer({
       case 'button':
         return (
           <button
-            style={{...commonStyles, pointerEvents: isPreviewMode ? 'auto' : 'none'}}
+            style={{...commonStyles, pointerEvents: (isPreviewMode ? 'auto' : 'none') as React.CSSProperties['pointerEvents']}}
             onClick={(e) => {
               if (!isPreviewMode) e.preventDefault();
               if (element.href && isPreviewMode) {
@@ -280,7 +280,7 @@ export function ElementRenderer({
             <div 
               className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-sw-resize hover:bg-blue-600"
               onMouseDown={(e) => {
-                e.stopPropagagation();
+                e.stopPropagation();
                 handleResizeStart(e);
               }}
             />
