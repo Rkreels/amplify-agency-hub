@@ -11,7 +11,7 @@ export function MainNav({
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   return (
-    <div className="border-b bg-white">
+    <div className="border-b border-border bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
         <Link to="/" className="hidden md:flex md:mr-8">
           <span className="font-bold text-xl text-primary">Amplify</span>

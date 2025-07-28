@@ -21,7 +21,7 @@ export function VoiceFloatingButton() {
       <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
         <Button
           onClick={handleQuickTraining}
-          className="rounded-full h-12 w-12 bg-blue-600 hover:bg-blue-700 shadow-lg"
+          className="rounded-full h-12 w-12 bg-primary hover:bg-primary/90 shadow-lg text-primary-foreground"
           title="Quick Voice Training"
         >
           <Headphones className="h-5 w-5" />

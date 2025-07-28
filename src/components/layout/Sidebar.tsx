@@ -189,7 +189,7 @@ export function Sidebar() {
   });
 
   return (
-    <div className="pb-12 w-64">
+    <div className="pb-12 w-64 bg-sidebar border-r border-sidebar-border">
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           {/* Sub-account switcher */}

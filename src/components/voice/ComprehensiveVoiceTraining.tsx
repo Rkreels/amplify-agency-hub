@@ -237,7 +237,7 @@ export function ComprehensiveVoiceTraining() {
         </div>
         <div className="flex items-center gap-2">
           <select 
-            className="px-3 py-2 border rounded-md text-sm"
+            className="px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground focus:ring-2 focus:ring-ring"
             value={selectedVoice?.name || ''}
             onChange={(e) => {
               const voice = voices.find(v => v.name === e.target.value);
