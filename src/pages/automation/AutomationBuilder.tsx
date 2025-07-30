@@ -1,11 +1,14 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { AutomationWorkflowBuilder } from '@/components/automation/AutomationWorkflowBuilder';
+import { GHLStyleWorkflowBuilder } from '@/components/automation/workflow/GHLStyleWorkflowBuilder';
+import { ReactFlowProvider } from '@xyflow/react';
 
 export default function AutomationBuilder() {
   return (
     <AppLayout>
-      <AutomationWorkflowBuilder />
+      <ReactFlowProvider>
+        <GHLStyleWorkflowBuilder />
+      </ReactFlowProvider>
     </AppLayout>
   );
 }
