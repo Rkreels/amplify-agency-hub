@@ -124,6 +124,7 @@ interface WorkflowStore {
   // Node actions
   addNode: (node: Omit<WorkflowNode, 'id'>) => void;
   updateNode: (nodeId: string, updates: Partial<WorkflowNode>) => void;
+  updateNodeConfig: (nodeId: string, config: any) => void;
   deleteNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
   setSelectedNode: (nodeId: string | null) => void;
@@ -366,6 +367,28 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     };
 
     set({ currentWorkflow: updatedWorkflow });
+  },
+
+  updateNodeConfig: (nodeId, config) => {
+    const { currentWorkflow } = get();
+    if (!currentWorkflow) return;
+
+    const updatedWorkflow = {
+      ...currentWorkflow,
+      nodes: currentWorkflow.nodes.map(node =>
+        node.id === nodeId ? { 
+          ...node, 
+          data: { 
+            ...node.data, 
+            config,
+            isConfigured: true 
+          } 
+        } : node
+      )
+    };
+
+    set({ currentWorkflow: updatedWorkflow });
+    toast.success('Node configuration updated');
   },
 
   deleteNode: (nodeId) => {

@@ -53,6 +53,7 @@ import {
 
 import { triggerTypes, triggerCategories } from './AdvancedTriggerTypes';
 import { actionTypes, actionCategories } from './AdvancedActionTypes';
+import { NodeSettingsPanel } from './NodeSettingsPanel';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import { toast } from 'sonner';
 
@@ -203,7 +204,8 @@ export function GHLStyleWorkflowBuilder() {
     validateWorkflow,
     addNode,
     setSelectedNode,
-    openConfigModal
+    openConfigModal,
+    updateNodeConfig
   } = useWorkflowStore();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -213,6 +215,8 @@ export function GHLStyleWorkflowBuilder() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sidebarTab, setSidebarTab] = useState('triggers');
+  const [showNodeSettings, setShowNodeSettings] = useState(false);
+  const [selectedNodeForSettings, setSelectedNodeForSettings] = useState<any>(null);
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { getViewport, setViewport, fitView } = useReactFlow();
@@ -267,6 +271,8 @@ export function GHLStyleWorkflowBuilder() {
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node.id);
+    setSelectedNodeForSettings(node);
+    setShowNodeSettings(true);
   }, [setSelectedNode]);
 
   const onNodeDoubleClick = useCallback((event: React.MouseEvent, node: Node) => {
@@ -362,6 +368,12 @@ export function GHLStyleWorkflowBuilder() {
     return matchesSearch && matchesCategory;
   });
 
+  const handleNodeConfigSave = useCallback((nodeId: string, config: any) => {
+    if (currentWorkflow && updateNodeConfig) {
+      updateNodeConfig(nodeId, config);
+    }
+  }, [currentWorkflow, updateNodeConfig]);
+
   if (!currentWorkflow) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -375,8 +387,93 @@ export function GHLStyleWorkflowBuilder() {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Left Sidebar */}
-      <div className="w-80 bg-background border-r border-border flex flex-col">
+      {/* Main Canvas Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="h-16 border-b border-border bg-background px-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Input
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="font-semibold text-lg border-none p-0 focus-visible:ring-0 bg-transparent"
+              placeholder="Workflow Name"
+            />
+            <Badge variant={currentWorkflow?.isActive ? 'default' : 'secondary'}>
+              {currentWorkflow?.isActive ? 'Active' : 'Draft'}
+            </Badge>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleTest}>
+              <Play className="h-4 w-4 mr-1" />
+              Test
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4 mr-1" />
+              Save
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleToggleActive}
+              variant={currentWorkflow?.isActive ? 'destructive' : 'default'}
+            >
+              {currentWorkflow?.isActive ? (
+                <>
+                  <Pause className="h-4 w-4 mr-1" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-1" />
+                  Activate
+                </>
+              )}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowMiniMap(!showMiniMap)}>
+              {showMiniMap ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div className="flex-1 relative" ref={reactFlowWrapper}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onNodeDoubleClick={onNodeDoubleClick}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            nodeTypes={nodeTypes}
+            connectionMode={ConnectionMode.Loose}
+            fitView
+            className="bg-background"
+          >
+            <Background />
+            <Controls />
+            {showMiniMap && (
+              <MiniMap 
+                nodeStrokeColor="#374151"
+                nodeColor="#f3f4f6"
+                nodeBorderRadius={8}
+                className="bg-background border border-border"
+              />
+            )}
+            
+            <Panel position="top-left" className="bg-white/80 backdrop-blur rounded-lg p-2 m-2">
+              <div className="text-xs text-gray-600">
+                Nodes: {nodes.length} | Connections: {edges.length}
+              </div>
+            </Panel>
+          </ReactFlow>
+        </div>
+      </div>
+
+      {/* Right Sidebar - Workflow Elements */}
+      <div className="w-80 bg-background border-l border-border flex flex-col">
         <div className="p-4 border-b border-border">
           <h2 className="font-semibold text-lg mb-3">Workflow Elements</h2>
           
@@ -525,109 +622,16 @@ export function GHLStyleWorkflowBuilder() {
         </div>
       </div>
 
-      {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Toolbar */}
-        <div className="bg-background border-b border-border p-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Input
-              value={workflowName}
-              onChange={(e) => setWorkflowName(e.target.value)}
-              className="font-medium text-lg border-none shadow-none p-0 h-auto bg-transparent"
-              placeholder="Workflow Name"
-            />
-            <Badge variant={currentWorkflow.isActive ? 'default' : 'secondary'}>
-              {currentWorkflow.isActive ? 'Active' : 'Inactive'}
-            </Badge>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleTest}>
-              <Play className="h-4 w-4 mr-1" />
-              Test
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSave}>
-              <Save className="h-4 w-4 mr-1" />
-              Save
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleToggleActive}
-              variant={currentWorkflow.isActive ? 'destructive' : 'default'}
-            >
-              {currentWorkflow.isActive ? (
-                <>
-                  <Pause className="h-4 w-4 mr-1" />
-                  Deactivate
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-1" />
-                  Activate
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* ReactFlow Canvas */}
-        <div className="flex-1" ref={reactFlowWrapper}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onNodeDoubleClick={onNodeDoubleClick}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            nodeTypes={nodeTypes}
-            connectionMode={ConnectionMode.Loose}
-            fitView
-            style={{ backgroundColor: '#fafafa' }}
-          >
-            <Controls position="bottom-right" />
-            <Background color="#e2e8f0" gap={20} />
-            {showMiniMap && (
-              <MiniMap 
-                position="bottom-left"
-                style={{ backgroundColor: '#f8fafc' }}
-                nodeColor="#e2e8f0"
-              />
-            )}
-            
-            <Panel position="top-right" className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMiniMap(!showMiniMap)}
-              >
-                {showMiniMap ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fitView()}
-              >
-                <Maximize className="h-4 w-4" />
-              </Button>
-            </Panel>
-          </ReactFlow>
-        </div>
-
-        {/* Bottom Status Bar */}
-        <div className="bg-background border-t border-border p-2 flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <span>Nodes: {nodes.length}</span>
-            <span>Connections: {edges.length}</span>
-            <span>Status: {currentWorkflow.isActive ? 'Active' : 'Inactive'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>Last saved: {currentWorkflow.updatedAt.toLocaleTimeString()}</span>
-          </div>
-        </div>
-      </div>
+      {/* Node Settings Panel */}
+      <NodeSettingsPanel
+        isOpen={showNodeSettings}
+        onClose={() => {
+          setShowNodeSettings(false);
+          setSelectedNodeForSettings(null);
+        }}
+        node={selectedNodeForSettings}
+        onSave={handleNodeConfigSave}
+      />
     </div>
   );
 }

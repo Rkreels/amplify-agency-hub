@@ -145,15 +145,72 @@ export function ComprehensiveVoiceTraining() {
       lessons: [
         {
           id: 'auto-1',
-          title: 'Workflow Creation',
-          content: 'Build automated workflows using the drag-and-drop builder. Set triggers, conditions, and actions to create sophisticated marketing sequences.',
-          duration: 50
+          title: 'Workflow Builder Introduction',
+          content: 'Welcome to the automation workflow builder. This powerful tool lets you create sophisticated marketing sequences using a drag-and-drop interface. You can see workflow elements on the right sidebar, organized into triggers, actions, and logic components.',
+          duration: 45
         },
         {
           id: 'auto-2',
-          title: 'Campaign Management',
-          content: 'Monitor and optimize your automated campaigns. Track performance metrics and make data-driven improvements to increase conversion rates.',
+          title: 'Adding Triggers',
+          content: 'Triggers start your workflows. From the right sidebar, click on the Triggers tab to see available options like form submissions, email opens, or contact creation. Simply drag any trigger onto the canvas to begin building your workflow.',
+          duration: 35
+        },
+        {
+          id: 'auto-3',
+          title: 'Configuring Actions',
+          content: 'Actions are what happen when your workflow runs. Click on any node to open the settings panel. Here you can configure details like email templates, SMS messages, tags to add, or tasks to create. Fill in all required fields marked with red asterisks.',
+          duration: 50
+        },
+        {
+          id: 'auto-4',
+          title: 'Connecting Workflow Steps',
+          content: 'Connect workflow elements by dragging from the connection points on each node. The small circles at the bottom of triggers and actions are connection handles. Drag from one to another to create the workflow flow.',
           duration: 40
+        },
+        {
+          id: 'auto-5',
+          title: 'Testing and Activation',
+          content: 'Before activating your workflow, use the Test button in the header to ensure everything works correctly. Once tested, click Activate to make your workflow live. You can always deactivate or modify workflows later.',
+          duration: 45
+        },
+        {
+          id: 'auto-6',
+          title: 'Advanced Features',
+          content: 'Use conditions for if-then logic, wait steps for timing delays, and the advanced tab in node settings for error handling and execution options. The minimap helps navigate large workflows, and you can save progress at any time.',
+          duration: 40
+        }
+      ]
+    },
+    {
+      id: 'workflow-settings',
+      title: 'Workflow Configuration',
+      description: 'Master node settings and advanced features',
+      icon: Settings,
+      completed: false,
+      lessons: [
+        {
+          id: 'settings-1',
+          title: 'Node Settings Panel',
+          content: 'Click on any workflow node to open the comprehensive settings panel. This panel has three tabs: Settings for basic configuration, Advanced for error handling and timeouts, and Testing for validating your setup.',
+          duration: 40
+        },
+        {
+          id: 'settings-2',
+          title: 'Email Action Configuration',
+          content: 'For email actions, configure the template, subject line, sender information, and delivery timing. Enable tracking for opens and clicks to measure engagement. Use the test feature to send sample emails.',
+          duration: 45
+        },
+        {
+          id: 'settings-3',
+          title: 'SMS and Notifications',
+          content: 'SMS actions require message content, sender number, and timing. Keep messages under 160 characters for best delivery. Enable opt-out compliance to respect unsubscribe requests automatically.',
+          duration: 35
+        },
+        {
+          id: 'settings-4',
+          title: 'Conditional Logic',
+          content: 'Condition nodes create branching workflows. Configure the field to check, comparison operator, and value. This creates Yes and No paths for different outcomes based on contact data.',
+          duration: 50
         }
       ]
     }
